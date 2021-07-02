@@ -1,0 +1,33 @@
+# Ignore everything
+*
+# Unignore some
+
+# folders
+!*/
+
+# documents
+!*.md
+
+# build files
+!bootstrap.sh
+!configure.ac
+!Makefile.am
+!reset
+!version
+!CMakeLists.txt
+!*.cmake
+!*.cmake.in
+
+# source files
+!*.h.in
+!*.h
+!*.c
+!*.cpp
+
+# config files
+!*.cfg
+
+# git files
+!.gitignore
+
+defines.h

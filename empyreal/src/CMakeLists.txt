@@ -1,0 +1,18 @@
+#
+target_sources(empyreal
+    PRIVATE
+        config.cpp
+        connection.cpp
+        database.cpp
+        file.cpp
+        ftp.cpp
+        ftplist.cpp
+        logger.cpp
+        main.cpp
+        Makefile
+        msg.cpp
+        node.cpp
+        socket.cpp
+        ssh.cpp
+        util.cpp
+)

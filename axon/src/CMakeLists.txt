@@ -1,0 +1,19 @@
+#
+target_sources(axon
+    PRIVATE
+	aes.cpp
+	config.cpp
+	connection.cpp
+	database.cpp
+	dmi.cpp
+	file.cpp
+	ftp.cpp
+	ftplist.cpp
+	log.cpp
+	md5.cpp
+	message.cpp
+	mml.cpp
+	socket.cpp
+	ssh.cpp
+	util.cpp
+)
