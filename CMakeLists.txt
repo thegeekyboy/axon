@@ -1,32 +1,26 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-set(CMAKE_C_COMPILER "gcc")
-set(CMAKE_CXX_COMPILER "g++")
+project(medutils VERSION 1.0.0 DESCRIPTION "mediation toolchain" LANGUAGES C CXX)
+
+#set(CMAKE_C_COMPILER "gcc")
+#set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -g" ${CMAKE_CXX_FLAGS})
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-project(tcn VERSION 1.1.0 DESCRIPTION "tcn wrapper for kafka" LANGUAGES C CXX)
-
 set(default_build_type "Release")
+
 if(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_BUILD_TYPE Release)
 endif()
 
-string(REGEX MATCH "([0-9]*)" _ ${PROJECT_VERSION})
-set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
-
-
-add_library(tcn SHARED "")
-include_directories(include)
-add_subdirectory(src)
-add_subdirectory(test)
-
-set_target_properties(tcn PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
-
-target_compile_features(tcn PUBLIC cxx_std_11)
+if (UNIX)
+  # prevent Unknown CMake command "check_function_exists".
+  include(CheckFunctionExists)
+endif (UNIX)
 
 ##############################################################################
 ## Finding the libraries and packages										 #
@@ -37,6 +31,7 @@ find_package(PkgConfig REQUIRED)
 # pkg_check_modules(RDKAFKA REQUIRED rdkafka)
 # include_directories (${RDKAFKA_INCLUDE_DIRS})
 # link_directories (${RDKAFKA_LIBRARY_DIRS})
+
 ## systemd unit file path
 pkg_check_modules(SYSTEMD "systemd")
 if (SYSTEMD_FOUND AND "${SYSTEMD_SERVICES_INSTALL_DIR}" STREQUAL "")
@@ -48,11 +43,11 @@ endif()
 if (SYSTEMD_FOUND)
 	set(WITH_SYSTEMD "ON")
 	message(STATUS "systemd services install dir: ${SYSTEMD_SERVICES_INSTALL_DIR}")
-    configure_file(extras/sentinel.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service)
-    install (
-        FILES ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service 
-        DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
-    )
+    # configure_file(extras/sentinel.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service)
+    # install (
+    #     FILES ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service 
+    #     DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
+    # )
 else()
 	set(WITH_SYSTEMD "OFF")
 endif (SYSTEMD_FOUND)
@@ -143,7 +138,7 @@ if(CMAKE_USE_LIBSSH2)
 
         # now check for specific libssh2 symbols as they were added in different versions
         set(CMAKE_EXTRA_INCLUDE_FILES "libssh2.h")
-        #check_function_exists(libssh2_version           HAVE_LIBSSH2_VERSION)
+        check_function_exists(libssh2_version           HAVE_LIBSSH2_VERSION)
         #check_function_exists(libssh2_init              HAVE_LIBSSH2_INIT)
         #check_function_exists(libssh2_exit              HAVE_LIBSSH2_EXIT)
         #check_function_exists(libssh2_scp_send64        HAVE_LIBSSH2_SCP_SEND64)
@@ -163,6 +158,9 @@ if (CONFIG++_FOUND)
 else (NOT CONFIG++_FOUND)
     message(FATAL_ERROR "Config++ library not found!")
 endif ()
+
+# BLKID
+find_package(blkid REQUIRED)
 
 # AWS CPP SDK
 find_package(AWSSDK REQUIRED COMPONENTS s3)
@@ -212,12 +210,6 @@ else (NOT SERDES_FOUND)
 	message(FATAL_ERROR "SERDES library not found!")
 endif ()
 
-##############################################################################
-configure_file(extras/tcn.pc.in tcn.pc @ONLY)
-##############################################################################
 
-include_directories(${INCLUDE_DIRS})
-link_libraries(${LIBRARIES})
-target_link_libraries(tcn PRIVATE ${LIBRARIES})
-install(TARGETS tcn LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${CMAKE_BINARY_DIR}/tcn.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+add_subdirectory(axon)
+add_subdirectory(empyreal)
