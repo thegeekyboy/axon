@@ -73,7 +73,7 @@ namespace axon
 			{
 				if (libssh2_channel_request_pty(_channel, term.c_str()) )
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Could not request a pty.");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not request a pty.");
 				}
 			}
 
@@ -88,12 +88,12 @@ namespace axon
 				this->_md5  = libssh2_hostkey_hash(s, LIBSSH2_HOSTKEY_HASH_MD5);
 				if(this->_md5 == NULL)
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Could not get MD5 signature.");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not get MD5 signature.");
 				}
 				this->_sha1 = libssh2_hostkey_hash(s, LIBSSH2_HOSTKEY_HASH_SHA1);
 				if(this->_sha1 == NULL)
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Could not get SHA1 signature.");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not get SHA1 signature.");
 				}
 			}
 
@@ -196,7 +196,7 @@ namespace axon
 				
 				if (connect(_sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0)
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Socket Exception!");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Socket Exception!");
 				}
 				
 				libssh2_session_set_blocking(this->_session, 1);
@@ -218,7 +218,7 @@ namespace axon
 					else if (_rc == LIBSSH2_ERROR_PROTO)
 						_errstr = "An invalid SSH protocol response was received on the socket";
 
-					throw axon::exception(__FILE__, __LINE__, __func__, "libssh2_session_handshake() - " + _errstr);
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "libssh2_session_handshake() - " + _errstr);
 				}
 			}
 
@@ -266,7 +266,7 @@ namespace axon
 					else
 						_errstr = "Generic failure";
 
-					throw axon::exception(__FILE__, __LINE__, __func__, "libssh2_userauth_password() - " + _errstr);
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "libssh2_userauth_password() - " + _errstr);
 				}
 			}
 
@@ -276,7 +276,7 @@ namespace axon
 				// TODO Check the return value for the specific error.
 				if (!(_channel = libssh2_channel_open_session(this->_session)))
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Could not open channel");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not open channel");
 				}
 				channel* c = new channel(_channel);
 				return c;
@@ -304,7 +304,7 @@ namespace axon
 
 				if (!(_sftp = libssh2_sftp_init(_session)))
 				{
-					throw axon::exception(__FILE__, __LINE__, __func__, "Cannot initialize SFTP Session");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot initialize SFTP Session");
 				}
 
 				return true;
@@ -335,15 +335,15 @@ namespace axon
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 
@@ -397,15 +397,15 @@ namespace axon
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 
@@ -495,15 +495,15 @@ namespace axon
 				if ((i = libssh2_sftp_rename(_sftp, srcx.c_str(), destx.c_str())) != 0)
 				{
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 
@@ -523,15 +523,15 @@ namespace axon
 				if ((i = libssh2_sftp_unlink(_sftp, srcx.c_str())) != 0)
 				{
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 
@@ -561,20 +561,20 @@ namespace axon
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 
 				if (!(fp = fopen(dest.c_str(), "wb")))
-					throw axon::exception(__FILE__, __LINE__, __func__, "Error opening file for writing");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Error opening file for writing");
 
 				if (compress)
 				{
@@ -586,7 +586,7 @@ namespace axon
 						fclose(fp);
 						unlink(dest.c_str());
 
-						throw axon::exception(__FILE__, __LINE__, __func__, "Could not open compression stream");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not open compression stream");
 					}
 				}
 
@@ -605,7 +605,7 @@ namespace axon
 								fclose(fp);
 								unlink(dest.c_str());
 
-								throw axon::exception(__FILE__, __LINE__, __func__, "Error in comppression stream");
+								throw axon::exception(__FILENAME__, __LINE__, __func__, "Error in comppression stream");
 							}
 						}
 						else
@@ -646,23 +646,23 @@ namespace axon
 				}
 
 				if (!(fp = fopen(src.c_str(), "rb")))
-					throw axon::exception(__FILE__, __LINE__, __func__, "Cannot open source file '" + src + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot open source file '" + src + "'");
 
 				if (!(hsftp = libssh2_sftp_open(_sftp, temp.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH)))
 				{
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILE__, __LINE__, __func__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILE__, __LINE__, __func__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __func__, "Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						fclose(fp);
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILE__, __LINE__, __func__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __func__, get_sftp_error_desc(sftperr));
 					}
 				}
 

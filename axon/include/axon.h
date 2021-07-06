@@ -27,6 +27,8 @@
 #define PATH_MAX 260
 #endif
 
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
 // AXON Namespace
 namespace axon
 {

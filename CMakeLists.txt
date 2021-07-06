@@ -18,7 +18,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if (UNIX)
-  # prevent Unknown CMake command "check_function_exists".
   include(CheckFunctionExists)
 endif (UNIX)
 
@@ -34,12 +33,14 @@ find_package(PkgConfig REQUIRED)
 
 ## systemd unit file path
 pkg_check_modules(SYSTEMD "systemd")
+
 if (SYSTEMD_FOUND AND "${SYSTEMD_SERVICES_INSTALL_DIR}" STREQUAL "")
 	execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=systemdsystemunitdir systemd OUTPUT_VARIABLE SYSTEMD_SERVICES_INSTALL_DIR)
 	string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_SERVICES_INSTALL_DIR	"${SYSTEMD_SERVICES_INSTALL_DIR}")
 elseif (NOT SYSTEMD_FOUND AND SYSTEMD_SERVICES_INSTALL_DIR)
 	message (FATAL_ERROR "Variable SYSTEMD_SERVICES_INSTALL_DIR is defined, but we can't find systemd using pkg-config")
 endif()
+
 if (SYSTEMD_FOUND)
 	set(WITH_SYSTEMD "ON")
 	message(STATUS "systemd services install dir: ${SYSTEMD_SERVICES_INSTALL_DIR}")
@@ -54,6 +55,7 @@ endif (SYSTEMD_FOUND)
 
 # Crypt
 find_package(Crypt REQUIRED)
+
 if (CRYPT_FOUND)
     list(APPEND INCLUDE_DIRS ${CRYPT_INCLUDE_DIR})
     list(APPEND LIBRARIES ${CRYPT_LIBRARIES})
@@ -70,6 +72,7 @@ set(HAVE_LIBSSH2_H OFF)
 
 # OpenSSL
 find_package (OpenSSL REQUIRED)
+
 if (OPENSSL_FOUND)
     list(APPEND INCLUDE_DIRS ${OPENSSL_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${OPENSSL_LIBRARIES})
@@ -79,6 +82,7 @@ endif ()
 
 # CURL
 find_package (CURL REQUIRED)
+
 if (CURL_FOUND)
     list(APPEND INCLUDE_DIRS ${CURL_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${CURL_LIBRARIES})
@@ -88,6 +92,7 @@ endif ()
 
 # BZip2
 find_package (BZip2 REQUIRED)
+
 if (BZIP2_FOUND)
     list(APPEND INCLUDE_DIRS ${BZIP2_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${BZIP2_LIBRARIES})
@@ -96,10 +101,12 @@ else (NOT BZIP2_FOUND)
 endif ()
 
 # Boost (regex, iostreams, system)
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
 find_package(Boost REQUIRED COMPONENTS regex iostreams system) 
+
 if (Boost_FOUND)
     list(APPEND INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${Boost_LIBRARIES})
@@ -109,6 +116,7 @@ endif ()
 
 # SQLite3
 find_package(SQLite3 REQUIRED)
+
 if (SQLite3_FOUND)
     list(APPEND INCLUDE_DIRS ${SQLite3_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${SQLite3_LIBRARIES})
@@ -118,7 +126,9 @@ endif ()
 
 # SSH2
 if(CMAKE_USE_LIBSSH2)
+
     find_package(LibSSH2)
+
     if(LIBSSH2_FOUND)
         list(APPEND CURL_LIBS ${LIBSSH2_LIBRARY})
         set(CMAKE_REQUIRED_LIBRARIES ${LIBSSH2_LIBRARY})
@@ -152,6 +162,7 @@ endif()
 
 # Config++
 find_package(Config++ REQUIRED)
+
 if (CONFIG++_FOUND)
     list(APPEND INCLUDE_DIRS ${CONFIG++_INCLUDE_DIR})
     list(APPEND LIBRARIES ${CONFIG++_LIBRARY})
@@ -164,6 +175,7 @@ find_package(blkid REQUIRED)
 
 # AWS CPP SDK
 find_package(AWSSDK REQUIRED COMPONENTS s3)
+
 if (AWSSDK_FOUND)
     list(APPEND INCLUDE_DIRS ${AWSSDK_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${AWSSDK_LINK_LIBRARIES})
@@ -173,6 +185,7 @@ endif ()
 
 # Samba share
 find_package(SMB2 REQUIRED)
+
 if (SMB2_FOUND)
     list(APPEND INCLUDE_DIRS ${SMB2_INCLUDE_DIRS})
     list(APPEND LIBRARIES ${SMB2_LIBRARIES})
@@ -182,6 +195,7 @@ endif ()
 
 # rdkafka
 find_package(RdKafka REQUIRED)
+
 if (RDKAFKA_FOUND)
 	list(APPEND INCLUDE_DIRS ${RDKAFKA_INCLUDE_DIR})
 	list(APPEND LIBRARIES ${RDKAFKA_LIBRARIES})
@@ -192,6 +206,7 @@ endif ()
 
 # avro
 find_package(AVRO REQUIRED)
+
 if (AVRO_FOUND)
 	list(APPEND INCLUDE_DIRS ${AVRO_INCLUDE_DIR})
 	list(APPEND LIBRARIES ${AVRO_LIBRARIES})
@@ -202,14 +217,16 @@ endif ()
 
 # SERDES
 find_package(SerDes REQUIRED)
+
 if (SERDES_FOUND)
 	list(APPEND INCLUDE_DIRS ${SERDES_INCLUDE_DIR})
 	list(APPEND LIBRARIES ${SERDES_LIBRARIES})
-	MESSAGE(STATUS "Found SERDES at ${SERDES_LIBRARIES}")
+	message(STATUS "Found SERDES at ${SERDES_LIBRARIES}")
 else (NOT SERDES_FOUND)
 	message(FATAL_ERROR "SERDES library not found!")
 endif ()
 
 
 add_subdirectory(axon)
-add_subdirectory(empyreal)
+# add_subdirectory(empyreal)
+add_subdirectory(sentinel)

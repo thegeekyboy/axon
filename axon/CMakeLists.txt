@@ -12,14 +12,17 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 set_target_properties(axon PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+set(AXON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "")
 
-target_compile_features(axon PUBLIC cxx_std_11)
+#target_compile_features(axon PUBLIC cxx_std_11)
 
 ##############################################################################
 configure_file(extras/axon.pc.in axon.pc @ONLY)
 ##############################################################################
 
-include_directories(${INCLUDE_DIRS})
+message(STATUS "INCLUDE_DIRS is set to ${INCLUDE_DIRS}")
+
+# include_directories(${INCLUDE_DIRS})
 link_libraries(${LIBRARIES})
 target_link_libraries(axon PRIVATE ${LIBRARIES})
 

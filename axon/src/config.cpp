@@ -36,10 +36,10 @@ namespace axon
 		if (source._open)
 		{
 			if (access(source._filename.c_str(), F_OK) == -1)
-				throw axon::exception(__FILE__, __LINE__, __func__, "[Copy] Cannot find configuration file (" + source._filename + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "[Copy] Cannot find configuration file (" + source._filename + ")");
 
 			if(!config_read_file(&_cfg, source._filename.c_str()))
-				throw axon::exception(__FILE__, __LINE__, __func__, "[Copy] Error reading config file at line #" + std::to_string(config_error_line(&_cfg)) + " - " + config_error_text(&_cfg));
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "[Copy] Error reading config file at line #" + std::to_string(config_error_line(&_cfg)) + " - " + config_error_text(&_cfg));
 
 			_filename = source._filename;
 			_path = source._path;
@@ -66,10 +66,10 @@ namespace axon
 		_filename = filename;
 
 		if (access(filename.c_str(), F_OK) == -1)
-			throw axon::exception(__FILE__, __LINE__, __func__, "Cannot find configuration file (" + filename + ")");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot find configuration file (" + filename + ")");
 
 		if(!config_read_file(&_cfg, filename.c_str()))
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config file at line #" + std::to_string(config_error_line(&_cfg)) + " - " + config_error_text(&_cfg));
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config file at line #" + std::to_string(config_error_line(&_cfg)) + " - " + config_error_text(&_cfg));
 
 		_root = config_root_setting(&_cfg);
 
@@ -85,7 +85,7 @@ namespace axon
 		if ((_root = config_setting_get_member(oldroot, path.c_str())) == NULL)
 		{
 			_root = oldroot;
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error opening root config parameter '" + path + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error opening root config parameter '" + path + "'");
 		}
 
 		_path.push(path);
@@ -114,10 +114,10 @@ namespace axon
 		std::string sname;
 
 		if ((_setting = config_setting_get_elem(_root, index)) == NULL)
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter name for index '" + std::to_string(index) + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter name for index '" + std::to_string(index) + "'");
 
 		if ((cname = config_setting_name(_setting)) == NULL)
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter name");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter name");
 
 		sname = cname;
 
@@ -153,10 +153,10 @@ namespace axon
 				return GROUP;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
 
 		return UNKNOWN;
 	}
@@ -186,10 +186,10 @@ namespace axon
 				return GROUP;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
 
 		return UNKNOWN;
 	}
@@ -214,15 +214,15 @@ namespace axon
 				const char *retval;
 
 				if ((retval = config_setting_get_string(setting)) == NULL)
-					throw axon::exception(__FILE__, __LINE__, __func__, "Unexpected error while reading parameter '" + path + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Unexpected error while reading parameter '" + path + "'");
 
 				strval = retval;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
 
 		proxy temp(intval, strval);
 
@@ -245,14 +245,14 @@ namespace axon
 			{
 				const char *strval;
 				if ((strval = config_setting_get_string(setting)) == NULL)
-					throw axon::exception(__FILE__, __LINE__, __func__, "Unexpected error while reading parameter '" + path + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Unexpected error while reading parameter '" + path + "'");
 				retval = strval;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter '" + path + "'");		
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter '" + path + "'");		
 
 		_setting = setting;
 
@@ -272,10 +272,10 @@ namespace axon
 				retval = config_setting_get_int(setting);
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter '" + path + "'");
 
 		_setting = setting;
 
@@ -302,15 +302,15 @@ namespace axon
 				const char *retval;
 
 				if ((retval = config_setting_get_string(setting)) == NULL)
-					throw axon::exception(__FILE__, __LINE__, __func__, "Unexpected error while reading parameter index '" + std::to_string(index) + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Unexpected error while reading parameter index '" + std::to_string(index) + "'");
 
 				strval = retval;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
 
 		proxy temp(intval, strval);
 
@@ -333,14 +333,14 @@ namespace axon
 			{
 				const char *strval;
 				if ((strval = config_setting_get_string(setting)) == NULL)
-					throw axon::exception(__FILE__, __LINE__, __func__, "Unexpected error while reading parameter index '" + std::to_string(index) + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __func__, "Unexpected error while reading parameter index '" + std::to_string(index) + "'");
 				retval = strval;
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");		
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");		
 
 		_setting = setting;
 
@@ -360,10 +360,10 @@ namespace axon
 				retval = config_setting_get_int(setting);
 			}
 			else
-				throw axon::exception(__FILE__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
 		else
-			throw axon::exception(__FILE__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Error reading config parameter index '" + std::to_string(index) + "'");
 
 		_setting = setting;
 

@@ -4,6 +4,7 @@
 
 # folders
 !*/
+build
 
 # documents
 !*.md
@@ -31,4 +32,3 @@
 !.gitignore
 
 defines.h
-build

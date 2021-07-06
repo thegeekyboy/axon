@@ -17,11 +17,10 @@ namespace axon
 
 	bool message::open() throw(axon::exception)
 	{
-
 		if ((_mq = mq_open(QUEUE_NAME, O_RDWR | O_CREAT | O_NONBLOCK, 0644, &_attr)) == (mqd_t) -1)
 		{
 			std::string _errstr = strerror(errno);
-			throw axon::exception(__FILE__, __LINE__, __func__, "Cannot open message queue, " + _errstr);
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot open message queue, " + _errstr);
 		}
 
 		return true;
@@ -54,7 +53,7 @@ namespace axon
 		if (mq_send(_mq, (char *) &buf, sizeof(buf), 0) < 0)
 		{
 			std::string _errstr = strerror(errno);
-			throw axon::exception(__FILE__, __LINE__, __func__, "Cannot send message, " + _errstr);
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot send message, " + _errstr);
 		}
 
 		return true;
@@ -78,7 +77,7 @@ namespace axon
 			if (errno != EAGAIN)
 			{
 				std::string _errstr = strerror(errno);
-				throw axon::exception(__FILE__, __LINE__, __func__, "Cannot read message, " + _errstr);
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot read message, " + _errstr);
 			}
 		}
 
@@ -90,7 +89,7 @@ namespace axon
 		if (mq_send(_mq, (char *) &buf, sizeof(buf), 0) < 0)
 		{
 			std::string _errstr = strerror(errno);
-			throw axon::exception(__FILE__, __LINE__, __func__, "Cannot send message, " + _errstr);
+			throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot send message, " + _errstr);
 		}
 
 		return *this;

@@ -451,7 +451,7 @@ namespace axon
 			u8 *buf;
 
 			if (getuid() != 0)
-				throw axon::exception(__FILE__, __LINE__, __func__, "You need to be a superuser to access this method");
+				throw axon::exception(__FILENAME__, __LINE__, __func__, "You need to be a superuser to access this method");
 
 			opt.devmem = DMI_H_DEFAULT_MEM_DEV;
 			opt.flags = 0;
