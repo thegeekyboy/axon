@@ -22,19 +22,19 @@ namespace tcn
 
 				if (!boost::regex_match(hostname, regex_ipaddr))
 				{
-					throw cException(__FILE__, __LINE__, __func__, "Wrong hostname format");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname format");
 					return;
 				}
 
 				if (username.size() <= 0)
 				{
-					throw cException(__FILE__, __LINE__, __func__, "Username cannot be empty");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Username cannot be empty");
 					return;
 				}
 
 				if (!boost::regex_match(username, regex_username))
 				{
-					throw cException(__FILE__, __LINE__, __func__, "Username format is wrong");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Username format is wrong");
 					return;
 				}
 

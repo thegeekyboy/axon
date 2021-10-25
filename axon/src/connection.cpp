@@ -23,19 +23,19 @@ namespace axon
 
 				if (!boost::regex_match(hostname, regex_ipaddr))
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Wrong hostname format");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname format");
 					return;
 				}
 
 				if (username.size() <= 0)
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Username cannot be empty");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username cannot be empty");
 					return;
 				}
 
 				if (!boost::regex_match(username, regex_username))
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Username format is wrong");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username format is wrong");
 					return;
 				}
 

@@ -9,6 +9,7 @@ target_sources(axon
 	file.cpp
 	ftp.cpp
 	ftplist.cpp
+	kerberos.cpp
 	log.cpp
 	md5.cpp
 	message.cpp

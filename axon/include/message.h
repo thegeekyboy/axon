@@ -13,7 +13,7 @@
 #define CHECK(x) \
     do { \
         if (!(x)) { \
-            fprintf(stderr, "%s:%d: ", __func__, __LINE__); \
+            fprintf(stderr, "%s:%d: ", __PRETTY_FUNCTION__, __LINE__); \
             perror(#x); \
             exit(-1); \
         } \

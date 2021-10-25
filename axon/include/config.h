@@ -56,7 +56,7 @@ namespace axon
 		bool reload();
 
 		bool open(std::string path);
-		bool back();
+		bool close();
 		std::string name(int);
 		int size();
 

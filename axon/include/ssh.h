@@ -77,6 +77,7 @@ namespace axon
 				auth_methods_t get_auth_methods(std::string username);
 				fingerprint get_host_fingerprint();
 				void login(std::string username, std::string password) throw(axon::exception);
+				void login(std::string username, std::string pubkey, std::string privkey) throw(axon::exception);
 				channel* open_channel();
 			};
 
@@ -88,6 +89,7 @@ namespace axon
 
 			public:
 				sftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { _sftp = NULL; };
+				~sftp();
 
 				bool connect();
 				bool disconnect();

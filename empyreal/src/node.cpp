@@ -225,7 +225,7 @@ nodes::~nodes()
 {
 	while(!_node.empty())
 	{
-		node *temp = _node.back();
+		node *temp = _node.close();
 		delete temp;
 		_node.pop_back();
 	}
@@ -235,7 +235,7 @@ int nodes::reset()
 {
 	while(!_node.empty())
 	{
-		node *temp = _node.back();
+		node *temp = _node.close();
 		delete temp;
 		_node.pop_back();
 	}

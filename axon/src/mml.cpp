@@ -40,7 +40,7 @@ namespace axon
 
 				} catch(std::exception &e) {
 
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Generic: Encountered exception while creating thread!");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Generic: Encountered exception while creating thread!");
 				}
 
 				return true;
@@ -62,7 +62,7 @@ namespace axon
 
 				} catch (boost::regex_error &e) {
 
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Regex: Error compiling condition expression");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Regex: Error compiling condition expression");
 				}
 
 				return true;
@@ -187,7 +187,7 @@ namespace axon
 				_password = password;
 
 				if (exec("LGI:OP=\"" + _username + "\", PWD=\"" + _password + "\";", &response, 5) != 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Login error!");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Login error!");
 
 				return true;
 			}
@@ -195,10 +195,10 @@ namespace axon
 			bool huamsc::logout()
 			{
 				if (_msc.size() > 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Still registered with " + _msc + ", unregister first.");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Still registered with " + _msc + ", unregister first.");
 
 				if (exec("LGO:OP=\"" + _username + "\";") != 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Logout error");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Logout error");
 
 				return true;
 			}
@@ -207,10 +207,10 @@ namespace axon
 			{
 
 				if (_msc.size() > 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Already registered with " + _msc);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Already registered with " + _msc);
 
 				if (exec("REG NE:NAME=\"" + neid + "\";") != 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Error connecting to Network Element");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Error connecting to Network Element");
 
 				_msc = neid;
 
@@ -220,7 +220,7 @@ namespace axon
 			bool huamsc::unreg()
 			{
 				if (_msc.size() <= 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Not registered with any MSC.");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
 				if (exec("UNREG NE:NAME=\"" + _msc + "\";") != 0)
 					return false;
@@ -235,7 +235,7 @@ namespace axon
 				std::vector<std::string> response;
 
 				if (_msc.size() <= 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Not registered with any MSC.");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
 				short int retval = exec("ADD CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL, FUNC=NIN;", &response);
 
@@ -252,7 +252,7 @@ namespace axon
 				std::vector<std::string> response;
 
 				if (_msc.size() <= 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Not registered with any MSC.");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
 				short int retval = exec("RMV CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL;", &response);
 
@@ -269,13 +269,13 @@ namespace axon
 				std::vector<std::string> response;
 
 				if (_msc.size() <= 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Not registered with any MSC.");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
 				if (subs.msisdn.size() == 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Invalid MSISDN");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Invalid MSISDN");
 
 				if (exec("DSP USRINF: UNT=MSISDN, D=K'" + subs.msisdn + ";", &response) != 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "MSC: Error connecting to Network Element");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Error connecting to Network Element");
 
 				for (unsigned int i = 0; i < response.size(); i++)
 				{
@@ -322,7 +322,7 @@ namespace axon
 				_password = password;
 
 				if (exec("LGI: HLRSN=1, OPNAME=\"" + _username + "\", PWD=\"" + _password + "\";") != 1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Login error");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Login error");
 
 				return true;
 			}
@@ -330,7 +330,7 @@ namespace axon
 			bool huahlr::logout()
 			{
 				if (exec("LGO;") != 1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Logout error");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Logout error");
 
 				return true;
 			}
@@ -338,7 +338,7 @@ namespace axon
 			bool huahlr::remove(std::string msisdn)
 			{
 				if (exec("RMV SUB: ISDN=\"" + msisdn + "\", RMVKI=TRUE;") != 1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Error removing subscriber");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Error removing subscriber");
 
 				return false;
 			}
@@ -348,10 +348,10 @@ namespace axon
 				std::vector<std::string> response;
 
 				if (subs.msisdn.size() == 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Invalid MSISDN");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Invalid MSISDN");
 
 				if (exec("LST VLRNUM: ISDN=\"" + subs.msisdn + "\";", &response) != 1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "HLR: Error performing query on subscriber");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "HLR: Error performing query on subscriber");
 
 				for (unsigned int i = 0; i < response.size(); i++)
 				{

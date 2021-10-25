@@ -14,9 +14,11 @@
 #include <iomanip>
 #include <atomic>
 #include <queue>
+#include <condition_variable>
 
 #include <boost/format.hpp>
 #include <boost/regex.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -53,11 +55,13 @@
 
 #define VERSION "v2.0.0"
 
-#define MAX_INSTANCE 64
-#define MAXBUF 262144
+#define MAX_INSTANCE 512
+#define SZBUFFER 262144
 #define MSGSIZE 2048
 
 // Custome Headers
+#include <interface.h>
 #include <node.h>
+#include <cluster.h>
 
 #endif

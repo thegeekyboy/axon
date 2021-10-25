@@ -38,13 +38,13 @@ namespace tcn
 				struct linger lng = { 0, 0 };
 				
 				if ((_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
-					throw cException(__FILE__, __LINE__, __func__, "Error initializing socket()");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error initializing socket()");
 
 				if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, (void *) &on, sizeof(on)) == -1)
-					throw cException(__FILE__, __LINE__, __func__, "Error setting options with setsockopt()");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error setting options with setsockopt()");
 
 				if (setsockopt(_fd, SOL_SOCKET, SO_LINGER, (void *) &lng, sizeof(lng)) == -1)
-					throw cException(__FILE__, __LINE__, __func__, "Error setting linger with setsockopt()");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error setting linger with setsockopt()");
 
 				return true;
 			}
@@ -82,16 +82,16 @@ namespace tcn
 				if (inet_aton(_host.c_str(), &sin.sin_addr) == 0)
 				{
 					if ((phe = gethostbyname(_host.c_str())) == NULL)
-						throw cException(__FILE__, __LINE__, __func__, "Cannot resolve hostname");
+						throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Cannot resolve hostname");
 
 					memcpy((char *)&sin.sin_addr, phe->h_addr, phe->h_length);
 				}
 
 				if (connect(_fd, (struct sockaddr *)&sin, sizeof(sin)) == -1)
-					throw cException(__FILE__, __LINE__, __func__, "Socket connection connect() error");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Socket connection connect() error");
 
 				if (!nonblocking(_fd, true))
-					throw cException(__FILE__, __LINE__, __func__, "Could not set non-blocking mode");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Could not set non-blocking mode");
 
 				_alive = true;
 
@@ -230,7 +230,7 @@ namespace tcn
 				//std::cout<<"SENT:("<<data.size()<<")>"<<data<<std::endl;
 
 				if (write(data.c_str(), data.size()) <= 0)
-					throw cException(__FILE__, __LINE__, __func__, "Error writing()-ing to socket");
+					throw cException(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error writing()-ing to socket");
 
 				return true;
 			}

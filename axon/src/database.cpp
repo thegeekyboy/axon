@@ -43,12 +43,12 @@ namespace axon
 			char *errmsg = 0;
 
 			if (_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database already open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database already open");
 
 			retcode = sqlite3_open(filename.c_str(), &_dbp);
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot open database (" + filename + ") - " + sqlite3_errmsg(_dbp));
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database (" + filename + ") - " + sqlite3_errmsg(_dbp));
 
 			sqlite3_exec(_dbp, "PRAGMA synchronous = OFF", NULL, NULL, &errmsg);
 			//sqlite3_exec(inst->db, "PRAGMA journal_mode = MEMORY", NULL, NULL, &errmsg);
@@ -64,16 +64,16 @@ namespace axon
 			int retcode;
 
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (_query)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot close while query in progress");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot close while query in progress");
 			// Need to insert a procedure to check if there are any finalization pending on prepared statments
 
 			retcode = sqlite3_close(_dbp);
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "There was an error closing the database");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error closing the database");
 
 			return true;
 		}
@@ -81,7 +81,7 @@ namespace axon
 		bool sqlite::flush()
 		{
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			sqlite3_exec(_dbp, "COMMIT;", 0, 0, 0);
 
@@ -95,10 +95,10 @@ namespace axon
 			std::string errstr;
 
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (_query)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot execute while query in progress");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot execute while query in progress");
 
 			{
 				// Scope the lock guard locally just in case
@@ -109,7 +109,7 @@ namespace axon
 			if (retcode != SQLITE_OK)
 			{
 				errstr = errmsg;
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Error executing sql statement - " + errstr);
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error executing sql statement - " + errstr);
 			}
 
 			return true;
@@ -120,10 +120,10 @@ namespace axon
 			int retcode;
 
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (_query)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Another query is in progress");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Another query is in progress");
 
 			retcode = sqlite3_prepare_v2(_dbp, sqltext.c_str(), sqltext.size(), &_stmt, 0);
 
@@ -132,7 +132,7 @@ namespace axon
 				sqlite3_reset(_stmt);
 				sqlite3_finalize(_stmt);
 
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "There was an error compiling sql statement");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error compiling sql statement");
 			}
 
 			_query = true;
@@ -146,10 +146,10 @@ namespace axon
 			int retcode;
 
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (!_query)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "No fetch in progress");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
 
 			retcode = sqlite3_step(_stmt);
 
@@ -161,7 +161,7 @@ namespace axon
 			else if (retcode == SQLITE_DONE)
 				return false;
 			else
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "There was an error traversing result");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error traversing result");
 
 			return true;
 		}
@@ -171,16 +171,16 @@ namespace axon
 			int retcode;
 
 			if (!_open)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Database not open");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (!_query)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "No statement compiled to close");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No statement compiled to close");
 
 			retcode = sqlite3_finalize(_stmt);
 			_query = false;
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Error freeing complied statement");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error freeing complied statement");
 
 			return true;
 		}
@@ -192,7 +192,7 @@ namespace axon
 			retcode = sqlite3_bind_int(_stmt, _index, value);
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "There was an error binding values");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error binding values");
 
 			_index++;
 
@@ -207,10 +207,10 @@ namespace axon
 
 			// Need to find an alternative to this?!
 			// if (sqlite3_column_type(_stmt, _index) != SQLITE_TEXT)
-				// throw axon::exception(__FILENAME__, __LINE__, __func__, "Bind variable type is not compatable with row type");
+				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Bind variable type is not compatable with row type");
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "There was an error binding values");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error binding values");
 
 			_index++;
 
@@ -220,10 +220,10 @@ namespace axon
 		sqlite& sqlite::operator>>(int &value)
 		{
 			if (_colidx >= sqlite3_column_count(_stmt))
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
 			if (sqlite3_column_type(_stmt, _colidx) != SQLITE_INTEGER)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Variable type is not compatable with row type");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
 
 			value = sqlite3_column_int(_stmt, _colidx);
 
@@ -237,10 +237,10 @@ namespace axon
 			char *tmp;
 
 			if (_colidx >= sqlite3_column_count(_stmt))
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
 			if (sqlite3_column_type(_stmt, _colidx) != SQLITE_TEXT)
-				throw axon::exception(__FILENAME__, __LINE__, __func__, "Variable type is not compatable with row type");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
 
 			if ((tmp = (char *) sqlite3_column_text(_stmt, _colidx)) != NULL)
 				value = tmp;

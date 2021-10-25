@@ -39,13 +39,13 @@ namespace axon
 				struct linger lng = { 0, 0 };
 				
 				if ((_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Error initializing socket()");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error initializing socket()");
 
 				if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, (void *) &on, sizeof(on)) == -1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Error setting options with setsockopt()");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error setting options with setsockopt()");
 
 				if (setsockopt(_fd, SOL_SOCKET, SO_LINGER, (void *) &lng, sizeof(lng)) == -1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Error setting linger with setsockopt()");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error setting linger with setsockopt()");
 
 				return true;
 			}
@@ -85,16 +85,16 @@ namespace axon
 				if (inet_aton(_host.c_str(), &sin.sin_addr) == 0)
 				{
 					if ((phe = gethostbyname(_host.c_str())) == NULL)
-						throw axon::exception(__FILENAME__, __LINE__, __func__, "Cannot resolve hostname");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot resolve hostname");
 
 					memcpy((char *)&sin.sin_addr, phe->h_addr, phe->h_length);
 				}
 
 				if (connect(_fd, (struct sockaddr *)&sin, sizeof(sin)) == -1)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Socket connection connect() error");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Socket connection connect() error");
 
 				if (!nonblocking(_fd, true))
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Could not set non-blocking mode");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not set non-blocking mode");
 
 				_alive = true;
 
@@ -227,7 +227,7 @@ namespace axon
 				//std::cout<<"SENT:("<<data.size()<<")>"<<data<<std::endl;
 
 				if (write(data.c_str(), data.size()) <= 0)
-					throw axon::exception(__FILENAME__, __LINE__, __func__, "Error writing()-ing to socket");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error writing()-ing to socket");
 
 				return true;
 			}

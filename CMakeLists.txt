@@ -7,15 +7,25 @@ project(medutils VERSION 1.0.0 DESCRIPTION "mediation toolchain" LANGUAGES C CXX
 #set(CMAKE_C_COMPILER "gcc")
 #set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -g" ${CMAKE_CXX_FLAGS})
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" ${CMAKE_CXX_FLAGS})
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g") 
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(default_build_type "Release")
-
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
+
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+    message(STATUS "Configuring cmake for Debug build")
+    add_definitions(-DDEBUG)
+ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
+message(STATUS "Configuring cmake for Release build")
+ELSE()
+    message(STATUS "Unknown build type")
+ENDIF()
 
 if (UNIX)
   include(CheckFunctionExists)
@@ -105,7 +115,7 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost REQUIRED COMPONENTS regex iostreams system) 
+find_package(Boost REQUIRED COMPONENTS regex iostreams system thread) 
 
 if (Boost_FOUND)
     list(APPEND INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
@@ -225,7 +235,6 @@ if (SERDES_FOUND)
 else (NOT SERDES_FOUND)
 	message(FATAL_ERROR "SERDES library not found!")
 endif ()
-
 
 add_subdirectory(axon)
 # add_subdirectory(empyreal)

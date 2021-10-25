@@ -32,7 +32,8 @@
 // AXON Namespace
 namespace axon
 {
-	typedef unsigned char flags_t;
+	typedef unsigned int flags_t;
+	typedef unsigned int entry_t;
 
 	struct flags {
 
@@ -45,12 +46,26 @@ namespace axon
 		static const flags_t SOCKET = 64;
 	};
 
+	struct entrytypes {
+
+		static const entry_t FILE = 1;
+		static const entry_t SFTP = 2;
+		static const entry_t SCP = 4;
+		static const entry_t FTP = 8;
+		static const entry_t SAMBA = 16;
+		static const entry_t AWS = 32;
+		static const entry_t HDFS = 64;
+		static const entry_t DATABASE = 128;
+		static const entry_t KAFKA = 256;
+	};
+
 	struct entry {
 
 		std::string name;
 		int type;
 		long long size;
 		flags_t flag;
+		entry_t et;
 	};
 
 	struct licensekey
@@ -88,11 +103,13 @@ namespace axon
 	class exception : public std::exception {
 
 		char _what[4096];
+		char _msg[4096];
 
 	public:
 		exception(std::string filename, int linenum, std::string func, std::string msg)
 		{
 			sprintf(_what, "%s(%d) in %s(): %s", filename.c_str(), linenum, func.c_str(), msg.c_str());
+			strcpy(_msg, msg.c_str());
 		};
 
 		~exception() throw() {};
@@ -100,6 +117,11 @@ namespace axon
 		virtual const char* what() const throw () {
 			
 			return _what;
+		};
+
+		virtual const char* msg() const throw () {
+			
+			return _msg;
 		};
 	};
 
@@ -121,6 +143,7 @@ namespace axon
 // #include <connection.h>
 // #include <ssh.h>
 // #include <socket.h>
+// #include <file.h>
 // #include <ftplist.h>
 // #include <ftp.h>
 // #include <telecom.h>

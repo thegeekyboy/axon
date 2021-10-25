@@ -1,7 +1,9 @@
 #ifndef NODE_H
 #define NODE_H
 
-#define MAX_NODE 32
+#include <axon.h>
+#include <config.h>
+#include <log.h>
 
 #define NODE_CFG_NAME 'X'
 
@@ -41,13 +43,17 @@
 class node {
 
 	std::string _name, _shortdesc, _longdesc, _ipaddress, _username, _password, _privatekey, _bucket, _pickpath[5], _droppath, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _domain;
-	int _conftype, _status, _proto, _mode, _compress, _lookback, _sleeptime, _trim, _trigger;
+	int _conftype, _status, _proto, _mode, _auth, _compress, _lookback, _sleeptime, _trim, _trigger;
 
-	sqlite3 *_db;
-	
-	bool isdead, _canrun, _running;
+	bool isdead, _canrun, _running, _sleeping;
 	int *serial;
 	int _pid, _ppid;
+
+	axon::log *_log, dummy;
+
+	std::thread _th;
+	// std::condition_variable _cv;
+	// std::mutex cv_m;
 
 public:
 
@@ -58,38 +64,21 @@ public:
 	std::string operator[] (char i);
 	int operator[] (int i);
 
-	std::string &set(char);
-	int &set(int);
+	bool set(char, std::string);
+	bool set(int, int);
+	bool set(axon::log&);
 
 	int reset();
 	int disable();
-	int kill();
+	bool kill();
 
+	int sleep();
 	int monitor();
-	int run();
-	int running() { return _running; }
-};
-
-
-/* **** *
- * **** */
-
-class nodes {
-
-	std::vector<node *> _node;
-	bool _canrun;
-	bool _running;
-
-public:
-	nodes();
-	~nodes();
-	int reset();
-	int load(config_t);
-	int push(node &);
-	int killall();
-
 	bool running();
-	bool init();
+	bool wait();
+
+	bool start();
+	int run();
 };
 
 #endif
