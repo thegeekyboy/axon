@@ -1,7 +1,7 @@
 #include <axon.h>
-#include <socket.h>
-#include <telecom.h>
-#include <mml.h>
+#include <axon/socket.h>
+#include <axon/telecom.h>
+#include <axon/mml.h>
 
 namespace axon
 {

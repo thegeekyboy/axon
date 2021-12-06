@@ -1,5 +1,5 @@
 #include <axon.h>
-#include <config.h>
+#include <axon/config.h>
 
 namespace axon
 {

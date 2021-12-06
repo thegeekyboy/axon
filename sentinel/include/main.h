@@ -1,43 +1,6 @@
-#ifndef TCN_MAIN_H
-#define TCN_MAIN_H
+#ifndef SENTINEL_MAIN_H
+#define SENTINEL_MAIN_H
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <mutex>
-#include <cstdarg>
-#include <exception>
-#include <chrono>
-#include <typeinfo>
-#include <iomanip>
-#include <atomic>
-#include <queue>
-#include <condition_variable>
-
-#include <boost/format.hpp>
-#include <boost/regex.hpp>
-#include <boost/thread/thread.hpp>
-
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <sys/stat.h>
-
-// Library Headers
-#include <libconfig.h>
-#include <libssh2.h>
-#include <libssh2_sftp.h>
-#include <bzlib.h>
-#include <sqlite3.h>
-#include <curl/curl.h>
-
-#include <axon.h>
- 
 #ifndef __PRI64_PREFIX
 #ifdef WIN32
 #define __PRI64_PREFIX "I64"
@@ -59,7 +22,58 @@
 #define SZBUFFER 262144
 #define MSGSIZE 2048
 
-// Custome Headers
+// Library Headers
+#include <libconfig.h>
+#include <libssh2.h>
+#include <libssh2_sftp.h>
+#include <bzlib.h>
+#include <sqlite3.h>
+#include <curl/curl.h>
+
+// helper library
+#include <axon.h>
+#include <axon/config.h>
+
+// local types
+struct dbconf {
+
+	std::string path;
+	std::string username;
+	std::string password;
+	std::string gtt;
+	std::string list;
+	std::string error;
+
+	void load(axon::config &cfg)
+	{
+		char *s;
+
+		s = cfg.get("path");
+		path = s;
+		s = cfg.get("username");
+		username = s;
+		s = cfg.get("password");
+		password = s;
+		s = cfg.get("gtt");
+		gtt = s;
+		s = cfg.get("filelist");
+		list = s;
+		s = cfg.get("errors");
+		error = s;
+	};
+};
+
+template <
+    class result_t   = std::chrono::milliseconds,
+    class clock_t    = std::chrono::steady_clock,
+    class duration_t = std::chrono::milliseconds
+>
+auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+{
+    return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+}
+
+// local definitions
 #include <interface.h>
 #include <node.h>
 #include <cluster.h>

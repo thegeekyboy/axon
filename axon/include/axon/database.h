@@ -32,6 +32,8 @@ namespace axon
 			sqlite(std::string);
 			~sqlite();
 
+			sqlite(const sqlite&);
+
 			bool open(std::string);
 			bool close();
 			bool flush();
@@ -41,6 +43,8 @@ namespace axon
 			bool query(std::string);
 			bool next();
 			bool done();
+
+			std::string get(int);
 
 			sqlite& operator<<(int);
 			sqlite& operator<<(std::string&);

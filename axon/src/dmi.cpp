@@ -1,5 +1,5 @@
 #include <axon.h>
-#include <dmi.h>
+#include <axon/dmi.h>
 
 namespace axon
 {

@@ -44,6 +44,7 @@ namespace axon
 		static const flags_t BLOCK = 16;
 		static const flags_t FIFO = 32;
 		static const flags_t SOCKET = 64;
+		static const flags_t UNKNOWN = 64;
 	};
 
 	struct entrytypes {
@@ -150,6 +151,5 @@ namespace axon
 // #include <mml.h>
 
 // Global Variables
-
 
 #endif

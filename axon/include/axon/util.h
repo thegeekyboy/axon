@@ -8,6 +8,7 @@ namespace axon
 	std::vector<std::string> split(const std::string&, const char);
 	std::string hash(const std::string&);
 	bool exists(const std::string&, const std::string&);
+	bool execmd(const char *cmd, const char *name);
 }
 
 #endif

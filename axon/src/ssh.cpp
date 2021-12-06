@@ -1,6 +1,6 @@
 #include <axon.h>
-#include <connection.h>
-#include <ssh.h>
+#include <axon/connection.h>
+#include <axon/ssh.h>
 
 namespace axon
 {
@@ -161,6 +161,7 @@ namespace axon
 					__libshh2_session_count++;
 				}
 
+				_mode = auth_methods::PASSWORD;
 				_sock = socket(AF_INET, SOCK_STREAM, 0);
 				this->_session = libssh2_session_init();
 			}
@@ -236,7 +237,7 @@ namespace axon
 					types |= auth_methods::INTERACTIVE;
 				}
 				if (strstr(userauthlist, "publickey") != NULL) {
-					types |= auth_methods::KEYS;
+					types |= auth_methods::PRIVATEKEY;
 				}
 
 				return types;
@@ -274,15 +275,26 @@ namespace axon
 			{
 				int code;
 
-				if ((code = libssh2_userauth_publickey_fromfile_ex(this->_session, username.c_str(), username.size(), NULL, privkey.c_str(), NULL)) != 0)
+				if ((code = libssh2_userauth_publickey_fromfile_ex(this->_session, username.c_str(), username.size(), pubkey.c_str(), privkey.c_str(), NULL)) != 0)
 				{
+					std::string _errstr;
 
+					if (code == LIBSSH2_ERROR_ALLOC)
+						_errstr = "An internal memory allocation call failed";
+					else if (code == LIBSSH2_ERROR_SOCKET_SEND)
+						_errstr = "Unable to send data on socket";
+					else if (code == LIBSSH2_ERROR_SOCKET_TIMEOUT)
+						_errstr = "Socket timeout while authenticating";
+					else if (code == LIBSSH2_ERROR_PUBLICKEY_UNVERIFIED)
+						_errstr = "The username/public key combination was invalid";
+					else if (code == LIBSSH2_ERROR_AUTHENTICATION_FAILED)
+						_errstr = "Authentication using the supplied public key was not accepted";
+					else
+						_errstr = "Generic failure";
+					
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "libssh2_userauth_publickey_fromfile_ex() - " + _errstr);
 				}
 
-			}
-
-			sftp::~sftp()
-			{
 			}
 
 			channel* session::open_channel()
@@ -297,10 +309,38 @@ namespace axon
 				return c;
 			}
 
+			void session::set(int prop, auth_methods_t mode)
+			{
+				if (prop == AXON_TRANSFER_SSH_MODE)
+				{
+					_mode = mode;
+				}
+			}
+
+			void session::set(int prop, int value)
+			{
+			}
+
+			void session::set(int prop, std::string value)
+			{
+				if (prop == AXON_TRANSFER_SSH_PRIVATEKEY)
+				{
+					_privkey = value;
+				}
+			}
+
+			sftp::~sftp()
+			{
+				disconnect();
+			}
+
 			bool sftp::connect()
 			{
 				open(_hostname, 22);
-				login(_username, _password);
+				if (_mode == AXON_TRANSFER_SSH_PRIVATEKEY)
+					login(_username, _privkey+".pub", _privkey);
+				else
+					login(_username, _password);
 				init();
 
 				return true;
@@ -310,6 +350,8 @@ namespace axon
 			{
 				if (_sftp)
 					libssh2_sftp_shutdown(_sftp);
+
+				_sftp = NULL;
 
 				return true;
 			}
@@ -328,7 +370,7 @@ namespace axon
 			{
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
-				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str())))
+				if (!(hsftp = libssh2_sftp_opendir(_sftp, path.c_str())))
 				{
 					int i = libssh2_session_last_errno(_session);
 
@@ -691,7 +733,7 @@ namespace axon
 				return filesize;
 			}
 
-			long long sftp::put(std::string src, std::string dest)
+			long long sftp::put(std::string src, std::string dest, bool decompress = false)
 			{
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				std::string destx, temp;

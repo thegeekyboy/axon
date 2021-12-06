@@ -9,6 +9,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define AXON_TRANSFER_SSH_MODE       0x0001
+#define AXON_TRANSFER_SSH_PRIVATEKEY 0x0002
+
 namespace axon
 {
 	namespace transport
@@ -20,7 +23,7 @@ namespace axon
 			struct auth_methods
 			{
 				static const auth_methods_t PASSWORD = 1;
-				static const auth_methods_t KEYS = 2;
+				static const auth_methods_t PRIVATEKEY = 2;
 				static const auth_methods_t INTERACTIVE = 4;
 			};
 
@@ -65,9 +68,14 @@ namespace axon
 
 			protected:
 
+				std::string _privkey;
+				auth_methods_t _mode;
 				LIBSSH2_SESSION * _session;
 
 			public:
+				void set(int, auth_methods_t);
+				void set(int, int);
+				void set(int, std::string);
 				
 				session();
 				virtual ~session();
@@ -104,7 +112,7 @@ namespace axon
 				int cb(const struct entry *);
 
 				long long get(std::string, std::string, bool);
-				long long put(std::string, std::string);
+				long long put(std::string, std::string, bool);
 			};
 		}
 	}

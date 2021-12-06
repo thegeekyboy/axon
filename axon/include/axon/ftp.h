@@ -32,7 +32,7 @@ namespace axon
 				bool del(std::string);
 
 				long long get(std::string, std::string, bool);
-				long long put(std::string, std::string);
+				long long put(std::string, std::string, bool);
 			};
 		}
 	}

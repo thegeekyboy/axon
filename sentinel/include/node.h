@@ -2,8 +2,9 @@
 #define NODE_H
 
 #include <axon.h>
-#include <config.h>
-#include <log.h>
+#include <axon/config.h>
+#include <axon/log.h>
+#include <axon/database.h>
 
 #define NODE_CFG_NAME 'X'
 
@@ -49,7 +50,9 @@ class node {
 	int *serial;
 	int _pid, _ppid;
 
+	axon::database::sqlite _db;
 	axon::log *_log, dummy;
+	struct dbconf _dbc;
 
 	std::thread _th;
 	// std::condition_variable _cv;
@@ -61,12 +64,15 @@ public:
 	~node();
 	// node(const node &);
 
-	std::string operator[] (char i);
-	int operator[] (int i);
+	std::string operator[] (char);
+	int operator[] (int);
+	std::string get(char);
+	int get(int);
 
 	bool set(char, std::string);
 	bool set(int, int);
 	bool set(axon::log&);
+	bool set(dbconf&);
 
 	int reset();
 	int disable();
@@ -79,6 +85,8 @@ public:
 
 	bool start();
 	int run();
+
+	void print(int);
 };
 
 #endif

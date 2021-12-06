@@ -1,6 +1,13 @@
 #ifndef AXON_FILE_H_
 #define AXON_FILE_H_
 
+struct linux_dirent {
+	unsigned long  d_ino;
+	off_t          d_off;
+	unsigned short d_reclen;
+	char           d_name[];
+};
+
 namespace axon
 {
 	namespace transport
@@ -9,8 +16,10 @@ namespace axon
 		{
 			class file : public connection {
 
+				int _fd = -1;
+				std::string _path;
+
 				bool init();
-				bool login();
 
 			public:
 				file(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };
@@ -29,7 +38,7 @@ namespace axon
 				int cb(const struct entry *);
 
 				long long get(std::string, std::string, bool);
-				long long put(std::string, std::string);
+				long long put(std::string, std::string, bool);
 			};
 		}
 	}

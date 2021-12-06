@@ -22,7 +22,7 @@ NCSA Telnet FTP server. Has LIST = NLST (and bad NLST for directories).
 */
 
 #include <axon.h>
-#include <ftplist.h>
+#include <axon/ftplist.h>
 
 static long totai(long year,long month,long mday)
 {

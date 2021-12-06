@@ -1,9 +1,12 @@
+#include <chrono>
+
 #include <axon.h>
-#include <socket.h>
-#include <connection.h>
-#include <ftp.h>
-#include <ftplist.h>
-#include <util.h>
+
+#include <axon/socket.h>
+#include <axon/connection.h>
+#include <axon/ftp.h>
+#include <axon/ftplist.h>
+#include <axon/util.h>
 
 namespace axon
 {
@@ -62,7 +65,7 @@ namespace axon
 			bool ftp::disconnect()
 			{
 				if (_sock.alive())
-				_sock.writeline("QUIT");
+					_sock.writeline("QUIT");
 
 				_sock.stop();
 
@@ -476,7 +479,7 @@ namespace axon
 				return szx;
 			}
 
-			long long ftp::put(std::string src, std::string dest)
+			long long ftp::put(std::string src, std::string dest, bool decompress = false)
 			{
 				unsigned char v[6];
 				char pasvhost[18];

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <krb5/krb5.h>
 
-#include <kerberos.h>
+#include <axon/kerberos.h>
 
 namespace axon  {
 

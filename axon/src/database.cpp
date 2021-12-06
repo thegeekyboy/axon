@@ -1,5 +1,5 @@
 #include <axon.h>
-#include <database.h>
+#include <axon/database.h>
 
 namespace axon
 {
@@ -7,14 +7,12 @@ namespace axon
 	{
 		sqlite::sqlite()
 		{
-			// Nothing to construct?
 			_open = false;
 			_query = false;
 		}
 
 		sqlite::sqlite(std::string filename)
 		{
-			// Nothing to construct?
 			_open = false;
 			_query = false;
 
@@ -23,7 +21,6 @@ namespace axon
 
 		sqlite::~sqlite()
 		{
-			// Destruct something
 			if (_open)
 			{
 				flush();
@@ -35,6 +32,11 @@ namespace axon
 					std::cout<<e.what()<<std::endl;
 				}
 			}
+		}
+
+		sqlite::sqlite(const sqlite &lhs)
+		{
+			_dbp = lhs._dbp;
 		}
 
 		bool sqlite::open(std::string filename)
@@ -68,7 +70,7 @@ namespace axon
 
 			if (_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot close while query in progress");
-			// Need to insert a procedure to check if there are any finalization pending on prepared statments
+			// Need to insert a procedure to check if there are any finalization pending on prepared statements
 
 			retcode = sqlite3_close(_dbp);
 
@@ -109,7 +111,7 @@ namespace axon
 			if (retcode != SQLITE_OK)
 			{
 				errstr = errmsg;
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error executing sql statement - " + errstr);
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error executing sql statement - " + errstr + " for " + sqltext);
 			}
 
 			return true;
@@ -183,6 +185,25 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error freeing complied statement");
 
 			return true;
+		}
+
+		std::string sqlite::get(int position)
+		{
+			char *tmp;
+			std::string value;
+
+			if (position >= sqlite3_column_count(_stmt))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+
+			if (sqlite3_column_type(_stmt, position) != SQLITE_TEXT)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
+
+			if ((tmp = (char *) sqlite3_column_text(_stmt, position)) != NULL)
+				value = tmp;
+			else
+				value = "";
+
+			return value;
 		}
 
 		sqlite& sqlite::operator<<(int value)

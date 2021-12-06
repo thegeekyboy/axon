@@ -1,8 +1,10 @@
+#include <boost/regex.hpp>
+
 #include <main.h>
 
 #include <axon.h>
-#include <config.h>
-#include <log.h>
+#include <axon/config.h>
+#include <axon/log.h>
 
 cluster::cluster()
 {
@@ -14,7 +16,7 @@ cluster::cluster()
 
 cluster::~cluster()
 {
-	_log->print("INFO", "cluster clearing memeory..");
+	_log->print("INFO", "cluster clearing memory..");
 	while(!_node.empty())
 	{
 		node *temp = _node.back();
@@ -49,6 +51,9 @@ void cluster::load(axon::config &cfg)
 		
 		if (_log != &dummy)
 			tnode->set(*_log);
+		
+		if (_dbc.path.size() > 0)
+			tnode->set(_dbc);
 
 		tnode->set(NODE_CFG_NAME, name);
 
@@ -60,7 +65,7 @@ void cluster::load(axon::config &cfg)
 
 			if (!(tint >= 0 && tint <= 1))
 			{
-				_log->print("ERROR", "%s - parameter [status] value is unaccptable; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - parameter [status] value is unacceptable; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
@@ -75,7 +80,7 @@ void cluster::load(axon::config &cfg)
 
 			if (!(tint >= 0 && tint <= 3))
 			{
-				_log->print("ERROR", "%s - parameter [conftype] value is unaccptable; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - parameter [conftype] value is unacceptable; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
@@ -105,7 +110,7 @@ void cluster::load(axon::config &cfg)
 
 			if (!(tint >= 0 && tint <= 3))
 			{
-				_log->print("ERROR", "%s - parameter [conftype] value is unaccptable; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - parameter [conftype] value is unacceptable; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
@@ -231,9 +236,13 @@ void cluster::load(axon::config &cfg)
 
 		try {
 			cfg.get("filemask", stemp);
+			const boost::regex mask(stemp);
 			tnode->set(NODE_CFG_FILEMASK, stemp);
 		} catch (axon::exception &e) {
 			// ignore if missing
+		} catch (const boost::regex_error& e) {
+			_log->print("ERROR", "%s - parameter [filemask] needs to be a valid regular expression; %s is invalid; disabling [%s]", name, stemp, name);
+			tnode->set(NODE_CFG_STATUS, 0);
 		}
 
 		try {
@@ -263,7 +272,7 @@ void cluster::load(axon::config &cfg)
 
 			if (!(tint >= 0 && tint <= 1))
 			{
-				_log->print("ERROR", "%s - parameter [compress] value is unaccptable; disabling [%s] compressing.", name, name);
+				_log->print("ERROR", "%s - parameter [compress] value is unacceptable; disabling [%s] compressing.", name, name);
 				tnode->set(NODE_CFG_COMPRESS, 0);
 			}
 
@@ -277,7 +286,7 @@ void cluster::load(axon::config &cfg)
 
 			if (tint <= 5)
 			{
-				_log->print("ERROR", "%s - parameter [lookback] value is unaccptable; disabling [%s].", name, name);
+				_log->print("ERROR", "%s - parameter [lookback] value is unacceptable; disabling [%s].", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
@@ -292,7 +301,7 @@ void cluster::load(axon::config &cfg)
 
 			if (tint <= 5)
 			{
-				_log->print("ERROR", "%s - parameter [sleeptime] value is unaccptable; disabling [%s].", name, name);
+				_log->print("ERROR", "%s - parameter [sleeptime] value is unacceptable; disabling [%s].", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
@@ -313,6 +322,20 @@ void cluster::load(axon::config &cfg)
 			}
 		}
 
+		try {
+			cfg.get("prerun", stemp);
+			tnode->set(NODE_CFG_PRERUN, stemp);
+		} catch (axon::exception &e) {
+			// ignore if missing
+		}
+
+		try {
+			cfg.get("postrun", stemp);
+			tnode->set(NODE_CFG_POSTRUN, stemp);
+		} catch (axon::exception &e) {
+			// ignore if missing
+		}
+
 		_node.push_back(tnode);
 		cfg.close();
 	}
@@ -327,6 +350,12 @@ void cluster::push(node &item)
 bool cluster::set(axon::log &log)
 {
 	_log = &log;
+	return true;
+}
+
+bool cluster::set(dbconf &dbc)
+{
+	_dbc = dbc;
 	return true;
 }
 
@@ -369,4 +398,18 @@ bool cluster::init()
 
 
 	return true;
+}
+
+void cluster::print()
+{
+	unsigned short nsz = 0;
+	
+	for (unsigned int i = 0; i < _node.size(); i++)
+	{
+		if (_node[i]->get(NODE_CFG_NAME).size() > nsz)
+			nsz = _node[i]->get(NODE_CFG_NAME).size();
+	}
+
+	for (unsigned int i = 0; i < _node.size(); i++)
+		_node[i]->print(nsz);
 }

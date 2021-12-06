@@ -38,7 +38,7 @@ namespace axon
 				virtual bool del(std::string) = 0;
 
 				virtual long long get(std::string, std::string, bool) = 0;
-				virtual long long put(std::string, std::string) = 0;
+				virtual long long put(std::string, std::string, bool) = 0;
 			};
 		}
 	}

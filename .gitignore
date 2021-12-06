@@ -27,6 +27,7 @@ build
 
 # config files
 !*.cfg
+test.cfg
 
 # git files
 !.gitignore

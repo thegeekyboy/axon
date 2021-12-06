@@ -11,6 +11,8 @@ class cluster {
 
 	axon::log *_log, dummy;
 
+	struct dbconf _dbc;
+
 public:
 	cluster();
 	~cluster();
@@ -20,11 +22,14 @@ public:
 	void push(node &);
 
 	bool set(axon::log&);
+	bool set(dbconf&);
 
 	int killall();
 
 	bool running();
 	bool init();
+
+	void print();
 };
 
 #endif

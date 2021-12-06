@@ -1,5 +1,5 @@
 #include <axon.h>
-#include <connection.h>
+#include <axon/connection.h>
 
 namespace axon
 {
@@ -52,8 +52,9 @@ namespace axon
 			bool connection::filter(std::string flt)
 			{
 				try {
-
-					_filter.push_back(boost::regex(flt));
+					
+					if (flt.size() > 0)
+						_filter.push_back(boost::regex(flt));
 
 				} catch (boost::regex_error &e) {
 

@@ -1,6 +1,9 @@
+#include <chrono>
+
 #include <axon.h>
-#include <md5.h>
-#include <aes.h>
+#include <axon/util.h>
+#include <axon/md5.h>
+#include <axon/aes.h>
 
 namespace axon
 {
@@ -242,5 +245,33 @@ namespace axon
 		return true;
 	}
 
+	bool execmd(const char *cmd, const char *name)
+	{
+		FILE *fp;
+		char final[PATH_MAX], output[1024], ch;
+		unsigned int index = 0;
 
+		sprintf(final, "%s 2>&1", cmd);
+
+		if((fp = popen(final, "r")) == NULL)
+			return false;
+		
+		while((ch = fgetc(fp)) != EOF)
+		{
+			if (ch == '\n')
+			{
+				// printlog("STDO", "%s - %s", name, output);
+				index = 0;
+			}
+			else
+				output[index++] = ch;
+		}
+
+		// if (index != 0)
+		// 	printlog("STDO", "%s - %s", name, output);
+
+		pclose(fp);
+
+		return true;
+	}
 }

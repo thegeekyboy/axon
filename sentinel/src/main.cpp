@@ -1,7 +1,9 @@
 #include <main.h>
-#include <config.h>
-#include <log.h>
+
 #include <signal.h>
+
+#include <axon/config.h>
+#include <axon/log.h>
 
 axon::log logger;
 cluster overmind;
@@ -12,6 +14,8 @@ int install_signal_manager();
 int main(int argc, char *argv[])
 {
 	axon::config cfg;
+	dbconf dbc;
+	
 	int hcfg = false;
 	char logfile[PATH_MAX] = "sentine.log";
 
@@ -73,21 +77,28 @@ int main(int argc, char *argv[])
 		logger.open();
 		cfg.close();
 
+		cfg.open("database");
+		dbc.load(cfg);
+		cfg.close();
+
 		overmind.set(logger);
+		overmind.set(dbc);
 
 		cfg.open("nodes");
 		overmind.load(cfg);
-
 		cfg.close();
 
 		install_signal_manager();
+
+		overmind.print();
 		overmind.init();
+
 	} catch (axon::exception &e) {
 		
 		logger.print("FATAL", e.what());
 	} catch (...) {
 		
-		std::cout<<__FILE__<<": some kind of error happned!"<<std::endl;
+		std::cout<<__FILE__<<": some kind of error happened!"<<std::endl;
 	}
 
 	return 0;
@@ -97,8 +108,8 @@ void sigman(int signum, siginfo_t *siginfo, void *context)
 {
 	logger.print("WARNING", "overlord - received signal, disabling further signal processing.");
 
-	// signal (SIGTERM, SIG_IGN);
-	// signal (SIGHUP, SIG_IGN);
+	signal (SIGTERM, SIG_IGN);
+	signal (SIGHUP, SIG_IGN);
 
 	switch (signum)
 	{
