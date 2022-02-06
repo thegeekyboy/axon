@@ -1,14 +1,17 @@
 #
 target_sources(axon
     PRIVATE
+	util.cpp
 	aes.cpp
 	config.cpp
 	connection.cpp
-	database.cpp
+	sqlite.cpp
+	oracle.cpp
 	dmi.cpp
 	file.cpp
 	ftp.cpp
 	ftplist.cpp
+	kafka.cpp
 	kerberos.cpp
 	log.cpp
 	md5.cpp
@@ -16,5 +19,4 @@ target_sources(axon
 	mml.cpp
 	socket.cpp
 	ssh.cpp
-	util.cpp
 )

@@ -1,58 +1,31 @@
 #ifndef AXON_DATABASE_H_
 #define AXON_DATABASE_H_
 
-#include <sqlite3.h>
+#include <variant>
 
-#define CFG_DB_PATH 'a'
-#define CFG_DB_NAME 'b'
-#define CFG_DB_USERNAME 'c'
-#define CFG_DB_PASSWORD 'd'
-#define CFG_DB_GTT 'e'
-#define CFG_DB_FILELIST 'f'
-#define CFG_DB_ERROR 'g'
-#define CFG_DB_TYPE 1
+namespace axon {
 
-namespace axon
-{
-	namespace database
-	{
-		class sqlite {
+    namespace database {
 
-			bool _open, _query;
-			int _type, _index, _colidx;
-			std::string _path, _name, _username, _password;
-			
-			sqlite3 *_dbp;
-			sqlite3_stmt *_stmt;
+        typedef std::variant<std::vector<std::string>, std::vector<double>, std::vector<int>, unsigned char*, double, int> bind;
 
-			std::mutex _safety;
+        class interface
+        {
+            public:
 
-		public:
-			sqlite();
-			sqlite(std::string);
-			~sqlite();
+                virtual bool connect() = 0;
+				virtual bool connect(std::string, std::string, std::string) = 0;
 
-			sqlite(const sqlite&);
+				virtual bool close() = 0;
+                virtual bool flush() = 0;
 
-			bool open(std::string);
-			bool close();
-			bool flush();
+                virtual bool ping() = 0;
+				virtual void version() = 0;
 
-			bool execute(std::string);
-
-			bool query(std::string);
-			bool next();
-			bool done();
-
-			std::string get(int);
-
-			sqlite& operator<<(int);
-			sqlite& operator<<(std::string&);
-
-			sqlite& operator>>(int&);
-			sqlite& operator>>(std::string&);
-		};
-	}
+                virtual bool execute(const std::string&) = 0;
+			    virtual bool execute(const std::string&, axon::database::bind*, ...) = 0;
+        };
+    }
 }
 
 #endif

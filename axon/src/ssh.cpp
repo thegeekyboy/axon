@@ -248,7 +248,7 @@ namespace axon
 				return fingerprint(this->_session);
 			}
 
-			void session::login(std::string username, std::string password) throw(axon::exception)
+			void session::login(std::string username, std::string password) //throw(axon::exception)
 			{
 				int code;
 
@@ -271,7 +271,7 @@ namespace axon
 				}
 			}
 
-			void session::login(std::string username, std::string pubkey, std::string privkey) throw(axon::exception)
+			void session::login(std::string username, std::string pubkey, std::string privkey) //throw(axon::exception)
 			{
 				int code;
 
@@ -397,7 +397,7 @@ namespace axon
 				return _path;
 			}
 
-			int sftp::list(callback cbfn)
+			int sftp::list(const axon::transport::transfer::cb &cbfn)
 			{
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
@@ -454,7 +454,7 @@ namespace axon
 
 									file.et = axon::entrytypes::SFTP;
 
-									cbfn(&file);
+									cbfn(file);
 								}
 							}
 							else
@@ -481,7 +481,7 @@ namespace axon
 
 								file.et = axon::entrytypes::SFTP;
 
-								cbfn(&file);
+								cbfn(file);
 							}
 						// }
 					}
@@ -493,7 +493,7 @@ namespace axon
 				return 0; // this should return the count of files?
 			}
 
-			int sftp::list(std::vector<entry> *vec)
+			int sftp::list(std::vector<entry> &vec)
 			{
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
@@ -548,7 +548,7 @@ namespace axon
 
 								file.et = axon::entrytypes::SFTP;
 
-								vec->push_back(file);						
+								vec.push_back(file);						
 							}
 						}
 						else
@@ -575,7 +575,7 @@ namespace axon
 
 							file.et = axon::entrytypes::SFTP;
 								
-							vec->push_back(file);
+							vec.push_back(file);
 						}
 					}
 					else
@@ -803,11 +803,6 @@ namespace axon
 				ren(temp, destx);
 
 				return filesize;
-			}
-
-			int cb(const struct entry *e)
-			{
-				return 0;
 			}
 		}
 	}

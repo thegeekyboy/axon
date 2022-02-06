@@ -15,7 +15,7 @@ namespace axon
 	{
 	}
 
-	bool message::open() throw(axon::exception)
+	bool message::open() //throw(axon::exception)
 	{
 		if ((_mq = mq_open(QUEUE_NAME, O_RDWR | O_CREAT | O_NONBLOCK, 0644, &_attr)) == (mqd_t) -1)
 		{

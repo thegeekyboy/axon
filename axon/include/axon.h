@@ -1,6 +1,7 @@
 #ifndef AXON_MASTER_H_
 #define AXON_MASTER_H_
 
+#include <functional>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -28,12 +29,21 @@
 #endif
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+#if DEBUG == 1
+#define DBGPRN(...) fprintf(stderr, __VA_ARGS__); puts("")
+#else
+#define DBGPRN(...)
+#endif
 
 // AXON Namespace
 namespace axon
 {
 	typedef unsigned int flags_t;
 	typedef unsigned int entry_t;
+	typedef unsigned int auth_t;
 
 	struct flags {
 
@@ -49,15 +59,24 @@ namespace axon
 
 	struct entrytypes {
 
-		static const entry_t FILE = 1;
-		static const entry_t SFTP = 2;
+		static const entry_t SFTP = 0;
+		static const entry_t FTP = 1;
+		static const entry_t S3 = 2;
+		static const entry_t SAMBA = 3;
 		static const entry_t SCP = 4;
-		static const entry_t FTP = 8;
-		static const entry_t SAMBA = 16;
-		static const entry_t AWS = 32;
-		static const entry_t HDFS = 64;
-		static const entry_t DATABASE = 128;
-		static const entry_t KAFKA = 256;
+		static const entry_t FILE = 5;
+		static const entry_t AWS = 6;
+		static const entry_t HDFS = 7;
+		static const entry_t DATABASE = 8;
+		static const entry_t KAFKA = 9;
+	};
+
+	struct authtypes {
+
+		static const auth_t PASSWORD = 0;
+		static const auth_t PRIVATEKEY = 1;
+		static const auth_t KERBEROS = 2;
+		static const auth_t ADC = 3;
 	};
 
 	struct entry {
@@ -67,6 +86,7 @@ namespace axon
 		long long size;
 		flags_t flag;
 		entry_t et;
+		struct stat st;
 	};
 
 	struct licensekey
@@ -77,41 +97,26 @@ namespace axon
 		int expiredate;
 	};
 
-	// This is the old one- for some reason this does not work sometimes!
-	// class exception : public std::exception {
-
-	// 	std::string m_filename, m_message, m_func;
-	// 	int m_linenum;
-
-	// public:
-	// 	exception(std::string filename, int linenum, std::string func, std::string msg)
-	// 	{
-	// 		m_filename = filename;
-	// 		m_message = msg;
-	// 		m_func = func;
-	// 		m_linenum = linenum;
-	// 	};
-	// 	~exception() throw() {};
-
-	// 	virtual const char* what() const throw () {
-			
-	// 		std::string f_msg = m_filename + "(" + std::to_string(m_linenum) + ") in " + m_func + "(): " + m_message;
-			
-	// 		return f_msg.c_str();
-	// 	};
-	// };
-
 	class exception : public std::exception {
 
 		char _what[4096];
 		char _msg[4096];
+		std::string message;
 
-	public:
-		exception(std::string filename, int linenum, std::string func, std::string msg)
+		std::string make_message(const char* filename, int linenum, const std::string& source, const std::string& message)
 		{
-			sprintf(_what, "%s(%d) in %s(): %s", filename.c_str(), linenum, func.c_str(), msg.c_str());
-			strcpy(_msg, msg.c_str());
+			std::stringstream s;
+
+			s<<filename<<":"<<linenum<<" => "<<source<<"(): "<<message<<std::endl;
+
+			return s.str();
 		};
+
+		public:
+		exception(): exception("none", 0, "axon::error", "no error message") { };
+		exception(const std::string& message): exception("none", 0, "axon:error", std::move(message)) { };
+		exception(const std::string& source, const std::string& message): exception("none", 0, std::move(source), std::move(message)) { };
+		exception(const char* filename, int linenum, const std::string& source, const std::string& message): message(make_message(filename, linenum, source, message)) { };
 
 		~exception() throw() {};
 
@@ -126,6 +131,90 @@ namespace axon
 		};
 	};
 
+	template<std::size_t N, class R, class...Args>
+	struct lambda
+	{
+		static std::array< std::function<R(Args&&...)>, N >& table()
+		{
+			static std::array< std::function<R(Args&&...)>, N > arr;
+			return arr;
+		}
+
+		template<std::size_t I>
+		static R call( Args...args )
+		{
+			return table()[I]( std::forward<Args>(args)... );
+		}
+
+		using sig = R(Args...);
+
+		template<std::size_t I=N-1>
+		static sig* make(std::function<R(Args&&...)> f)
+		{
+			if(!table()[I])
+			{
+				table()[I]=f;
+				return &call<I>;
+			}
+
+			if(I==0) return nullptr;
+
+			return make< (I-1)%N >(f);
+		}
+
+		template<std::size_t I=N-1>
+		static void recycle( sig* f )
+		{
+			if (f==call<I>)
+			{
+				table()[I]={};
+				return;
+			}
+
+			if (I==0) return;
+
+			recycle< (I-1)%N >(f);
+		}
+	};
+
+	struct timer {
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> _start, _end;
+		std::vector<long> _laps;
+		std::string _name;
+
+		timer(const char *name):_name(name)
+		{
+			_start = std::chrono::high_resolution_clock::now();
+		}
+
+		~timer()
+		{
+			_end = std::chrono::high_resolution_clock::now();
+			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
+		}
+
+		long now()
+		{
+			_end = std::chrono::high_resolution_clock::now();
+			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			return microseconds.count();
+		}
+
+		void reset()
+		{
+			_start = std::chrono::high_resolution_clock::now();
+			_laps.clear();
+		}
+
+		void lap()
+		{
+			std::chrono::time_point<std::chrono::high_resolution_clock> _temp = std::chrono::high_resolution_clock::now();
+			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_temp - _start);
+			_laps.push_back(microseconds.count());
+		}
+	};
 }
 
 // Forward Definition

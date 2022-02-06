@@ -304,13 +304,13 @@ namespace axon
 				return false;
 			}
 
-			int ftp::list(callback)
+			int ftp::list(const axon::transport::transfer::cb &cbfn)
 			{
 
 				return true;
 			}
 
-			int ftp::list(std::vector<axon::entry> *vec)
+			int ftp::list(std::vector<axon::entry> &vec)
 			{
 				char pasvhost[16];
 				unsigned char v[6];
@@ -373,14 +373,14 @@ namespace axon
 								
 									e.name = trim(ftpl.name);
 									e.size = ftpl.size;
-									vec->push_back(e);					
+									vec.push_back(e);					
 								}
 							}
 							else
 							{
 								e.name = trim(ftpl.name);
 								e.size = ftpl.size;
-								vec->push_back(e);
+								vec.push_back(e);
 							}
 						}
 					}

@@ -1,5 +1,5 @@
 #include <axon.h>
-#include <axon/database.h>
+#include <axon/sqlite.h>
 
 namespace axon
 {
@@ -7,16 +7,24 @@ namespace axon
 	{
 		sqlite::sqlite()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
 		}
 
 		sqlite::sqlite(std::string filename)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
+			_path = filename;
 
-			open(filename);
+			connect();
+		}
+
+		sqlite::sqlite(const sqlite &lhs)
+		{
+			_dbp = lhs._dbp;
 		}
 
 		sqlite::~sqlite()
@@ -34,23 +42,19 @@ namespace axon
 			}
 		}
 
-		sqlite::sqlite(const sqlite &lhs)
+		bool sqlite::connect()
 		{
-			_dbp = lhs._dbp;
-		}
-
-		bool sqlite::open(std::string filename)
-		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 			char *errmsg = 0;
 
 			if (_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database already open");
 
-			retcode = sqlite3_open(filename.c_str(), &_dbp);
+			retcode = sqlite3_open(_path.c_str(), &_dbp);
 
 			if (retcode != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database (" + filename + ") - " + sqlite3_errmsg(_dbp));
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database (" + _path + ") - " + sqlite3_errmsg(_dbp));
 
 			sqlite3_exec(_dbp, "PRAGMA synchronous = OFF", NULL, NULL, &errmsg);
 			//sqlite3_exec(inst->db, "PRAGMA journal_mode = MEMORY", NULL, NULL, &errmsg);
@@ -58,11 +62,18 @@ namespace axon
 			//sqlite3_exec(_dbp, "PRAGMA journal_mode = WAL", NULL, NULL, &errmsg);
 
 			_open = true;
+			return _open;
+		}
+
+		bool sqlite::connect(std::string filename, std::string username, std::string password)
+		{
+			_path = filename;
 			return true;
 		}
 
 		bool sqlite::close()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -82,6 +93,7 @@ namespace axon
 
 		bool sqlite::flush()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
@@ -90,8 +102,21 @@ namespace axon
 			return true;
 		}
 
-		bool sqlite::execute(std::string sqltext)
+		bool sqlite::ping()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+			return true;
+		}
+
+		void sqlite::version()
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+		}
+
+		bool sqlite::execute(const std::string &sqltext)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 			char *errmsg;
 			std::string errstr;
@@ -117,8 +142,15 @@ namespace axon
 			return true;
 		}
 
+		bool sqlite::execute(const std::string &sqltext, axon::database::bind *first, ...)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+			return true;
+		}
+
 		bool sqlite::query(std::string sqltext)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -145,6 +177,7 @@ namespace axon
 
 		bool sqlite::next()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -170,6 +203,7 @@ namespace axon
 
 		bool sqlite::done()
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -189,6 +223,7 @@ namespace axon
 
 		std::string sqlite::get(int position)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			char *tmp;
 			std::string value;
 
@@ -208,6 +243,7 @@ namespace axon
 
 		sqlite& sqlite::operator<<(int value)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			retcode = sqlite3_bind_int(_stmt, _index, value);
@@ -222,6 +258,7 @@ namespace axon
 
 		sqlite& sqlite::operator<<(std::string& value)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
 
 			retcode = sqlite3_bind_text(_stmt, _index, value.c_str(), -1, SQLITE_TRANSIENT);
@@ -240,6 +277,7 @@ namespace axon
 
 		sqlite& sqlite::operator>>(int &value)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			if (_colidx >= sqlite3_column_count(_stmt))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -255,6 +293,7 @@ namespace axon
 
 		sqlite& sqlite::operator>>(std::string &value)
 		{
+			axon::timer t1(__PRETTY_FUNCTION__);
 			char *tmp;
 
 			if (_colidx >= sqlite3_column_count(_stmt))

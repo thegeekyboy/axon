@@ -24,4 +24,4 @@ axon is provided under the Apache-2.0 license
 
 #### contact
 
-- Amirul <mark@thecodeninjas.net>
+- Amirul <mark@binutil.net>

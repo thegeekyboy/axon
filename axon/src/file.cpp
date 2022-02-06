@@ -8,9 +8,13 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include <boost/filesystem.hpp>
+
 #include <axon.h>
 #include <axon/connection.h>
 #include <axon/file.h>
+#include <axon/util.h>
+
 
 namespace axon
 {
@@ -20,6 +24,7 @@ namespace axon
 		{
 			file::~file()
 			{
+				disconnect();
 			}
 
 			bool file::init()
@@ -42,12 +47,12 @@ namespace axon
 				if (pw == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not lookup UID using username");
 
-				if (setfsuid(-1) != pw->pw_uid)
+				if (setfsuid(-1) != (int) pw->pw_uid)
 				{
-					int code = setfsuid(pw->pw_uid);
+					setfsuid(pw->pw_uid);
 					// std::cout<<"the previous uid = "<<code<<", requested uid = "<<pw->pw_uid<<std::endl;
 
-					if (pw->pw_uid != setfsuid(-1))
+					if (setfsuid(-1) != (int) pw->pw_uid)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not change fs uid with 'setfsuid'");
 				}
 				// else
@@ -88,6 +93,7 @@ namespace axon
 			bool file::ren(std::string src, std::string dest)
 			{
 				std::string srcx, destx;
+				std::string parent, remainder;
 
 				if (_path.size() <= 0 && _fd != -1)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
@@ -101,7 +107,11 @@ namespace axon
 					destx = dest;
 				else
 					destx = _path + "/" + dest;
-					
+
+				std::tie(parent, remainder) = axon::splitpath(destx);
+				// mkdir(parent, 0700);
+				boost::filesystem::create_directories(parent);
+
 				if (std::rename(srcx.c_str(), destx.c_str()))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "File rename failed - " + std::string(strerror(errno)));
 				
@@ -126,11 +136,11 @@ namespace axon
 				return false;
 			}
 
-			int file::list(callback cbfn)
+			int file::list(const axon::transport::transfer::cb &cbfn)
 			{
 				struct linux_dirent *e;
 				char buf[MAXBUF], d_type;
-				long nread;
+				long nread, count = 0;
 
 				if (_path.size() <= 0 && _fd != -1)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
@@ -191,107 +201,35 @@ namespace axon
 							}
 
 							fstatat(_fd, e->d_name, &st, 0);
+							file.size = st.st_size;
+							file.st = st;
 
-							cbfn(&file);
+							count++;
+							cbfn(file);
 						}
 
 						bpos += e->d_reclen;
 					}
 				}
 
-				return true;
+				return count;
 			}
 
-			int file::list(std::vector<axon::entry> *vec)
+			int file::list(std::vector<axon::entry> &vec)
 			{
-				// list([vec](const axon::entry *e) -> int {
-				// 	axon::entry x;
-				// 	return true;
-				// });
-
-				struct linux_dirent *e;
-				char buf[MAXBUF], d_type;
-				long nread;
-
-				if (_path.size() <= 0 && _fd != -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
-
-				while (true)
-				{
-					nread = syscall(SYS_getdents, _fd, buf, MAXBUF);
-
-					if (nread == -1 || nread == 0)
-						break;
-
-					for (long bpos = 0; bpos < nread;)
-					{
-						e = (struct linux_dirent *) (buf + bpos);
-						d_type = *(buf + bpos + e->d_reclen - 1);
-
-						if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(e->d_name, _filter[0])))
-						{
-							struct stat st;
-							struct entry file;
-
-							file.name = e->d_name;
-							file.et = axon::entrytypes::FILE;
-
-							switch(d_type)
-							{
-								case DT_BLK:
-									file.flag = axon::flags::BLOCK;
-									break;
-								
-								case DT_CHR:
-									file.flag = axon::flags::CHAR;
-									break;
-								
-								case DT_DIR:
-									file.flag = axon::flags::DIR;
-									break;
-
-								case DT_FIFO:
-									file.flag = axon::flags::FIFO;
-									break;
-
-								case DT_LNK:
-									file.flag = axon::flags::LINK;
-									break;
-
-								case DT_REG:
-									file.flag = axon::flags::FILE;
-									break;
-
-								case DT_SOCK:
-									file.flag = axon::flags::SOCKET;
-									break;
-								
-								case DT_UNKNOWN:
-									file.flag = axon::flags::UNKNOWN;
-									break;
-							}
-
-							fstatat(_fd, e->d_name, &st, 0);
-
-							vec->push_back(file);
-						}
-
-						bpos += e->d_reclen;
-					}
-				}
-
-				return true;
+				return list([&](const axon::entry &e) mutable {
+					
+					vec.push_back(e);
+				});
 			}
 
 			long long file::get(std::string src, std::string dest, bool compress = false)
 			{
-
 				return 0; // return the size
 			}
 
 			long long file::put(std::string src, std::string dest, bool decompress = false)
 			{
-
 				//ren(temp, dest);
 
 				return 0; // return size

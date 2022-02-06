@@ -10,7 +10,8 @@ namespace axon
 
 		namespace transfer {
 
-			typedef int (*callback) (const struct entry *);
+			// typedef int (*callback) (const struct entry *);
+			typedef std::function<void(axon::entry &)> cb;
 
 			class connection {
 
@@ -32,8 +33,8 @@ namespace axon
 
 				virtual bool chwd(std::string) = 0;
 				virtual std::string pwd() = 0;
-				virtual int list(callback) = 0;
-				virtual int list(std::vector<axon::entry> *) = 0;
+				virtual int list(const cb &) = 0;
+				virtual int list(std::vector<axon::entry> &) = 0;
 				virtual bool ren(std::string, std::string) = 0;
 				virtual bool del(std::string) = 0;
 

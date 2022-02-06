@@ -4,6 +4,8 @@
 
 #include <axon/config.h>
 #include <axon/log.h>
+#include <axon/database.h>
+#include <axon/oracle.h>
 
 axon::log logger;
 cluster overmind;
@@ -58,6 +60,15 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+
+	axon::database::oracle oradb;
+	axon::database::interface *db = &oradb;
+	
+	db->connect("MDUATDB", "AMIRUL_0950", "Amirul095O");
+	db->ping();
+	db->version();
+
+	db->close();
 
 	if (!hcfg)
 	{

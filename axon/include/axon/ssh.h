@@ -84,8 +84,8 @@ namespace axon
 				void open(std::string host, unsigned short port);
 				auth_methods_t get_auth_methods(std::string username);
 				fingerprint get_host_fingerprint();
-				void login(std::string username, std::string password) throw(axon::exception);
-				void login(std::string username, std::string pubkey, std::string privkey) throw(axon::exception);
+				void login(std::string username, std::string password); //throw(axon::exception);
+				void login(std::string username, std::string pubkey, std::string privkey); //throw(axon::exception);
 				channel* open_channel();
 			};
 
@@ -104,8 +104,8 @@ namespace axon
 
 				bool chwd(std::string);
 				std::string pwd();
-				int list(callback);
-				int list(std::vector<entry> *);
+				int list(const axon::transport::transfer::cb &);
+				int list(std::vector<entry> &);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

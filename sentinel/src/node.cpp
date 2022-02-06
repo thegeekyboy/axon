@@ -333,7 +333,7 @@ bool node::start()
 {
 	if (_status)
 	{
-		_db.open(_dbc.path+"/"+_name+".dbf");
+		_db.connect(_dbc.path+"/"+_name+".dbf", std::string("username"), std::string("password"));
 		_db.execute("CREATE TABLE IF NOT EXISTS " + _dbc.gtt + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, STATUS INT DEFAULT 0)");
 		_db.execute("CREATE TABLE IF NOT EXISTS " + _dbc.list + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, FILESIZE BIG INT, ELAPSDUR BIG INT, STATUS INT DEFAULT 0)");
 		_th = std::thread(&node::monitor, this);
@@ -343,22 +343,27 @@ bool node::start()
 
 	return true;
 }
-int blah(const axon::entry *e)
-{
-	std::cout<<e->name<<std::endl;
-	return 0;
-}
+
 int node::run()
 {
 	try {
+		std::vector<axon::entry> v;
 		axon::transport::transfer::file fp(_ipaddress, _username, _password);
 
 		fp.filter(_filemask);
 		fp.connect();
 		fp.chwd(_pickpath[0]);
 		// fp.ren("mark", "dork");
+		fp.ren("dork", "/home/amirul.islam/a/b/c/d/e/f/dork");
 		// fp.del("dork");
-		fp.list(&blah);
+		// fp.list(blah);
+		std::cout<<"return value: "<<fp.list(v)<<std::endl;
+		_log->print("INFO", "starting");
+		for (auto &x : v)
+		{
+			std::cout<<"-> "<<x.name<<" - "<<x.st.st_size<<std::endl;
+		}
+		
 	} catch (axon::exception &e) {
 		_log->print("DEBUG", std::string(e.what()));
 	}
@@ -372,21 +377,20 @@ int node::run()
 
 		switch (_proto)
 		{
-			case 0:
+			case axon::entrytypes::SFTP:
 				{
 					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_ipaddress, _username, _password));
 					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 
-					if (_auth == 1)
+					if (_auth == axon::authtypes::PRIVATEKEY)
 					{
 						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
 						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _privatekey);
-						std::cout<<"_privatekey = "<<_privatekey<<std::endl;
 					}
 				}
 				break;
 
-			case 1:
+			case axon::entrytypes::FTP:
 				{
 					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_ipaddress, _username, _password));
 					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
@@ -425,7 +429,7 @@ int node::run()
 			conn->connect();
 			conn->chwd(_pickpath[0]);
 
-			if (conn->list(&v))
+			if (conn->list(v))
 			{
 				_db.execute("BEGIN TRANSACTION;");
 

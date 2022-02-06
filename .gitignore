@@ -5,6 +5,7 @@
 # folders
 !*/
 build
+*.del
 
 # documents
 !*.md

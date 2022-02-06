@@ -4,7 +4,7 @@
 #include <axon.h>
 #include <axon/config.h>
 #include <axon/log.h>
-#include <axon/database.h>
+#include <axon/sqlite.h>
 
 #define NODE_CFG_NAME 'X'
 

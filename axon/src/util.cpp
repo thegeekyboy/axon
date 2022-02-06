@@ -1,4 +1,7 @@
 #include <chrono>
+#include <tuple>
+
+#include <boost/filesystem.hpp>
 
 #include <axon.h>
 #include <axon/util.h>
@@ -47,29 +50,29 @@ namespace axon
 		return str;
 	}
 
-	int mkdir(const std::string& path, mode_t mode)
+	std::tuple<std::string, std::string> splitpath(std::string path)
 	{
-		char tmp[PATH_MAX];
-		char *p = NULL;
-		size_t len;
+		size_t found = path.find_last_of("/\\");
+		std::string parent = (path.substr(0, found).size() == 0 && path[0] == '/')?"/":path.substr(0, found);
+		return std::make_tuple(parent, path.substr(found + 1));
+	}
 
-		snprintf(tmp, sizeof(tmp),"%s", path.data());
-		len = strlen(tmp);
+	int mkdir(const std::string& path, mode_t mode = 0700)
+	{
+		std::string parent, remainder;
 
-		if(tmp[len - 1] == '/')
-			tmp[len - 1] = 0;
-
-		for(p = tmp + 1; *p; p++)
+		if (path == "/")
 		{
-			if(*p == '/') 
-			{
-				*p = 0;
-				mkdir(tmp, mode);
-				*p = '/';
-			}
+
+			return 0;
 		}
 
-		return mkdir(tmp, mode);
+		std::tie(parent, remainder) = axon::splitpath(path);
+		
+		std::cout<<">> parent: "<<parent<<", remainder: "<<remainder<<std::endl;
+		std::cin.get();
+
+		return mkdir(parent, mode);
 	}
 
 	std::vector<std::string> split(const std::string& str, const char delim)
@@ -248,8 +251,9 @@ namespace axon
 	bool execmd(const char *cmd, const char *name)
 	{
 		FILE *fp;
-		char final[PATH_MAX], output[1024], ch;
-		unsigned int index = 0;
+		char final[PATH_MAX], ch;
+		// char output[1024];
+		// unsigned int index = 0;
 
 		sprintf(final, "%s 2>&1", cmd);
 
@@ -261,10 +265,10 @@ namespace axon
 			if (ch == '\n')
 			{
 				// printlog("STDO", "%s - %s", name, output);
-				index = 0;
+				// index = 0;
 			}
-			else
-				output[index++] = ch;
+			// else
+			// 	output[index++] = ch;
 		}
 
 		// if (index != 0)
@@ -273,5 +277,14 @@ namespace axon
 		pclose(fp);
 
 		return true;
+	}
+
+	std::string demangle(const char* mangled)
+	{
+		int status;
+
+		std::unique_ptr<char[], void (*)(void*)> result(abi::__cxa_demangle(mangled, 0, 0, &status), std::free);
+		
+		return result.get() ? std::string(result.get()) : "error occurred";
 	}
 }

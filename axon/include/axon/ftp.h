@@ -26,8 +26,8 @@ namespace axon
 
 				bool chwd(std::string);
 				std::string pwd();
-				int list(callback);
-				int list(std::vector<axon::entry> *);
+				int list(const axon::transport::transfer::cb &);
+				int list(std::vector<axon::entry> &);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

@@ -38,7 +38,7 @@ namespace axon {
 		message();
 		~message();
 
-		bool open() throw (axon::exception);
+		bool open(); //throw (axon::exception);
 		bool close();
 		bool remove();
 
