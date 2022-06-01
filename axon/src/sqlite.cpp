@@ -68,6 +68,7 @@ namespace axon
 		bool sqlite::connect(std::string filename, std::string username, std::string password)
 		{
 			_path = filename;
+			connect();
 			return true;
 		}
 
@@ -201,7 +202,7 @@ namespace axon
 			return true;
 		}
 
-		bool sqlite::done()
+		void sqlite::done()
 		{
 			axon::timer t1(__PRETTY_FUNCTION__);
 			int retcode;
@@ -217,17 +218,15 @@ namespace axon
 
 			if (retcode != SQLITE_OK)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error freeing complied statement");
-
-			return true;
 		}
 
-		std::string sqlite::get(int position)
+		std::string sqlite::get(unsigned int position)
 		{
 			axon::timer t1(__PRETTY_FUNCTION__);
 			char *tmp;
 			std::string value;
 
-			if (position >= sqlite3_column_count(_stmt))
+			if ((int) position >= sqlite3_column_count(_stmt))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
 			if (sqlite3_column_type(_stmt, position) != SQLITE_TEXT)
@@ -275,6 +274,12 @@ namespace axon
 			return *this;
 		}
 
+		std::ostream& sqlite::printer(std::ostream &stream)
+		{
+
+			return stream;
+		}
+
 		sqlite& sqlite::operator>>(int &value)
 		{
 			axon::timer t1(__PRETTY_FUNCTION__);
@@ -285,6 +290,22 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
 
 			value = sqlite3_column_int(_stmt, _colidx);
+
+			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator>>(double &value)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+			if (_colidx >= sqlite3_column_count(_stmt))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+
+			if (sqlite3_column_type(_stmt, _colidx) != SQLITE_INTEGER)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
+
+			value = sqlite3_column_double(_stmt, _colidx);
 
 			_colidx++;
 
@@ -308,6 +329,12 @@ namespace axon
 				value = "";
 
 			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator>>(std::time_t &value)
+		{
 
 			return *this;
 		}

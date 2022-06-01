@@ -1,19 +1,5 @@
 #include <main.h>
-
-#include <algorithm>
-#include <string>
-#include <chrono>
-#include <ctime>
-#include <boost/regex.hpp>
-
-#include <boost/algorithm/string/replace.hpp>
-
-#include <axon/connection.h>
-#include <axon/ssh.h>
-#include <axon/socket.h>
-#include <axon/ftp.h>
-#include <axon/file.h>
-#include <axon/util.h>
+#include <node.h>
 
 node::node()
 {
@@ -282,9 +268,14 @@ int node::reset()
 	return true;
 }
 
-int node::disable()
+void node::disable()
 {
-	return _status = 0;
+	_status = false;
+}
+
+void node::enable()
+{
+	_status = true;
 }
 
 bool node::kill()
@@ -333,9 +324,38 @@ bool node::start()
 {
 	if (_status)
 	{
-		_db.connect(_dbc.path+"/"+_name+".dbf", std::string("username"), std::string("password"));
-		_db.execute("CREATE TABLE IF NOT EXISTS " + _dbc.gtt + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, STATUS INT DEFAULT 0)");
-		_db.execute("CREATE TABLE IF NOT EXISTS " + _dbc.list + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, FILESIZE BIG INT, ELAPSDUR BIG INT, STATUS INT DEFAULT 0)");
+		if (_dbc.type == 0)
+		{
+			std::shared_ptr<axon::database::sqlite> sqlite(new axon::database::sqlite());
+			_db = std::dynamic_pointer_cast<axon::database::interface>(sqlite);
+
+			_db->connect(_dbc.path+"/"+_name+".dbf", std::string("username"), std::string("password"));
+			_db->execute("CREATE TABLE IF NOT EXISTS " + _dbc.gtt + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, STATUS INT DEFAULT 0)");
+			_db->execute("CREATE TABLE IF NOT EXISTS " + _dbc.list + " (LISTDATE DATE DEFAULT (STRFTIME('%s','NOW')), FILENAME VARCHAR(512) PRIMARY KEY, FILESIZE BIG INT, ELAPSDUR BIG INT, STATUS INT DEFAULT 0)");
+		}
+		else
+		{
+			std::shared_ptr<axon::database::oracle> oracle(new axon::database::oracle());
+			_db = std::dynamic_pointer_cast<axon::database::interface>(oracle);
+
+			_db->connect(_dbc.address, _dbc.username, _dbc.password);
+
+			_dbc.list = _name + "_" + _dbc.list;
+			_dbc.gtt = _name + "_" + _dbc.gtt;
+
+			try {
+				_db->execute("CREATE TABLE " + _dbc.list + " (LISTDATE DATE DEFAULT SYSDATE, FILENAME VARCHAR(512) PRIMARY KEY, FILESIZE NUMBER(12), ELAPSDUR NUMBER(8), STATUS NUMBER(1) DEFAULT 0)");
+			} catch (axon::exception &e) {
+				_log->print("WARN", "%s - %s", _name, e.msg());
+			}
+
+			try {
+				_db->execute("CREATE TABLE " + _dbc.gtt + " (LISTDATE DATE DEFAULT SYSDATE, FILENAME VARCHAR(512) PRIMARY KEY, STATUS NUMBER(1) DEFAULT 0)");
+			} catch (axon::exception &e) {
+				_log->print("WARN", "%s - %s", _name, e.msg());
+			}
+		}
+
 		_th = std::thread(&node::monitor, this);
 	}
 	else
@@ -346,32 +366,11 @@ bool node::start()
 
 int node::run()
 {
-	try {
-		std::vector<axon::entry> v;
-		axon::transport::transfer::file fp(_ipaddress, _username, _password);
-
-		fp.filter(_filemask);
-		fp.connect();
-		fp.chwd(_pickpath[0]);
-		// fp.ren("mark", "dork");
-		fp.ren("dork", "/home/amirul.islam/a/b/c/d/e/f/dork");
-		// fp.del("dork");
-		// fp.list(blah);
-		std::cout<<"return value: "<<fp.list(v)<<std::endl;
-		_log->print("INFO", "starting");
-		for (auto &x : v)
-		{
-			std::cout<<"-> "<<x.name<<" - "<<x.st.st_size<<std::endl;
-		}
-		
-	} catch (axon::exception &e) {
-		_log->print("DEBUG", std::string(e.what()));
-	}
-	
-	return 0;
 	// actual stuff is being done here :) welcome to the world of spaghetti coding
 
 	std::shared_ptr<axon::transport::transfer::connection> conn;
+
+	_log->print("INFO", "%s - booting up", _name);
 
 	try {
 
@@ -393,6 +392,13 @@ int node::run()
 			case axon::entrytypes::FTP:
 				{
 					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_ipaddress, _username, _password));
+					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				}
+				break;
+
+			case axon::entrytypes::FILE:
+				{
+					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_ipaddress, _username, _password));
 					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 				}
 				break;
@@ -422,38 +428,40 @@ int node::run()
 			
 			strftime(buffer, PATH_MAX, _pickpath[0].c_str(), xtstamp); pickpath = buffer;
 			strftime(buffer, PATH_MAX, _droppath.c_str(), xtstamp); droppath = buffer;
-			strftime(buffer, 1023, _filemask.c_str(), xtstamp); filemask = buffer;
+			strftime(buffer, PATH_MAX, _filemask.c_str(), xtstamp); filemask = buffer;
 
-			_db.execute("DELETE FROM " + _dbc.gtt);
+			_db->execute("DELETE FROM " + _dbc.gtt);
+			_db->flush();
 
 			conn->connect();
 			conn->chwd(_pickpath[0]);
 
 			if (conn->list(v))
 			{
-				_db.execute("BEGIN TRANSACTION;");
+				// _db->execute("BEGIN TRANSACTION;");
 
 				for (auto &elm : v)
 					if (elm.flag == axon::flags::FILE)
 					{
 						try {
-							_db.execute("INSERT INTO " + _dbc.gtt + "(FILENAME) VALUES (TRIM('" + elm.name + "'))");
+							_db->execute("INSERT INTO " + _dbc.gtt + "(FILENAME) VALUES (TRIM('" + elm.name + "'))");
 						} catch (axon::exception &e) {
 		
-							_log->print("FATAL", e.what());
+							_log->print("FATAL", "%s", e.msg());
 						}
 						count++;
 					}
 
-				_db.execute("END TRANSACTION;");
+				// _db->execute("END TRANSACTION;");
 			}
+			_db->flush();
 
-			_log->print("INFO", "%s - latest file get complete, processed %d of %d downloaded records.", _shortdesc, count, v.size());
+			_log->print("INFO", "%s - latest file get complete, processed %d of %d downloaded records.", _name, count, v.size());
 
 			if (_ignore.size() > 0)
-				_db.query("SELECT FILENAME FILENAME FROM (SELECT A.* FROM " + _dbc.gtt + " A LEFT JOIN " + _dbc.list + " B ON A.FILENAME = B.FILENAME WHERE B.FILENAME IS NULL) A LEFT JOIN DAT_FILEBOT_FILELIST B ON REPLACE(A.FILENAME, '" + _ignore + "', '') = B.FILENAME WHERE B.FILENAME IS NULL");
+				_db->query("SELECT FILENAME FILENAME FROM (SELECT A.* FROM " + _dbc.gtt + " A LEFT JOIN " + _dbc.list + " B ON A.FILENAME = B.FILENAME WHERE B.FILENAME IS NULL) A LEFT JOIN DAT_FILEBOT_FILELIST B ON REPLACE(A.FILENAME, '" + _ignore + "', '') = B.FILENAME WHERE B.FILENAME IS NULL");
 			else
-				_db.query("SELECT FILENAME FILENAME FROM (SELECT A.FILENAME FILENAME FROM " + _dbc.gtt + " A LEFT JOIN " + _dbc.list + " B ON A.FILENAME = B.FILENAME WHERE B.FILENAME IS NULL AND A.FILENAME IS NOT NULL)");
+				_db->query("SELECT FILENAME FILENAME FROM (SELECT A.FILENAME FILENAME FROM " + _dbc.gtt + " A LEFT JOIN " + _dbc.list + " B ON A.FILENAME = B.FILENAME WHERE B.FILENAME IS NULL AND A.FILENAME IS NOT NULL)");
 
 			if (_prerun.size() > 0)
 			{
@@ -461,7 +469,7 @@ int node::run()
 
 				boost::replace_all(prerun, "%PATH%", droppath.c_str());
 
-				_log->print("INFO", "%s - running pre-script (%s)", _shortdesc, prerun.c_str());
+				_log->print("INFO", "%s - running pre-script (%s)", _name, prerun.c_str());
 				
 				if (axon::execmd(prerun.c_str(), _name.c_str()))
 				{
@@ -475,12 +483,12 @@ int node::run()
 
 			count = 0;
 			std::vector<std::string> list;
-			while (_db.next())
+			while (_db->next())
 			{
-				list.push_back(_db.get(0));
+				list.push_back(_db->get(0));
 				count++;
 			}
-			_db.done();
+			_db->done();
 
 			if (count > 0)
 			{
@@ -489,24 +497,25 @@ int node::run()
 				for (int current = 0; current < count; current++)
 				{
 					char sqltext[4096];
-					auto start = std::chrono::steady_clock::now();
 					
 					const boost::regex mask(filemask);
 
-					if (boost::regex_match(list[current], mask))
+					if (filemask.size() == 0 || boost::regex_match(list[current], mask))
 					{
+						axon::timer t1("file download");
 
-						long long filesize = conn->get(list[current], list[current], true);
+						long long filesize = conn->get(list[current], list[current]);
 						
-						_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, ((filesize/1000.00)/(since(start).count()/1000.00)));
+						_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, ((filesize/1000.00)/(t1.now()/1000000.00)));
 
-						sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d);", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), filesize, since(start).count(), 1);
-						_db.execute(sqltext);
+						sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), filesize, t1.now(), 1);
+						//sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d)", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), filesize, since(start).count(), 1);
+						_db->execute(sqltext);
 					}
 					else
 					{
-						sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d);", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), 0ULL, 0L, 2);
-						_db.execute(sqltext);
+						sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), 0ULL, 0L, 2);
+						_db->execute(sqltext);
 					}
 				}
 
@@ -529,10 +538,15 @@ int node::run()
 			conn->disconnect();
 		}
 	} catch (axon::exception &e) {
-		_log->print("ERROR", "%s - %s", _name, e.what());
+		_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
 	}
 
 	return true;
+}
+
+bool node::enabled()
+{
+	return _status;
 }
 
 bool node::running()
@@ -556,7 +570,7 @@ void node::print(int width)
 		return;
 
 	std::string padding = "                                                    ";
-	std::cout<<std::right<<std::setw(width)<<_name.substr(0, width)<<"─┬────"<<_shortdesc<<std::endl;
+	std::cout<<std::right<<std::setw(width)<<_name.substr(0, width)<<"─┬─ "<<_shortdesc<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          description ── "<<_longdesc<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─               ip/url ── "<<_ipaddress<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─             username ── "<<_username<<std::endl;

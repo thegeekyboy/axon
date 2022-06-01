@@ -13,6 +13,10 @@ namespace axon {
 			_connected = false;
 			_subscribing = false;
 			_running = false;
+			_executed = false;
+
+			_index = 1;
+			_colidx = 0;
 
 			DBGPRN("axon::database - constructing");
 		}
@@ -28,6 +32,15 @@ namespace axon {
 			DBGPRN("axon::database - destroying");
 		}
 
+		oracle::oracle(const oracle &lhs)
+		{
+			_environment = lhs._environment;
+			_error = lhs._error;
+			_server = lhs._server;
+			_context = lhs._context;
+			_session = lhs._session;
+		}
+
 		OCIError *oracle::getError()
 		{
 			return _error;
@@ -40,7 +53,7 @@ namespace axon {
 
 		OCISvcCtx *oracle::getService()
 		{
-			return _service;
+			return _context;
 		}
 
 		void oracle::checker(sword status)
@@ -57,43 +70,44 @@ namespace axon {
 
 			if (errhand == NULL)
 			{
-				s<<"OCIError is NULL so- nothing to see here!"<<std::endl;
+				s<<"OCIError is NULL so- nothing to see here!";
 			}
 			else
 			{
 				switch(status)
 				{
 					case OCI_SUCCESS:
-						s<<"Operation successful - no error detected"<<std::endl;
+						s<<"Operation successful - no error detected";
 						break;
 
 					case OCI_SUCCESS_WITH_INFO:
-						s<<"Error - OCI_SUCCESS_WITH_INFO"<<std::endl;
+						s<<"Error - OCI_SUCCESS_WITH_INFO";
 						break;
 
 					case OCI_NEED_DATA:
-						s<<"Error - OCI_NEED_DATA"<<std::endl;
+						s<<"Error - OCI_NEED_DATA";
 						break;
 
 					case OCI_NO_DATA:
-						s<<"Error - OCI_NODATA"<<std::endl;
+						s<<"Error - OCI_NODATA";
 						break;
 
 					case OCI_ERROR:
 						(void) OCIErrorGet((dvoid *) errhand, (ub4) 1, (text *) NULL, &errcode, errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
-						s<<"Error - ("<<errcode<<") "<<errbuf<<std::endl;
+						errbuf[strlen((char*)errbuf)-1] = 0;
+						s<<"Error - ("<<errcode<<") "<<errbuf;
 						break;
 
 					case OCI_INVALID_HANDLE:
-						s<<"Error - OCI_INVALID_HANDLE"<<std::endl;
+						s<<"Error - OCI_INVALID_HANDLE";
 						break;
 
 					case OCI_STILL_EXECUTING:
-						s<<"Error - OCI_STILL_EXECUTE"<<std::endl;
+						s<<"Error - OCI_STILL_EXECUTE";
 						break;
 
 					case OCI_CONTINUE:
-						s<<"Error - OCI_CONTINUE"<<std::endl;
+						s<<"Error - OCI_CONTINUE";
 						break;
 
 					default:
@@ -119,7 +133,7 @@ namespace axon {
 				strcpy(_ctx.username, _username.c_str());
 				strcpy(_ctx.password, _password.c_str());
 
-				_service = (OCISvcCtx *) 0;
+				_context = (OCISvcCtx *) 0;
 				_error = (OCIError *) 0;
 				_session = (OCISession *) 0;
 				_statement = (OCIStmt *) 0;
@@ -138,18 +152,18 @@ namespace axon {
 				if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_server, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::constructor - OCIHandleAlloc", axon::database::oracle::checker(_error, rc));
 
-				if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_service, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0)) != OCI_SUCCESS)
+				if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_context, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::constructor - OCIHandleAlloc", axon::database::oracle::checker(_error, rc));
 
 				if ((rc = OCIServerAttach(_server, _error, (text *) _sid.c_str(), (sb4) _sid.size(), (ub4) OCI_DEFAULT)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::connect - OCIServerAttach", axon::database::oracle::checker(_error, rc));
 
 				// is the following duplicate?
-				// if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_service, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0)) != OCI_SUCCESS)
+				// if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_context, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0)) != OCI_SUCCESS)
 				// 	throw DBERR(rc, "axon::database::oracle::connect", "OCIHandleAlloc");
 
 				/* set attribute server context in the service context */
-				if ((rc = OCIAttrSet((dvoid *) _service, (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _server, (ub4) 0, (ub4) OCI_ATTR_SERVER, (OCIError *) _error)) != OCI_SUCCESS)
+				if ((rc = OCIAttrSet((dvoid *) _context, (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _server, (ub4) 0, (ub4) OCI_ATTR_SERVER, (OCIError *) _error)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::connect - OCIAttrSet", axon::database::oracle::checker(_error, rc));
 
 				/* allocate a user context handle */
@@ -160,11 +174,11 @@ namespace axon {
 				if ((rc = OCIAttrSet((dvoid *) _session, (ub4) OCI_HTYPE_SESSION, (dvoid *)((text *) _password.c_str()), (ub4) _password.size(), OCI_ATTR_PASSWORD, _error)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::connect - OCIAttrSet", axon::database::oracle::checker(_error, rc));
 				
-				if ((rc = OCISessionBegin(_service, _error, _session, OCI_CRED_RDBMS, OCI_DEFAULT)) != OCI_SUCCESS)
+				if ((rc = OCISessionBegin(_context, _error, _session, OCI_CRED_RDBMS, OCI_DEFAULT)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::connect - OCISessionBegin", axon::database::oracle::checker(_error, rc));
 
 				/* Allocate a statement handle */
-				if ((rc = OCIAttrSet((dvoid *) _service, (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _session, (ub4) 0, OCI_ATTR_SESSION, _error)) != OCI_SUCCESS)
+				if ((rc = OCIAttrSet((dvoid *) _context, (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _session, (ub4) 0, OCI_ATTR_SESSION, _error)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::connect - OCIAttrSet", axon::database::oracle::checker(_error, rc));
 
 				// OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_statement, (ub4) OCI_HTYPE_STMT, 52, (dvoid **) &tmp);
@@ -193,13 +207,13 @@ namespace axon {
 
 			if (_connected)
 			{
-				checker(OCISessionEnd(_service, _error, _session, (ub4) 0));
+				checker(OCISessionEnd(_context, _error, _session, (ub4) 0));
 				checker(OCIServerDetach(_server, _error, (ub4) OCI_DEFAULT));
 			}
 
 			OCIHandleFree((dvoid *) _statement, OCI_HTYPE_STMT);
 			OCIHandleFree((dvoid *) _server, (ub4) OCI_HTYPE_SERVER);
-			OCIHandleFree((dvoid *) _service, (ub4) OCI_HTYPE_SVCCTX);
+			OCIHandleFree((dvoid *) _context, (ub4) OCI_HTYPE_SVCCTX);
 			OCIHandleFree((dvoid *) _session, (ub4) OCI_HTYPE_SESSION);
 			OCIHandleFree((dvoid *) _error, (ub4) OCI_HTYPE_ERROR);
 			OCIHandleFree((dvoid *) _environment, (ub4) OCI_HTYPE_ENV);
@@ -212,6 +226,7 @@ namespace axon {
 
 		bool oracle::flush()
 		{
+			execute("COMMIT");
 			return true;
 		}
 
@@ -223,7 +238,7 @@ namespace axon {
 			{
 				sword rc;
 
-				if ((rc = OCIPing(_service, _error, (ub4) OCI_DEFAULT)) != OCI_SUCCESS)
+				if ((rc = OCIPing(_context, _error, (ub4) OCI_DEFAULT)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::ping - OCIPing", axon::database::oracle::checker(_error, rc));
 			}
 
@@ -239,7 +254,7 @@ namespace axon {
 				sword rc;
 				char sver[1024];
 
-				if((rc = OCIServerVersion(_service, _error, (text*) sver, (ub4) sizeof(sver), (ub1) OCI_HTYPE_SVCCTX)) != OCI_SUCCESS)
+				if((rc = OCIServerVersion(_context, _error, (text*) sver, (ub4) sizeof(sver), (ub1) OCI_HTYPE_SVCCTX)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::version - OCIServerVersion", axon::database::oracle::checker(_error, rc));
 
 				DBGPRN("database version %s", sver);
@@ -297,7 +312,7 @@ namespace axon {
 
 				if ((rc = OCIAttrSet(_subscription, OCI_HTYPE_SUBSCRIPTION, (dvoid *) &timeout, 0, OCI_ATTR_SUBSCR_TIMEOUT, _error)) != OCI_SUCCESS) 				// Set a timeout value of half an hour
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::watch - OCIAttrSet", axon::database::oracle::checker(_error, rc));
-				if ((rc = OCISubscriptionRegister(_service, &_subscription, 1, _error, OCI_DEFAULT)) != OCI_SUCCESS)												// Create a new registration in the	DBCHANGE namespace */
+				if ((rc = OCISubscriptionRegister(_context, &_subscription, 1, _error, OCI_DEFAULT)) != OCI_SUCCESS)												// Create a new registration in the	DBCHANGE namespace */
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::watch - OCISubscriptionRegister", axon::database::oracle::checker(_error, rc));
 
 				_subscribing = true;			
@@ -313,7 +328,7 @@ namespace axon {
 			if ((rc = OCIAttrSet(_stmt, OCI_HTYPE_STMT, _subscription, 0, OCI_ATTR_CHNF_REGHANDLE, _error)) != OCI_SUCCESS)										// Associate the statement with the subscription handle
 				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::watch - OCIAttrSet", axon::database::oracle::checker(_error, rc));
 
-			if ((rc = OCIStmtExecute(_service, _stmt, _error, (ub4) 0, (ub4) 0, (CONST OCISnapshot *) NULL, (OCISnapshot *) NULL, OCI_DEFAULT)) != OCI_SUCCESS)	// Execute the statement The execution of the statement	performs the
+			if ((rc = OCIStmtExecute(_context, _stmt, _error, (ub4) 0, (ub4) 0, (CONST OCISnapshot *) NULL, (OCISnapshot *) NULL, OCI_DEFAULT)) != OCI_SUCCESS)	// Execute the statement The execution of the statement	performs the
 				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::watch - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
 
 			OCIHandleFree(_stmt, OCI_HTYPE_STMT);
@@ -328,7 +343,7 @@ namespace axon {
 			sword rc;
 			if (_subscribing)
 			{
-				if ((rc = OCISubscriptionUnRegister(_service, _subscription, _error, OCI_DEFAULT)) != OCI_SUCCESS)
+				if ((rc = OCISubscriptionUnRegister(_context, _subscription, _error, OCI_DEFAULT)) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::unwatch - OCISubscriptionUnRegister", axon::database::oracle::checker(_error, rc));
 
 				OCIHandleFree((dvoid *) _subscription, OCI_HTYPE_SUBSCRIPTION); // this was commented for some reason!
@@ -354,14 +369,15 @@ namespace axon {
 
 				sword rc;
 
-
 				if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_statement, (ub4) OCI_HTYPE_STMT, 0, NULL)) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIHandleAlloc", axon::database::oracle::checker(_error, rc));
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
 				if ((rc = OCIStmtPrepare(_statement, _error, (text*) sql.c_str(), sql.size(), OCI_NTV_SYNTAX, OCI_DEFAULT)) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtPrepare", axon::database::oracle::checker(_error, rc));
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
 
-				if ((rc = OCIStmtExecute(_service, _statement, _error, 0, 0, (OCISnapshot *) 0, (OCISnapshot *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, "axon::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
+				if ((rc = OCIStmtExecute(_context, _statement, _error, 1, 0, (OCISnapshot *) 0, (OCISnapshot *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
+
+				OCIHandleFree(_statement, OCI_HTYPE_STMT); // We should call release to release statement handle!
 
 				_running = false;
 			}
@@ -414,7 +430,7 @@ namespace axon {
 						// pin duration can be either
 						// OCI_DURATION_SESSION / OCI_DURATION_TRANS
 						OCITypeByName(
-							_environment, _error, _service,
+							_environment, _error, _context,
 							(CONST text *)type_owner_name, strlen(type_owner_name),
 							(CONST text *) type_name, strlen(type_name),
 							NULL, 0,
@@ -422,7 +438,7 @@ namespace axon {
 							&type_tdo
 						);
 
-						if ((rc = OCIObjectNew(_environment, _error, _service, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_TRANS, TRUE, (void **) &array)) != OCI_SUCCESS)
+						if ((rc = OCIObjectNew(_environment, _error, _context, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_TRANS, TRUE, (void **) &array)) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIObjectNew", axon::database::oracle::checker(_error, rc));
 
 						for (unsigned int i = 0; i < data.size(); i++)
@@ -449,10 +465,10 @@ namespace axon {
 						OCIBind *bndp               = (OCIBind *) 0;
 						std::vector<double> data       = std::get<std::vector<double>>(*x);
 
-						if ((rc = OCITypeByName(_environment, _error, _service, (CONST text *) type_owner_name, strlen(type_owner_name), (CONST text *) type_name, strlen(type_name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &type_tdo)) != OCI_SUCCESS)
+						if ((rc = OCITypeByName(_environment, _error, _context, (CONST text *) type_owner_name, strlen(type_owner_name), (CONST text *) type_name, strlen(type_name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &type_tdo)) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCITypeByName", axon::database::oracle::checker(_error, rc));
 
-						if ((rc = OCIObjectNew(_environment, _error, _service, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void**) &array)) != OCI_SUCCESS)
+						if ((rc = OCIObjectNew(_environment, _error, _context, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void**) &array)) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIObjectNew", axon::database::oracle::checker(_error, rc));
 
 						for (unsigned int i = 0; i < data.size(); i++)
@@ -480,10 +496,10 @@ namespace axon {
 						OCIBind *bndp               = (OCIBind *) 0;
 						std::vector<int> data       = std::get<std::vector<int>>(*x);
 
-						if ((rc = OCITypeByName(_environment, _error, _service, (CONST text *) type_owner_name, strlen(type_owner_name), (CONST text *) type_name, strlen(type_name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &type_tdo)) != OCI_SUCCESS)
+						if ((rc = OCITypeByName(_environment, _error, _context, (CONST text *) type_owner_name, strlen(type_owner_name), (CONST text *) type_name, strlen(type_name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &type_tdo)) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCITypeByName", axon::database::oracle::checker(_error, rc));
 
-						if ((rc = OCIObjectNew(_environment, _error, _service, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void**) &array)) != OCI_SUCCESS)
+						if ((rc = OCIObjectNew(_environment, _error, _context, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void**) &array)) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIObjectNew", axon::database::oracle::checker(_error, rc));
 
 						for (unsigned int i = 0; i < data.size(); i++)
@@ -536,7 +552,7 @@ namespace axon {
 					index++;
 				}
 
-				if ((rc = OCIStmtExecute(_service, _statement, _error, 0, 0, NULL, NULL, OCI_DEFAULT)) != OCI_SUCCESS) // prefetch is set to 0
+				if ((rc = OCIStmtExecute(_context, _statement, _error, 1, 0, NULL, NULL, OCI_DEFAULT)) != OCI_SUCCESS) // prefetch is set to 0
 					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
 
 				OCIHandleFree(_statement, OCI_HTYPE_STMT); // We should call release to release statement handle!
@@ -551,7 +567,7 @@ namespace axon {
 			return true;
 		}
 
-		void oracle::query(std::string sql, std::vector<std::string> data)
+		bool oracle::query(std::string sql, std::vector<std::string> data)
 		{
 			// This is the bind one list overload of the hard query
 			//
@@ -572,19 +588,19 @@ namespace axon {
 			OCIType 	*type_tdo			= NULL;
 
 			OCITypeByName(
-				_environment, _error, _service,
+				_environment, _error, _context,
 				(CONST text *)type_owner_name, strlen(type_owner_name),
 				(CONST text *) type_name, strlen(type_name),
 				NULL, 0,
 				OCI_DURATION_SESSION, OCI_TYPEGET_HEADER,
 				&type_tdo
 			);
-			// if ((rc = OCITypeByName(_environment, _error, _service, (const text *) owner, sizeof(owner), (const text *) name, sizeof(name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &tdo)) != OCI_SUCCESS)
+			// if ((rc = OCITypeByName(_environment, _error, _context, (const text *) owner, sizeof(owner), (const text *) name, sizeof(name), NULL, 0, OCI_DURATION_SESSION, OCI_TYPEGET_HEADER, &tdo)) != OCI_SUCCESS)
 			// 	throw DBERR(rc, "axon::database::oracle::query", "OCITypeByName");
 
 			OCIArray *array = (OCIArray *) 0;
 
-			if ((rc = OCIObjectNew(_environment, _error, _service, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void **) &array)) != OCI_SUCCESS)
+			if ((rc = OCIObjectNew(_environment, _error, _context, OCI_TYPECODE_VARRAY, type_tdo, NULL, OCI_DURATION_SESSION, TRUE, (void **) &array)) != OCI_SUCCESS)
 				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIObjectNew", axon::database::oracle::checker(_error, rc));
 
 			for (unsigned int i = 0; i < data.size(); i++)
@@ -623,10 +639,401 @@ namespace axon {
 			if ((rc = OCIBindObject(bndp, _error, type_tdo, (dvoid **) &array, NULL, NULL, NULL)) != OCI_SUCCESS)
 				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCI", axon::database::oracle::checker(_error, rc));
 
-			if ((retval = OCIStmtExecute(_service, _statement, _error, 0, 0, NULL, NULL, OCI_DEFAULT)) != OCI_SUCCESS) // prefetch is set to 0
+			if ((retval = OCIStmtExecute(_context, _statement, _error, 0, 0, NULL, NULL, OCI_DEFAULT)) != OCI_SUCCESS) // prefetch is set to 0
 				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, retval));
 
 			OCIHandleFree(_statement, OCI_HTYPE_STMT); // We should call release to release statement handle!
+
+			return true;
+		}
+
+		bool oracle::query(std::string sql)
+		{
+			// This is the bind one list overload of the hard query
+			//
+			// How to use list bind variable with IN statement was borrowed with thanks from
+			// https://stackoverflow.com/questions/18603281/oracle-oci-bind-variables-and-queries-like-id-in-1-2-3
+
+			timer t1(__PRETTY_FUNCTION__);
+			
+			int prefetch = 100;
+			sword rc;
+
+			_executed = false;
+			_index = 1;
+
+			if ((rc = OCIHandleAlloc((dvoid *) _environment, (dvoid **) &_statement, (ub4) OCI_HTYPE_STMT, 0, NULL)) != OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIHandleAlloc", axon::database::oracle::checker(_error, rc));
+			if ((rc = OCIAttrSet((dvoid *) _statement, OCI_HTYPE_STMT, (void*) &prefetch, sizeof(int), OCI_ATTR_PREFETCH_ROWS, _error)) != OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIAttrSet", axon::database::oracle::checker(_error, rc));
+
+			if ((rc = OCIStmtPrepare(_statement, _error, (text*) sql.c_str(), sql.size(), OCI_NTV_SYNTAX, OCI_DEFAULT)) != OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtPrepare", axon::database::oracle::checker(_error, rc));
+
+			return true;
+		}
+
+		bool oracle::next()
+		{
+			sword rc;
+	
+			if (!_executed)
+			{
+				_colidx = 0;
+				if ((rc = OCIStmtExecute(_context, _statement, _error, 0, 0, NULL, NULL, OCI_DEFAULT)) != OCI_SUCCESS) // prefetch is set to 0
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIStmtExecute", axon::database::oracle::checker(_error, rc));
+
+				build();
+
+				_executed = true;
+			}
+
+			DBGPRN("_fetched: %d, _rownum: %d", _fetched, _rownum);
+
+			if (_rownum+1 < _fetched)
+			{
+				_rownum++;
+			}
+			else
+			{
+				_fetched = 0;
+				_rownum = 0;
+
+				timer t1(__PRETTY_FUNCTION__);
+
+				rc = OCIStmtFetch2(_statement, _error, _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
+				OCIAttrGet(_statement, OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error);
+
+				if (rc == OCI_SUCCESS && rc == OCI_NO_DATA && _fetched == 0)
+					return false;
+
+				if (_fetched == 0)
+					return false;
+			}
+
+			_colidx = 0;
+
+			return true;
+		}
+
+		void oracle::done()
+		{
+			_index = 1;
+			_colidx = 0;
+
+			if (_dirty)
+			{
+				for (unsigned int x = 0; x < _colcnt; x++)
+				{
+					if (_col[x].indicator)
+						free(_col[x].indicator);
+
+					if (_col[x].data)
+						free(_col[x].data);
+				}
+
+				if (_statement != NULL)
+					OCIHandleFree(_statement, OCI_HTYPE_STMT);
+
+				_dirty = false;
+			}
+			
+			OCIHandleFree(_statement, OCI_HTYPE_STMT); // We should call release to release statement handle!
+		}
+
+		bool oracle::build()
+		{
+			timer t1(__PRETTY_FUNCTION__);
+
+			int rc;
+
+			ub4 paramcnt;
+			OCIParam *_param = (OCIParam *) 0;
+
+			if ((rc = OCIAttrGet((CONST dvoid *) _statement, (ub4) OCI_HTYPE_STMT, (void *) &paramcnt, (ub4 *) 0, (ub4) OCI_ATTR_PARAM_COUNT, _error)) < OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIAttrGet", axon::database::oracle::checker(_error, rc));
+
+			DBGPRN("Number of columns in query is %d", paramcnt);
+			_colcnt = paramcnt;
+			_dirty = true;
+
+			for (ub4 i = 1; i <= paramcnt; i++)
+			{
+				OCIDefine *dptr = (OCIDefine *) 0;
+				ub4 namelen = 128;
+
+				_col.push_back({NULL, i, 0, 0, 0, NULL, NULL});
+
+				if ((rc = OCIParamGet((dvoid *) _statement, (ub4) OCI_HTYPE_STMT, (OCIError *) _error, (dvoid **) &_param, (ub4) i)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIParamGet", axon::database::oracle::checker(_error, rc));
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid **) &_col[i-1].name, (ub4 *) &namelen, (ub4) OCI_ATTR_NAME, _error)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIAttrGet", axon::database::oracle::checker(_error, rc));
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, &_col[i-1].type, (ub4 *) 0, (ub4) OCI_ATTR_DATA_TYPE, _error)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIAttrGet", axon::database::oracle::checker(_error, rc));
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid *) &_col[i-1].size, (ub4 *) 0, (ub4) OCI_ATTR_DATA_SIZE, _error)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIAttrGet", axon::database::oracle::checker(_error, rc));
+
+				_col[i-1].name[namelen] = 0;
+				_col[i-1].size += 1;
+				
+				DBGPRN("Column %d: name = %s, type = %u, size = %u", i, _col[i-1].name , _col[i-1].type, _col[i-1].size);
+
+				/*
+					#define SQLT_CHR         1 (ORANET TYPE) character string
+					#define SQLT_NUM         2   (ORANET TYPE) oracle numeric
+					#define SQLT_LNG         8                           long
+					#define SQLT_DAT        12          date in oracle format
+					#define SQLT_AFC        96                Ansi fixed char
+					#define SQLT_TIMESTAMP 187                      TIMESTAMP
+				*/
+
+				switch (_col[i-1].type)
+				{
+					case SQLT_CHR:
+					case SQLT_STR:
+					case SQLT_VCS:
+					case SQLT_AFC:
+					case SQLT_AVC:
+						_col[i-1].memsize = (sizeof(char) * _col[i-1].size * _prefetch);
+						_col[i-1].data = malloc(_col[i-1].memsize);
+						std::memset(_col[i-1].data, 0, _col[i-1].memsize);
+
+						_col[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
+
+						if ((rc = OCIDefineByPos(_statement, &dptr, _error, i, _col[i-1].data, _col[i-1].size, SQLT_STR, _col[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+								throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIDefineByPos", axon::database::oracle::checker(_error, rc));
+						break;
+					
+					case SQLT_NUM:
+					case SQLT_LNG:
+						_col[i-1].memsize = (sizeof(OCINumber) * _prefetch);
+						_col[i-1].data = malloc(_col[i-1].memsize);
+						std::memset(_col[i-1].data, 0, _col[i-1].memsize);
+
+						_col[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
+
+						if ((rc = OCIDefineByPos(_statement, &dptr, _error, i, _col[i-1].data, sizeof(OCINumber), SQLT_VNU, _col[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+							throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIDefineByPos", axon::database::oracle::checker(_error, rc));
+						break;
+					
+					case SQLT_DAT:
+					case SQLT_TIMESTAMP:
+						_col[i-1].memsize = (sizeof(char) * _col[i-1].size * _prefetch);
+						_col[i-1].data = malloc(_col[i-1].memsize);
+						std::memset(_col[i-1].data, 0, _col[i-1].memsize);
+
+						_col[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
+
+						if ((rc = OCIDefineByPos(_statement, &dptr, _error, i, _col[i-1].data, _col[i-1].size, SQLT_DAT, _col[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+								throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::build - OCIDefineByPos", axon::database::oracle::checker(_error, rc));
+						break;
+					
+					default:
+						DBGPRN("Unknown type: %d", _col[i-1].type);
+				}
+			}
+
+			return true;
+		}
+
+		std::string oracle::get(unsigned int i)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+			std::string value;
+
+			DBGPRN("_index: %d, _colcnt: %d, i: %d, col.type: %d", _index, _colcnt, i, _col[_colidx].type);
+			
+			if (i >= _colcnt)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(std::string&)", "Column out of bounds");
+
+			switch (_col[i].type)
+			{
+				case SQLT_AFC:
+				case SQLT_CHR:
+					value = reinterpret_cast<char const*>((((text *) _col[i].data)+(_rownum*_col[i].size)));
+					break;
+				
+				case SQLT_DAT:
+				case SQLT_TIMESTAMP:
+					{
+						// detail why I did the following can be found at https://www.sqlines.com/oracle/datatypes/date
+						char temp[64];
+						char *raw;
+
+						raw = ((char*) _col[i].data) + (_rownum*_col[i].size);
+
+						sprintf(temp, "%02d-%02d-%02d%02d %02d:%02d:%02d", 
+									((int)raw[3]), ((int)raw[2]), ((int)raw[0])-100, ((int)raw[1])-100, 
+									((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
+						value = temp;
+					}
+					break;
+
+				case SQLT_NUM:
+					{
+						double temp;
+						//OCINumberToInt(_error, (((OCINumber *) _col[_colidx].data)+_rownum), sizeof(int), OCI_NUMBER_SIGNED, &temp);
+						OCINumberToReal(_error, (((OCINumber *) _col[i].data)+_rownum), sizeof(double), &temp);
+						value = std::to_string(temp);
+					}
+					break;
+					
+				default:
+					throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(std::string&)", "Variable type is not compatable with row type");
+			}
+
+			return value;
+		}
+
+		oracle& oracle::operator<<(int value)
+		{
+			OCIBind *bndp = (OCIBind *) 0;
+			int rc;
+
+			if ((rc = OCIBindByPos(_statement, &bndp, _error, _index, (dvoid *) &value, (sword) sizeof(value), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT )) != OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "oracle::operator(<<) - OCIBindByPos", axon::database::oracle::checker(_error, rc));
+			
+			_index++;
+
+			return *this;
+		}
+
+		oracle& oracle::operator<<(std::string& value)
+		{
+			OCIBind *bndp = (OCIBind *) 0;
+			int rc;
+
+			DBGPRN("# Index: %d, Data: >%s<, Len: %lu", _index, value.data(), value.size());
+			
+			if ((rc = OCIBindByPos(_statement, &bndp, _error, _index, value.data(), value.size()+1, SQLT_STR, NULL, 0, 0, 0, 0, OCI_DEFAULT)) != OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, "oracle::operator(<<) - OCIBindByPos", axon::database::oracle::checker(_error, rc));
+			
+			_index++;
+
+			return *this;
+		}
+
+		oracle& oracle::operator>>(int &value)
+		{
+			// it was difficult to figure how to extract SQLT_NUM from Returned object
+			// Reference on how to extract long long helped. check the following link
+			// https://stackoverflow.com/questions/25808798/ocidefinebypos-extract-number-value-via-cursor-in-c
+			//
+			// API details on how to extract different type of number via OCI Number functions
+			// https://docs.oracle.com/cd/B28359_01/appdev.111/b28395/oci19map003.htm
+
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
+			
+			if (_colidx > _colcnt)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Column out of bounds");
+
+			if (_col[_colidx].type != SQLT_NUM)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Variable type is not compatable with row type");
+
+			OCINumberToInt(_error, (((OCINumber *) _col[_colidx].data)+_rownum), sizeof(int), OCI_NUMBER_SIGNED, &value);
+
+			_colidx++;
+			return *this;
+		}
+
+		oracle& oracle::operator>>(double &value)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
+
+			if (_colidx >= _colcnt)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Column out of bounds");
+
+			if (_col[_colidx].type != 2)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Variable type is not compatable with row type");
+
+			OCINumberToReal(_error, (((OCINumber *) _col[_colidx].data)+_rownum), sizeof(double), &value);
+
+			_index++;
+			return *this;
+		}
+
+		oracle& oracle::operator>>(std::string &value)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
+			
+			if (_colidx >= _colcnt)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(std::string&)", "Column out of bounds");
+
+			switch (_col[_colidx].type)
+			{
+				case SQLT_AFC:
+				case SQLT_CHR:
+					value = reinterpret_cast<char const*>((((text *) _col[_colidx].data)+(_rownum*_col[_colidx].size)));
+					break;
+				
+				case SQLT_DAT:
+				case SQLT_TIMESTAMP:
+					{
+						// detail why I did the following can be found at https://www.sqlines.com/oracle/datatypes/date
+						char temp[64];
+						char *raw;
+
+						raw = ((char*) _col[_colidx].data) + (_rownum*_col[_colidx].size);
+
+						sprintf(temp, "%02d-%02d-%02d%02d %02d:%02d:%02d", 
+									((int)raw[3]), ((int)raw[2]), ((int)raw[0])-100, ((int)raw[1])-100, 
+									((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
+						value = temp;
+					}
+					break;
+
+				case SQLT_NUM:
+					{
+						double temp;
+						//OCINumberToInt(_error, (((OCINumber *) _col[_colidx].data)+_rownum), sizeof(int), OCI_NUMBER_SIGNED, &temp);
+						OCINumberToReal(_error, (((OCINumber *) _col[_colidx].data)+_rownum), sizeof(double), &temp);
+						value = std::to_string(temp);
+					}
+					break;
+					
+				default:
+					throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(std::string&)", "Variable type is not compatable with row type");
+			}
+
+			_colidx++;
+			return *this;
+		}
+
+		oracle& oracle::operator>>(std::time_t &value)
+		{
+			axon::timer t1(__PRETTY_FUNCTION__);
+
+			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
+			
+			if (_colidx > _colcnt)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Column out of bounds");
+
+			if (_col[_colidx].type != SQLT_DAT && _col[_colidx].type != SQLT_TIMESTAMP)
+				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(int&)", "Variable type is not compatable with row type");
+
+			char *raw;
+			struct tm temp;
+
+			raw = ((char*) _col[_colidx].data) + (_rownum*_col[_colidx].size);
+
+			temp.tm_sec = ((int)raw[6]) - 1;
+			temp.tm_min = ((int)raw[5]) - 1;
+			temp.tm_hour = ((int)raw[4]) - 1;
+			temp.tm_mday = ((int)raw[3]);
+			temp.tm_mon = ((int)raw[2]) - 1;
+			temp.tm_year = ((int)raw[1]);
+			
+			value = std::mktime(&temp);
+
+			_colidx++;
+			return *this;
 		}
 
 		void oracle::driver(dvoid *ctx, OCISubscription *subscrhp, dvoid *payload, ub4 *payl, dvoid *descriptor, ub4 mode)
@@ -784,6 +1191,86 @@ namespace axon {
 				OCIHandleFree((dvoid *) _h_usr, OCI_HTYPE_SESSION);
 			if(_h_env)
 				OCIHandleFree((dvoid *) _h_env, OCI_HTYPE_ENV);
+		}
+
+		std::ostream& oracle::printer(std::ostream &stream)
+		{
+			timer t1(__PRETTY_FUNCTION__);
+
+			for (unsigned int i = 0; i < _colcnt; i++)
+			{
+				// since C has no concept of passing null values, the indicator param
+				// "indicates" which fields are empty. For details check the following
+				// https://docs.oracle.com/cd/B28359_01/appdev.111/b28395/oci02bas.htm#LNOCI87630
+				
+				// sb2 *indicator[] = (sb2 *) _col[i].indicator;
+				// memcpy(indicator, _col[i].indicator, _prefetch*sizeof(sb2));
+				// std::cout<<(*indicator)[1]<<std::endl;
+
+				switch (_col[i].type)
+				{
+					case SQLT_CHR:
+					case SQLT_STR:
+					case SQLT_VCS:
+					case SQLT_AFC:
+					case SQLT_AVC:
+					{
+						int indicator = ((sb2 *) _col[i].indicator)[_rownum];
+
+						if (indicator == 0)
+							stream<<reinterpret_cast<char const*>((((text *) _col[i].data)+(_rownum*_col[i].size)));
+					}
+					break;
+
+					case SQLT_NUM:
+					{
+						int indicator = ((sb2 *) _col[i].indicator)[_rownum];
+
+						if (indicator != -1)
+						{
+							double value = 0;
+							OCINumber data[_prefetch];
+
+							memcpy(data, _col[i].data, _col[i].memsize);
+							OCINumber temp = data[_rownum];
+
+							OCINumberToReal(_error, &temp, sizeof(double), &value);
+
+							if (value != (int) value)
+								stream<<std::fixed<<value;
+							else
+								stream<<(int)value;
+						}
+						else
+							stream<<"NULL";
+					}
+					break;
+
+					case SQLT_DAT:
+					case SQLT_TIMESTAMP:
+					{
+						int indicator = ((sb2 *) _col[i].indicator)[_rownum];
+
+						if (indicator == 0)
+						{
+							char temp[64];
+							char *raw;
+
+							raw = ((char*) _col[i].data) + (_rownum*_col[i].size);
+
+							sprintf(temp, "%02d-%02d-%02d%02d %02d:%02d:%02d", 
+										((int)raw[3]), ((int)raw[2]), ((int)raw[0])-100, ((int)raw[1])-100, 
+										((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
+							stream<<temp;
+						}
+					}
+					break;
+				}
+
+				stream<<",";
+			}
+
+			return stream;
 		}
 	}
 }

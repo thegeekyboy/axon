@@ -17,19 +17,21 @@ public:
 	cluster();
 	~cluster();
 
+	bool set(axon::log&);
+	bool set(dbconf&);
+	unsigned int size();
+	void print();
+	
 	void reset();
 	void load(axon::config&);
 	void push(node &);
 
-	bool set(axon::log&);
-	bool set(dbconf&);
-
 	int killall();
+	bool reload();
 
 	bool running();
-	bool init();
-
-	void print();
+	bool start();
+	bool pool();
 };
 
 #endif

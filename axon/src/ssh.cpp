@@ -358,10 +358,19 @@ namespace axon
 
 			bool sftp::init()
 			{
+				char path[PATH_MAX];
+				int len;
+
 				if (!(_sftp = libssh2_sftp_init(_session)))
 				{
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot initialize SFTP Session");
 				}
+
+				if ((len = libssh2_sftp_realpath(_sftp, ".", path, PATH_MAX-1)) <= 0)
+				{
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot retrive home/landing folder path");
+				}
+				_path = path;
 
 				return true;
 			}
@@ -725,6 +734,8 @@ namespace axon
 						break;
 
 				} while (true);
+
+				libssh2_sftp_close(hsftp);
 
 				if (compress)
 					BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);

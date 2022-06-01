@@ -1,10 +1,21 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <axon.h>
 #include <axon/config.h>
 #include <axon/log.h>
+
 #include <axon/sqlite.h>
+#include <axon/oracle.h>
+
+#include <axon/connection.h>
+#include <axon/ssh.h>
+#include <axon/socket.h>
+#include <axon/ftp.h>
+#include <axon/file.h>
+#include <axon/util.h>
 
 #define NODE_CFG_NAME 'X'
 
@@ -50,7 +61,7 @@ class node {
 	int *serial;
 	int _pid, _ppid;
 
-	axon::database::sqlite _db;
+	std::shared_ptr<axon::database::interface> _db;
 	axon::log *_log, dummy;
 	struct dbconf _dbc;
 
@@ -62,7 +73,7 @@ public:
 
 	node();
 	~node();
-	// node(const node &);
+	node(const node&) = delete;
 
 	std::string operator[] (char);
 	int operator[] (int);
@@ -75,11 +86,13 @@ public:
 	bool set(dbconf&);
 
 	int reset();
-	int disable();
+	void enable();
+	void disable();
 	bool kill();
 
 	int sleep();
 	int monitor();
+	bool enabled();
 	bool running();
 	bool wait();
 

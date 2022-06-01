@@ -1,6 +1,6 @@
 #
 target_sources(axon
-    PRIVATE
+	PRIVATE
 	util.cpp
 	aes.cpp
 	config.cpp

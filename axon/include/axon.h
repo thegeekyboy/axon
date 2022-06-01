@@ -1,26 +1,30 @@
 #ifndef AXON_MASTER_H_
 #define AXON_MASTER_H_
 
-#include <functional>
 #include <iostream>
-#include <fstream>
 #include <sstream>
-#include <string>
-#include <cstring>
-#include <thread>
-#include <mutex>
-#include <cstdarg>
-#include <exception>
+#include <array>
+#include <functional>
 #include <chrono>
-#include <typeinfo>
-#include <iomanip>
-#include <atomic>
-#include <stack>
-#include <queue>
+// #include <fstream>
+// #include <string>
+// #include <cstring>
+// #include <thread>
+// #include <mutex>
+// #include <cstdarg>
+// #include <exception>
+// #include <typeinfo>
+// #include <iomanip>
+// #include <atomic>
+// #include <stack>
+// #include <queue>
+
+#include <string.h>
+#include <linux/limits.h>
 
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+// #include <sys/types.h>
+// #include <unistd.h>
 
 #define MAXBUF 1048576
 
@@ -100,7 +104,7 @@ namespace axon
 	class exception : public std::exception {
 
 		char _what[4096];
-		char _msg[4096];
+		std::string _msg;
 		std::string message;
 
 		std::string make_message(const char* filename, int linenum, const std::string& source, const std::string& message)
@@ -108,6 +112,7 @@ namespace axon
 			std::stringstream s;
 
 			s<<filename<<":"<<linenum<<" => "<<source<<"(): "<<message<<std::endl;
+			_msg = message;
 
 			return s.str();
 		};
@@ -122,12 +127,12 @@ namespace axon
 
 		virtual const char* what() const throw () {
 			
-			return _what;
+			return message.c_str();
 		};
 
 		virtual const char* msg() const throw () {
 			
-			return _msg;
+			return _msg.c_str();
 		};
 	};
 
@@ -214,6 +219,18 @@ namespace axon
 			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_temp - _start);
 			_laps.push_back(microseconds.count());
 		}
+
+		template <
+			class result_t   = std::chrono::milliseconds,
+			class clock_t    = std::chrono::steady_clock,
+			class duration_t = std::chrono::milliseconds
+		>
+		auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+		{
+			return std::chrono::duration_cast<result_t>(clock_t::now() - _start);
+		}
+
+		//time since epoch = std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count()
 	};
 }
 

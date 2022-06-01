@@ -1,5 +1,9 @@
 #pragma once
 
+#include <mutex>
+#include <cstring>
+#include <cstdarg>
+
 #include <oci.h>
 
 #include <axon/database.h>
@@ -44,9 +48,19 @@ namespace axon {
 		};
 		typedef context context;
 
+		struct _colinfo {
+			text *name;      // column name
+			ub4 position;    // in the select statement the position
+			ub4 type;        // data type
+			ub4 size;        // size/length of the field
+			ub4 memsize;     // how much memory (bytes) was allocated
+			void *indicator; // indicator of null value in field
+			void *data;      // pointer to the data
+		};
+
 		class oracle:public interface {
 
-			OCISvcCtx *_service;
+			OCISvcCtx *_context;
 			OCIError *_error;
 			OCISession *_session;
 			OCIStmt *_statement;
@@ -65,11 +79,98 @@ namespace axon {
 			int _port;
 			context _ctx;
 
+			bool _dirty;
+			bool _executed;
+			unsigned int _index;
+			unsigned int _colidx;
+			unsigned int _rownum;
+			unsigned int _colcnt;
+			unsigned int _fetched;
+			std::vector<_colinfo> _col;
+
+			struct rc {
+				sword retval;
+				sword sqlcode;
+				std::string reason;
+				OCIError *errhand;
+
+				void check()
+				{
+					char errbuf[512];
+					sb4 ec = 0;
+
+					if (errhand == NULL)
+					{
+						reason = "OCIError is NULL so- nothing to see here!";
+					}
+					else
+					{
+						switch(retval)
+						{
+							case OCI_SUCCESS:
+								reason = "Operation successful - no error detected";
+								break;
+
+							case OCI_SUCCESS_WITH_INFO:
+								reason = "Error - OCI_SUCCESS_WITH_INFO";
+								break;
+
+							case OCI_NEED_DATA:
+								reason = "Error - OCI_NEED_DATA";
+								break;
+
+							case OCI_NO_DATA:
+								reason = "Error - OCI_NODATA";
+								break;
+
+							case OCI_ERROR:
+								// (void) OCIErrorGet((dvoid *) errhand, (ub4) 1, (text *) NULL, &ec, (text*)errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
+								reason = errbuf;
+								sqlcode = ec;
+								break;
+
+							case OCI_INVALID_HANDLE:
+								reason = "Error - OCI_INVALID_HANDLE";
+								break;
+
+							case OCI_STILL_EXECUTING:
+								reason = "Error - OCI_STILL_EXECUTE";
+								break;
+
+							case OCI_CONTINUE:
+								reason = "Error - OCI_CONTINUE";
+								break;
+
+							default:
+								break;
+						}
+					}
+				};
+
+				inline rc& operator=(sword ec)
+				{
+					retval = ec;
+					return *this;
+				};
+
+				inline bool operator!=(sword ec)
+				{
+					return retval != ec;
+				};
+			} _rc;
+
 			using cb_helper = lambda<50, void, dvoid *, OCISubscription *, dvoid *, ub4 *, dvoid *, ub4>;
+
+			bool build();
+
+			protected:
+				std::ostream& printer(std::ostream&);
 
 			public:
 				oracle();
 				~oracle();
+
+				oracle(const oracle &);
 
 				OCIError *getError();
 				OCIEnv *getEnvironment();
@@ -92,12 +193,24 @@ namespace axon {
 
 				bool execute(const std::string&);
 				bool execute(const std::string&, axon::database::bind*, ...);
-				void query(std::string, std::vector<std::string>);
-				void query(std::string);
+				
+				bool query(std::string, std::vector<std::string>);
+				bool query(std::string);
+
+				bool next();
+				void done();
+
+				std::string get(unsigned int);
+
+				oracle& operator<<(int);
+				oracle& operator<<(std::string&);
+
+				oracle& operator>>(int&);
+				oracle& operator>>(double&);
+				oracle& operator>>(std::string&);
+				oracle& operator>>(std::time_t&);
 
 				static void driver(dvoid *, OCISubscription *, dvoid *, ub4 *, dvoid *, ub4);
-
-				// friend class dcn::recordset;
 		};
 	}
 }

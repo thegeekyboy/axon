@@ -22,14 +22,6 @@
 #define SZBUFFER 262144
 #define MSGSIZE 2048
 
-// Library Headers
-#include <libconfig.h>
-#include <libssh2.h>
-#include <libssh2_sftp.h>
-#include <bzlib.h>
-#include <sqlite3.h>
-#include <curl/curl.h>
-
 // helper library
 #include <axon.h>
 #include <axon/config.h>
@@ -37,7 +29,9 @@
 // local types
 struct dbconf {
 
+	int type;
 	std::string path;
+	std::string address;
 	std::string username;
 	std::string password;
 	std::string gtt;
@@ -48,8 +42,11 @@ struct dbconf {
 	{
 		char *s;
 
+		type = cfg.get("type");
 		s = cfg.get("path");
 		path = s;
+		s = cfg.get("address");
+		address = s;
 		s = cfg.get("username");
 		username = s;
 		s = cfg.get("password");
@@ -63,15 +60,44 @@ struct dbconf {
 	};
 };
 
-template <
-    class result_t   = std::chrono::milliseconds,
-    class clock_t    = std::chrono::steady_clock,
-    class duration_t = std::chrono::milliseconds
->
-auto since(std::chrono::time_point<clock_t, duration_t> const& start)
-{
-    return std::chrono::duration_cast<result_t>(clock_t::now() - start);
-}
+struct mailconf {
+
+	std::string server;
+	std::string username;
+	std::string password;
+
+	std::string fault;
+	std::string summary;
+	std::string body;
+	std::string logo;
+	std::string title;
+
+	void load(axon::config &cfg)
+	{
+		char *s;
+
+		s = cfg.get("server");
+		server = s;
+		s = cfg.get("username");
+		username = s;
+		s = cfg.get("password");
+		password = s;
+
+		s = cfg.get("fault");
+		fault = s;
+		s = cfg.get("summary");
+		summary = s;
+
+		s = cfg.get("template");
+		body = s;
+
+		s = cfg.get("logo");
+		title = s;
+
+		s = cfg.get("title");
+		title = s;
+	};
+};
 
 // local definitions
 #include <interface.h>

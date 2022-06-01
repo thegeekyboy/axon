@@ -46,13 +46,15 @@ void cluster::load(axon::config &cfg)
 		int tint;
 
 		name = cfg.name(i);
+		if (name.size() > 8) name.erase(8, std::string::npos);
+		for (auto & c: name) c = std::toupper(c);
 
 		_log->print("INFO", "%s - loading configuration parameters", name);
 		
 		if (_log != &dummy)
 			tnode->set(*_log);
 		
-		if (_dbc.path.size() > 0)
+		if (_dbc.path.size() > 0 || _dbc.address.size() > 0 )
 			tnode->set(_dbc);
 
 		tnode->set(NODE_CFG_NAME, name);
@@ -359,12 +361,32 @@ bool cluster::set(dbconf &dbc)
 	return true;
 }
 
+unsigned int cluster::size()
+{
+	return _node.size();
+}
+
 int cluster::killall()
+{
+	_running = false;
+	
+	for (unsigned int i = 0; i < _node.size(); i++)
+	{
+		(*_node[i]).kill();
+	}
+
+	return true;
+}
+
+bool cluster::reload()
 {
 	for (unsigned int i = 0; i < _node.size(); i++)
 	{
 		(*_node[i]).kill();
 	}
+
+	while (_node.size() > 0)
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 	return true;
 }
@@ -374,28 +396,42 @@ bool cluster::running()
 	return _running;
 }
 
-bool cluster::init()
+bool cluster::start()
 {
-	int cnt = 0;
-
 	_log->print("INFO", "cluster monitor initializing..");
 
 	for (unsigned int i = 0; i < _node.size(); i++)
 	{
 		// th = std::thread(&node::monitor, std::ref(_node[i]));
 		// th.detach();
-		_node[i]->start();
-
-		cnt++;
+		try {
+			_node[i]->start();
+		} catch (axon::exception &e) {
+			_log->print("CLUSTER", "Exception: %s", e.what());
+		}
 	}
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // give it a moment to warm up
+	return true;
+}
 
-	for (unsigned int i = 0; i < _node.size(); i++)
+bool cluster::pool()
+{
+	_running = true;
+
+	while (_node.size() > 0 || _running)
 	{
-		_node[i]->wait();
+		for (unsigned int i = 0; i < _node.size(); i++)
+		{
+			if (!_node[i]->enabled() && !_node[i]->running())
+			{
+				_log->print("INFO", "waiting %s to die", _node[i]->get(NODE_CFG_NAME));
+				_node[i]->wait();
+				delete _node[i];
+				_node.erase(_node.begin()+i);
+			}
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
 	}
-
 
 	return true;
 }

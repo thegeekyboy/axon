@@ -58,9 +58,7 @@ namespace axon
 		if (stat(_path.c_str(), &s) == 0)
 		{
 			if (!(s.st_mode & S_IFDIR))
-			{
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _path + " for logging");
-			}
 		}
 		else
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _path + " for logging");
@@ -72,14 +70,10 @@ namespace axon
 		if ((code = stat(fullpath, &s)) == 0)
 		{
 			if (!(s.st_mode & S_IFREG))
-			{
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _filename + " for logging, its a directory");
-			}
 		}
-		else if (code != ENOENT)
-		{
-			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _filename + " for logging");
-		}
+		else if (errno != ENOENT)
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _filename + " for logging, code: " + std::to_string(errno));
 
 		fopen();
 	}

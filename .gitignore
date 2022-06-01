@@ -9,6 +9,8 @@ build
 
 # documents
 !*.md
+!*.png
+!*.html
 
 # build files
 !bootstrap.sh

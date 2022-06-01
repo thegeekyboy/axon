@@ -1,11 +1,16 @@
 #ifndef AXON_SOCKET_H_
 #define AXON_SOCKET_H_
 
+#include <queue>
+#include <atomic>
+#include <thread>
+
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 namespace axon
 {

@@ -1,6 +1,10 @@
 #ifndef AXON_SQLITE_H_
 #define AXON_SQLITE_H_
 
+#include <mutex>
+
+#include <string.h>
+
 #include <sqlite3.h>
 
 #include <axon/database.h>
@@ -29,6 +33,9 @@ namespace axon
 
 			std::mutex _safety;
 
+		protected:
+			std::ostream& printer(std::ostream&);
+
 		public:
 			sqlite();
 			sqlite(std::string);
@@ -49,15 +56,17 @@ namespace axon
 
 			bool query(std::string);
 			bool next();
-			bool done();
+			void done();
 
-			std::string get(int);
+			std::string get(unsigned int);
 
 			sqlite& operator<<(int);
 			sqlite& operator<<(std::string&);
 
 			sqlite& operator>>(int&);
+			sqlite& operator>>(double&);
 			sqlite& operator>>(std::string&);
+			sqlite& operator>>(std::time_t&);
 		};
 	}
 }

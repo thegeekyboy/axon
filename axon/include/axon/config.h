@@ -1,6 +1,11 @@
 #ifndef AXON_CONFIG_H_
 #define AXON_CONFIG_H_
 
+#include <stack>
+
+#include <string.h>
+#include <unistd.h>
+
 #include <libconfig.h>
 
 namespace axon
@@ -8,7 +13,6 @@ namespace axon
 
 	enum conftype
 	{
-
 		INTEGER = 0,
 		STRING,
 		GROUP,
@@ -53,6 +57,7 @@ namespace axon
 		config &operator=(const config &);
 
 		bool load(std::string);
+		bool load();
 		bool reload();
 
 		bool open(std::string path);

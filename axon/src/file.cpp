@@ -109,7 +109,6 @@ namespace axon
 					destx = _path + "/" + dest;
 
 				std::tie(parent, remainder) = axon::splitpath(destx);
-				// mkdir(parent, 0700);
 				boost::filesystem::create_directories(parent);
 
 				if (std::rename(srcx.c_str(), destx.c_str()))

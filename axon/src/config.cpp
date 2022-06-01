@@ -64,11 +64,19 @@ namespace axon
 	bool config::load(std::string filename)
 	{
 		_filename = filename;
+		
+		return load();
+	}
 
-		if (access(filename.c_str(), F_OK) == -1)
-			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot find configuration file (" + filename + ")");
+	bool config::load()
+	{
+		if (_filename.size() <= 1)
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Invalid configuration filename");
 
-		if(!config_read_file(&_cfg, filename.c_str()))
+		if (access(_filename.c_str(), F_OK) == -1)
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot find configuration file (" + _filename + ")");
+
+		if(!config_read_file(&_cfg, _filename.c_str()))
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error reading config file at line #" + std::to_string(config_error_line(&_cfg)) + " - " + config_error_text(&_cfg));
 
 		_root = config_root_setting(&_cfg);
@@ -104,6 +112,15 @@ namespace axon
 		}
 
 		_path.pop();
+
+		return true;
+	}
+
+	bool config::reload()
+	{
+		config_destroy(&_cfg);
+		config_init(&_cfg);
+		load();
 
 		return true;
 	}

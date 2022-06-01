@@ -1,6 +1,8 @@
 #ifndef AXON_DMI_H_
 #define AXON_DMI_H_
 
+#include <string.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
