@@ -20,6 +20,7 @@ namespace axon
 				std::string _path;
 
 				bool init();
+				long long copy(std::string&, std::string&, bool);
 
 			public:
 				file(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };

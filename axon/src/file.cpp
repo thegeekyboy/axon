@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include <bzlib.h>
 #include <boost/filesystem.hpp>
 
 #include <axon.h>
@@ -32,6 +33,82 @@ namespace axon
 				return true;
 			}
 
+			long long file::copy(std::string &src, std::string &dest, bool compress = false)
+			{
+				int bzerr;
+				unsigned int inbyte, outbyte;
+				unsigned long long filesize = 0;
+				char FILEBUF[MAXBUF];
+
+				std::string srcx;
+
+				FILE *fps, *fpd;
+				BZFILE *bfp = NULL;
+
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+
+				if (!(fpd = fopen(dest.c_str(), "wb")))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file for writing " + dest);
+				
+				if (!(fps = fopen(srcx.c_str(), "rb")))
+				{
+					fclose(fpd);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file for reading " + srcx);
+				}
+
+				if (compress)
+				{
+					bfp = BZ2_bzWriteOpen(&bzerr, fpd, 3, 0, 30);
+
+					if (bzerr != BZ_OK)
+					{
+						BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+						fclose(fps);
+						fclose(fpd);
+						unlink(dest.c_str());
+
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not open compression stream");
+					}
+				}
+
+				do {
+
+					int rc = fread(FILEBUF, MAXBUF, 1, fps);
+
+					if (rc > 0)
+					{
+						if (compress)
+						{
+							BZ2_bzWrite(&bzerr, bfp, FILEBUF, rc);
+							
+							if (bzerr == BZ_IO_ERROR)
+							{
+								BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+								fclose(fps);
+								fclose(fpd);
+								unlink(dest.c_str());
+
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error in comppression stream");
+							}
+						}
+						else
+							fwrite(FILEBUF, rc, 1, fpd);
+						filesize += rc;
+					}
+					else
+						break;
+
+				} while (true);
+
+				fclose(fps);
+				fclose(fpd);
+
+				return filesize;
+			}
+
 			bool file::connect()
 			{
 				// char   *pw_name;       /* username */
@@ -49,8 +126,8 @@ namespace axon
 
 				if (setfsuid(-1) != (int) pw->pw_uid)
 				{
-					setfsuid(pw->pw_uid);
-					// std::cout<<"the previous uid = "<<code<<", requested uid = "<<pw->pw_uid<<std::endl;
+					setfsuid(pw->pw_uid); // setfsuid is thread specific, so this change is applicable for this thread only.
+					DBGPRN("requested uid = %d", pw->pw_uid);
 
 					if (setfsuid(-1) != (int) pw->pw_uid)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not change fs uid with 'setfsuid'");
@@ -224,11 +301,14 @@ namespace axon
 
 			long long file::get(std::string src, std::string dest, bool compress = false)
 			{
+				copy(src, dest, compress);
 				return 0; // return the size
 			}
 
-			long long file::put(std::string src, std::string dest, bool decompress = false)
+			long long file::put(std::string src, std::string dest, bool compress = false)
 			{
+				// copy(dest, src, compress);
+				copy(src, dest, compress);
 				//ren(temp, dest);
 
 				return 0; // return size

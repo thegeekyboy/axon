@@ -12,7 +12,7 @@
 #define AXON_LOG_FILENAME 'f'
 #define AXON_LOG_LEVEL 0x0001
 
-#define AXON_DEFAULT_FILENAME "sentinel.log"
+#define AXON_DEFAULT_FILENAME "axon.log"
 
 namespace axon
 {

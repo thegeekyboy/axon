@@ -126,6 +126,19 @@ namespace axon
 		return password;
 	}
 
+	bool exists(const std::string &path)
+	{
+		// for folder
+		struct stat info;
+
+		if(stat(path.c_str(), &info ) != 0)
+			return false;
+		else if(info.st_mode & S_IFDIR)
+			return true;
+		else
+			return false;
+	}
+
 	bool exists(const std::string& filename, const std::string& path)
 	{
 		char fname[PATH_MAX];

@@ -17,6 +17,7 @@ namespace axon
 	std::vector<std::string> split(const std::string&, const char);
 	std::string hash(const std::string&);
 	bool exists(const std::string&, const std::string&);
+	bool exists(const std::string&);
 	bool execmd(const char *cmd, const char *name);
 	std::string base64_encode(BYTE const* buf, unsigned int bufLen);
 	std::vector<BYTE> base64_decode(std::string const&);

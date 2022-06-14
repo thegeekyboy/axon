@@ -1,16 +1,20 @@
-#include <boost/regex.hpp>
+#include <sys/fsuid.h>
 
-#include <main.h>
+#include <boost/regex.hpp>
 
 #include <axon.h>
 #include <axon/config.h>
 #include <axon/log.h>
+
+#include <main.h>
+#include <cluster.h>
 
 cluster::cluster()
 {
 	_canrun = true;
 	_running = false;
 	_log = &dummy;
+	_uid = 0;
 	reset();
 }
 
@@ -36,6 +40,14 @@ void cluster::reset()
 	}
 }
 
+bool cluster::set(char i, std::string value)
+{
+	if (i == CLUSTER_CFG_BUFFER)
+		_buffer = value;
+
+	return true;
+}
+
 void cluster::load(axon::config &cfg)
 {
 	for (int i = 0; i < cfg.size(); i++)
@@ -58,6 +70,7 @@ void cluster::load(axon::config &cfg)
 			tnode->set(_dbc);
 
 		tnode->set(NODE_CFG_NAME, name);
+		tnode->set(NODE_CFG_BUFFER, _buffer);
 
 		cfg.open(cfg.name(i));
 
@@ -394,6 +407,14 @@ bool cluster::reload()
 bool cluster::running()
 {
 	return _running;
+}
+
+bool cluster::start(uid_t &uid)
+{
+	_uid = uid;
+	setfsuid(uid);
+	setfsgid(uid);
+	return start();
 }
 
 bool cluster::start()

@@ -36,6 +36,7 @@
 #define NODE_CFG_PRERUN 'O'
 #define NODE_CFG_POSTRUN 'P'
 #define NODE_CFG_DOMAIN 'Q'
+#define NODE_CFG_BUFFER 'R'
 
 #define NODE_CFG_STATUS 1
 #define NODE_CFG_CONFTYPE 2
@@ -54,7 +55,7 @@
 
 class node {
 
-	std::string _name, _shortdesc, _longdesc, _ipaddress, _username, _password, _privatekey, _bucket, _pickpath[5], _droppath, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _domain;
+	std::string _name, _shortdesc, _longdesc, _ipaddress, _username, _password, _privatekey, _bucket, _pickpath[5], _droppath, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _domain, _buffer;
 	int _conftype, _status, _proto, _mode, _auth, _compress, _lookback, _sleeptime, _trim, _trigger;
 
 	bool isdead, _canrun, _running, _sleeping;

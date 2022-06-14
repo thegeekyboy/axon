@@ -744,7 +744,7 @@ namespace axon
 				return filesize;
 			}
 
-			long long sftp::put(std::string src, std::string dest, bool decompress = false)
+			long long sftp::put(std::string src, std::string dest, bool compress = false)
 			{
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				std::string destx, temp;

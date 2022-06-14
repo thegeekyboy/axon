@@ -1,6 +1,9 @@
 #include <main.h>
 
 #include <signal.h>
+#include <mntent.h>
+#include <pwd.h>
+#include <sys/mount.h>
 
 #include <axon/config.h>
 #include <axon/log.h>
@@ -18,14 +21,96 @@ mailconf mc;
 cluster overlord;
 sentinel::sendmail sm;
 
+uid_t uid;
+
 void sigman(int, siginfo_t*, void*);
 int install_signal_manager();
 
-void setup()
+bool create_ramdisk(size_t mb, std::string location)
+{
+	uid_t ruid, euid, suid;
+
+	if (mb > 16384)
+	{
+		logger.print("FATAL", "tmpfs cannot be more than 16GB. aborting!");
+		return false;
+	}
+
+	getresuid(&ruid, &euid, &suid);
+
+	logger.print("INFO", "size: %d, location: %s, euid: %d, ruid: %d, suid: %d", mb, location.c_str(), euid, ruid, suid);
+
+	if (euid == 0)
+	{
+		FILE *fp;
+		bool exists = false;
+
+		if (!axon::exists(location))
+		{
+			logger.print("FATAL", "mount point does not exist. aborting!");
+			return false;
+		}
+
+		if (!(fp = setmntent("/proc/mounts", "r")))
+		{
+			logger.print("FATAL", "cannot open /proc/mount. aborting!");
+			return false;
+		}
+
+		while (true)
+		{
+			struct mntent mnt;
+			char buf[PATH_MAX * 3];
+
+			if (getmntent_r(fp, &mnt, buf, sizeof(buf)) == NULL)
+				break;
+			
+			if (location.compare(mnt.mnt_dir) == 0 && strcmp(mnt.mnt_type, "tmpfs") == 0)
+				exists = true;
+
+			// std::cout<<"location: "<<mnt.mnt_dir<<", type:"<<mnt.mnt_type<<std::endl;
+		}
+
+		endmntent(fp);
+		
+		if (exists)
+		{
+			char options[128];
+
+			sprintf(options, "size=%luM,uid=%d,gid=%d,mode=700", mb, uid, uid);
+			if (mount("tmpfs", location.c_str(), "tmpfs", MS_REMOUNT|MS_NOSUID|MS_NOATIME|MS_NODEV|MS_NODIRATIME|MS_NOEXEC, &options) != 0)
+			{
+				logger.print("FATAL", "mount() failed, errCode=%d, reason=%s", errno, strerror(errno));
+				return false;
+			}
+		}
+	}
+	else
+	{
+		logger.print("FATAL", "effective user do not have super-user previlage! aborting");
+		return false;
+	}
+
+	return true;
+}
+
+bool setup()
 {
 	char *s;
+	int x;
 
 	cfg.reload();
+
+	s = cfg.get("runuser");
+	struct passwd *pw = getpwnam(s);
+	
+	if (pw == NULL)
+	{
+		logger.print("FATAL", "cannot determine runtime userid from name! aborting");
+		return false;
+	}
+
+	uid = pw->pw_uid;
 
 	cfg.open("log");
 	s = cfg.get("location");
@@ -33,6 +118,17 @@ void setup()
 	s = cfg.get("file");
 	logger[AXON_LOG_FILENAME] = s;
 	logger.open();
+	cfg.close();
+
+	cfg.open("workarea");
+	if (cfg.get("enabled"))
+	{
+		x = cfg.get("size");
+		s = cfg.get("location");
+		if (!create_ramdisk(x, s))
+			return false;
+		overlord.set(CLUSTER_CFG_BUFFER, s);
+	}
 	cfg.close();
 
 	cfg.open("database");
@@ -56,6 +152,76 @@ void setup()
 #ifdef DEBUG
 	overlord.print();
 #endif
+
+	return true;
+}
+
+int install_signal_manager()
+{
+	struct sigaction action;
+	int retval;
+
+	logger.print("INFO", "overlord - installing signal manager.");
+
+	memset(&action, 0, sizeof(struct sigaction));
+	action.sa_sigaction = &sigman;
+	action.sa_flags = SA_SIGINFO;
+
+	signal (SIGSEGV, SIG_IGN);
+	signal (SIGINT, SIG_IGN);
+	signal (SIGQUIT, SIG_IGN);
+	signal (SIGTSTP, SIG_IGN);
+
+	if ((retval = sigaction(SIGSEGV, &action, NULL)) == -1)
+	{
+		logger.print("ERROR", "overlord - cannot attach signal manager for SIGSEGV (%d), cannot continue.", retval);
+		return false;
+	}
+
+	if ((retval = sigaction(SIGHUP, &action, NULL)) == -1)
+	{
+		logger.print("ERROR", "overlord - cannot attach signal manager for SIGHUP (%d), cannot continue.", retval);
+		return false;
+	}
+
+	if ((retval = sigaction(SIGTERM, &action, NULL)) == -1)
+	{
+		logger.print("ERROR", "overlord - cannot attach signal manager for SIGTERM (%d), cannot continue.", retval);
+		return false;
+	}
+
+	return true;
+}
+
+void sigman(int signum, siginfo_t *siginfo, void *context)
+{
+	logger.print("WARNING", "overlord - received signal, disabling further signal processing.");
+
+	signal (SIGSEGV, SIG_IGN);
+	signal (SIGINT, SIG_IGN);
+	signal (SIGQUIT, SIG_IGN);
+	signal (SIGTSTP, SIG_IGN);
+
+	switch (signum)
+	{
+		case SIGSEGV:
+			logger.print("FATAL", "overlord - Something caused SEGFAULT please investigate, shutting down processes...");
+			overlord.killall();
+			break;
+
+		case SIGTERM:
+			logger.print("WARNING", "overlord - SIGTERM received, shutting down processes...");
+			overlord.killall();
+			break;
+
+		case SIGHUP:
+			logger.print("WARNING", "overlord - SIGHUP received, reloading configuration...");
+			overlord.reload();
+			setup();
+			overlord.start();
+			install_signal_manager();
+			break;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -128,9 +294,19 @@ int main(int argc, char *argv[])
 
 			freopen("/dev/null", "w", stderr); // disabling stderr. this is to prevend pre-post script errors to bleed into terminal
 
-			setup();
-			overlord.start();
-			install_signal_manager();
+			if (!setup())
+			{
+				logger.print("FATAL", "setup process failed. aborting!");
+				return -1;
+			}
+
+			overlord.start(uid);
+
+			if (!install_signal_manager())
+			{
+				logger.print("FATAL", "cannot install signal manager. aborting!");
+				return -2;
+			}
 
 			std::thread th_main(&cluster::pool, std::ref(overlord)); // 
 			th_main.join();
@@ -142,72 +318,4 @@ int main(int argc, char *argv[])
 	}
 
 	return 0;
-}
-
-void sigman(int signum, siginfo_t *siginfo, void *context)
-{
-	logger.print("WARNING", "overlord - received signal, disabling further signal processing.");
-
-	signal (SIGSEGV, SIG_IGN);
-	signal (SIGINT, SIG_IGN);
-	signal (SIGQUIT, SIG_IGN);
-	signal (SIGTSTP, SIG_IGN);
-
-	switch (signum)
-	{
-		case SIGSEGV:
-			logger.print("FATAL", "overlord - Something caused SEGFAULT please investigate, shutting down processes...");
-			overlord.killall();
-			break;
-
-		case SIGTERM:
-			logger.print("WARNING", "overlord - SIGTERM received, shutting down processes...");
-			overlord.killall();
-			break;
-
-		case SIGHUP:
-			logger.print("WARNING", "overlord - SIGHUP received, reloading configuration...");
-			overlord.reload();
-			setup();
-			overlord.start();
-			install_signal_manager();
-			break;
-	}
-}
-
-int install_signal_manager()
-{
-	struct sigaction action;
-	int retval;
-
-	logger.print("INFO", "overlord - installing signal manager.");
-
-	memset(&action, 0, sizeof(struct sigaction));
-	action.sa_sigaction = &sigman;
-	action.sa_flags = SA_SIGINFO;
-
-	signal (SIGSEGV, SIG_IGN);
-	signal (SIGINT, SIG_IGN);
-	signal (SIGQUIT, SIG_IGN);
-	signal (SIGTSTP, SIG_IGN);
-
-	if ((retval = sigaction(SIGSEGV, &action, NULL)) == -1)
-	{
-		logger.print("ERROR", "overlord - cannot attach signal manager for SIGSEGV (%d), cannot continue.", retval);
-		return false;
-	}
-
-	if ((retval = sigaction(SIGHUP, &action, NULL)) == -1)
-	{
-		logger.print("ERROR", "overlord - cannot attach signal manager for SIGHUP (%d), cannot continue.", retval);
-		return false;
-	}
-
-	if ((retval = sigaction(SIGTERM, &action, NULL)) == -1)
-	{
-		logger.print("ERROR", "overlord - cannot attach signal manager for SIGTERM (%d), cannot continue.", retval);
-		return false;
-	}
-
-	return true;
 }

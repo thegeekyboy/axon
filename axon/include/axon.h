@@ -197,7 +197,7 @@ namespace axon
 		{
 			_end = std::chrono::high_resolution_clock::now();
 			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
-			DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
+			// DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
 		}
 
 		long now()

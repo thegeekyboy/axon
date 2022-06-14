@@ -479,7 +479,7 @@ namespace axon
 				return szx;
 			}
 
-			long long ftp::put(std::string src, std::string dest, bool decompress = false)
+			long long ftp::put(std::string src, std::string dest, bool compress = false)
 			{
 				unsigned char v[6];
 				char pasvhost[18];

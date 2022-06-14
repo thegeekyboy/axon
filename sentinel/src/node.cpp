@@ -48,6 +48,8 @@ std::string node::operator[](char i)
 		return _prerun;
 	else if (i == NODE_CFG_POSTRUN)
 		return _postrun;
+	else if (i == NODE_CFG_BUFFER)
+		return _buffer;
 
 	return 0;
 }
@@ -112,6 +114,8 @@ std::string node::get(char i)
 		return _prerun;
 	else if (i == NODE_CFG_POSTRUN)
 		return _postrun;
+	else if (i == NODE_CFG_BUFFER)
+		return _buffer;
 
 	return 0;
 }
@@ -178,6 +182,8 @@ bool node::set(char i, std::string value)
 		_postrun = value;
 	else if (i == NODE_CFG_PRIVATE_KEY)
 		_privatekey = value;
+	else if (i == NODE_CFG_BUFFER)
+		_buffer = value;
 
 	return true;
 }
@@ -368,38 +374,62 @@ int node::run()
 {
 	// actual stuff is being done here :) welcome to the world of spaghetti coding
 
-	std::shared_ptr<axon::transport::transfer::connection> conn;
+	_log->print("INFO", "%s - booting up > %d", _name, _conftype);
 
-	_log->print("INFO", "%s - booting up", _name);
+	std::shared_ptr<axon::transport::transfer::connection> source, destination;
 
 	try {
+
+		if (_conftype == 0)
+		{
+			std::shared_ptr<axon::transport::transfer::file> q(new axon::transport::transfer::file(_ipaddress, _username, _password));
+			destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(q);
+		}
+		else if (_conftype == 1)
+		{
+			std::shared_ptr<axon::transport::transfer::file> q(new axon::transport::transfer::file(_ipaddress, _username, _password));
+			source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(q);
+		}
 
 		switch (_proto)
 		{
 			case axon::entrytypes::SFTP:
 				{
 					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_ipaddress, _username, _password));
-					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 
 					if (_auth == axon::authtypes::PRIVATEKEY)
 					{
 						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
 						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _privatekey);
 					}
+
+					if (_conftype == 0)
+						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					else if (_conftype == 1)
+						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+
 				}
 				break;
 
 			case axon::entrytypes::FTP:
 				{
 					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_ipaddress, _username, _password));
-					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					
+					if (_conftype == 0)
+						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					else if (_conftype == 1)
+						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 				}
 				break;
 
 			case axon::entrytypes::FILE:
 				{
 					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_ipaddress, _username, _password));
-					conn = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					
+					if (_conftype == 0)
+						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					else if (_conftype == 1)
+						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 				}
 				break;
 
@@ -414,7 +444,7 @@ int node::run()
 
 	try {
 
-		if (conn)
+		if (source)
 		{
 			std::string pickpath, droppath, filemask;
 			std::vector<axon::entry> v;
@@ -433,10 +463,13 @@ int node::run()
 			_db->execute("DELETE FROM " + _dbc.gtt);
 			_db->flush();
 
-			conn->connect();
-			conn->chwd(_pickpath[0]);
+			source->connect();
+			source->chwd(_pickpath[0]);
 
-			if (conn->list(v))
+			destination->connect();
+			destination->chwd(_droppath);
+
+			if (source->list(v))
 			{
 				// _db->execute("BEGIN TRANSACTION;");
 
@@ -504,7 +537,9 @@ int node::run()
 					{
 						axon::timer t1("file download");
 
-						long long filesize = conn->get(list[current], list[current]);
+						long long filesize = source->get(list[current], _buffer + "/" + list[current]);
+						destination->put(_buffer + "/" + list[current], _droppath + "/" + list[current]);
+						unlink(std::string(_buffer + "/" + list[current]).c_str());
 						
 						_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, ((filesize/1000.00)/(t1.now()/1000000.00)));
 
@@ -535,7 +570,9 @@ int node::run()
 			else
 				_log->print("INFO", "%s - no new files to download", _name);
 
-			conn->disconnect();
+			source->disconnect();
+			if (_conftype == 1)
+				destination->disconnect();
 		}
 	} catch (axon::exception &e) {
 		_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
