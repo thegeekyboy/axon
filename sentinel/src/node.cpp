@@ -24,12 +24,22 @@ std::string node::operator[](char i)
 		return _shortdesc;
 	else if (i == NODE_CFG_LONGDESC)
 		return _longdesc;
-	else if (i == NODE_CFG_IPADDRESS)
-		return _ipaddress;
-	else if (i == NODE_CFG_USERNAME)
-		return _username;
-	else if (i == NODE_CFG_PASSWORD)
-		return _password;
+	else if (i == NODE_CFG_SRC_IPADDRESS)
+		return _src_ipaddress;
+	else if (i == NODE_CFG_SRC_USERNAME)
+		return _src_username;
+	else if (i == NODE_CFG_SRC_PASSWORD)
+		return _src_password;
+	else if (i == NODE_CFG_SRC_DOMAIN)
+		return _src_domain;
+	else if (i == NODE_CFG_DST_IPADDRESS)
+		return _dst_ipaddress;
+	else if (i == NODE_CFG_DST_USERNAME)
+		return _dst_username;
+	else if (i == NODE_CFG_DST_PASSWORD)
+		return _dst_password;
+	else if (i == NODE_CFG_DST_DOMAIN)
+		return _dst_domain;
 	else if (i == NODE_CFG_PICKPATH)
 		return _pickpath[0];
 	else if (i == NODE_CFG_DROPPATH)
@@ -37,7 +47,7 @@ std::string node::operator[](char i)
 	else if (i == NODE_CFG_FILEMASK)
 		return _filemask;
 	else if (i == NODE_CFG_IGNORE)
-		return _ipaddress;
+		return _ignore;
 	else if (i == NODE_CFG_REMMASK)
 		return _remmask;
 	else if (i == NODE_CFG_TRANSFORM)
@@ -60,10 +70,18 @@ int node::operator[] (int i)
 		return _conftype;
 	else if (i == NODE_CFG_STATUS)
 		return _status;
-	else if (i == NODE_CFG_PROTOCOL)
-		return _proto;
-	else if (i == NODE_CFG_MODE)
-		return _mode;
+	else if (i == NODE_CFG_SRC_PROTOCOL)
+		return _src_protocol;
+	else if (i == NODE_CFG_SRC_MODE)
+		return _src_mode;
+	else if (i == NODE_CFG_SRC_AUTH)
+		return _src_auth;
+	else if (i == NODE_CFG_DST_PROTOCOL)
+		return _dst_protocol;
+	else if (i == NODE_CFG_DST_MODE)
+		return _dst_mode;
+	else if (i == NODE_CFG_DST_AUTH)
+		return _dst_auth;
 	else if (i == NODE_CFG_COMPRESS)
 		return _compress;
 	else if (i == NODE_CFG_LOOKBACK)
@@ -90,12 +108,22 @@ std::string node::get(char i)
 		return _shortdesc;
 	else if (i == NODE_CFG_LONGDESC)
 		return _longdesc;
-	else if (i == NODE_CFG_IPADDRESS)
-		return _ipaddress;
-	else if (i == NODE_CFG_USERNAME)
-		return _username;
-	else if (i == NODE_CFG_PASSWORD)
-		return _password;
+	else if (i == NODE_CFG_SRC_IPADDRESS)
+		return _src_ipaddress;
+	else if (i == NODE_CFG_SRC_USERNAME)
+		return _src_username;
+	else if (i == NODE_CFG_SRC_PASSWORD)
+		return _src_password;
+	else if (i == NODE_CFG_SRC_DOMAIN)
+		return _src_domain;
+	else if (i == NODE_CFG_DST_IPADDRESS)
+		return _dst_ipaddress;
+	else if (i == NODE_CFG_DST_USERNAME)
+		return _dst_username;
+	else if (i == NODE_CFG_DST_PASSWORD)
+		return _dst_password;
+	else if (i == NODE_CFG_DST_DOMAIN)
+		return _dst_domain;
 	else if (i == NODE_CFG_PICKPATH)
 		return _pickpath[0];
 	else if (i == NODE_CFG_DROPPATH)
@@ -103,7 +131,7 @@ std::string node::get(char i)
 	else if (i == NODE_CFG_FILEMASK)
 		return _filemask;
 	else if (i == NODE_CFG_IGNORE)
-		return _ipaddress;
+		return _ignore;
 	else if (i == NODE_CFG_REMMASK)
 		return _remmask;
 	else if (i == NODE_CFG_TRANSFORM)
@@ -126,10 +154,18 @@ int node::get(int i)
 		return _conftype;
 	else if (i == NODE_CFG_STATUS)
 		return _status;
-	else if (i == NODE_CFG_PROTOCOL)
-		return _proto;
-	else if (i == NODE_CFG_MODE)
-		return _mode;
+	else if (i == NODE_CFG_SRC_PROTOCOL)
+		return _src_protocol;
+	else if (i == NODE_CFG_SRC_MODE)
+		return _src_mode;
+	else if (i == NODE_CFG_SRC_AUTH)
+		return _src_auth;
+	else if (i == NODE_CFG_DST_PROTOCOL)
+		return _dst_protocol;
+	else if (i == NODE_CFG_DST_MODE)
+		return _dst_mode;
+	else if (i == NODE_CFG_DST_AUTH)
+		return _dst_auth;
 	else if (i == NODE_CFG_COMPRESS)
 		return _compress;
 	else if (i == NODE_CFG_LOOKBACK)
@@ -156,12 +192,26 @@ bool node::set(char i, std::string value)
 		_shortdesc = value;
 	else if (i == NODE_CFG_LONGDESC)
 		_longdesc = value;
-	else if (i == NODE_CFG_IPADDRESS)
-		_ipaddress = value;
-	else if (i == NODE_CFG_USERNAME)
-		_username = value;
-	else if (i == NODE_CFG_PASSWORD)
-		_password = value;
+	else if (i == NODE_CFG_SRC_IPADDRESS)
+		_src_ipaddress = value;
+	else if (i == NODE_CFG_SRC_USERNAME)
+		_src_username = value;
+	else if (i == NODE_CFG_SRC_PASSWORD)
+		_src_password = value;
+	else if (i == NODE_CFG_SRC_PRIVATE_KEY)
+		_src_privatekey = value;
+	else if (i == NODE_CFG_SRC_DOMAIN)
+		_src_domain = value;
+	else if (i == NODE_CFG_DST_IPADDRESS)
+		_dst_ipaddress = value;
+	else if (i == NODE_CFG_DST_USERNAME)
+		_dst_username = value;
+	else if (i == NODE_CFG_DST_PASSWORD)
+		_dst_password = value;
+	else if (i == NODE_CFG_DST_PRIVATE_KEY)
+		_dst_privatekey = value;
+	else if (i == NODE_CFG_DST_DOMAIN)
+		_dst_domain = value;
 	else if (i == NODE_CFG_PICKPATH)
 		_pickpath[0] = value;
 	else if (i == NODE_CFG_DROPPATH)
@@ -169,7 +219,7 @@ bool node::set(char i, std::string value)
 	else if (i == NODE_CFG_FILEMASK)
 		_filemask = value;
 	else if (i == NODE_CFG_IGNORE)
-		_ipaddress = value;
+		_ignore = value;
 	else if (i == NODE_CFG_REMMASK)
 		_remmask = value;
 	else if (i == NODE_CFG_TRANSFORM)
@@ -180,8 +230,6 @@ bool node::set(char i, std::string value)
 		_prerun = value;
 	else if (i == NODE_CFG_POSTRUN)
 		_postrun = value;
-	else if (i == NODE_CFG_PRIVATE_KEY)
-		_privatekey = value;
 	else if (i == NODE_CFG_BUFFER)
 		_buffer = value;
 
@@ -194,12 +242,18 @@ bool node::set(int i, int value)
 		_conftype = value;
 	else if (i == NODE_CFG_STATUS)
 		_status = value;
-	else if (i == NODE_CFG_PROTOCOL)
-		_proto = value;
-	else if (i == NODE_CFG_MODE)
-		_mode = value;
-	else if (i == NODE_CFG_AUTH)
-		_auth = value;
+	else if (i == NODE_CFG_SRC_PROTOCOL)
+		_src_protocol = value;
+	else if (i == NODE_CFG_SRC_MODE)
+		_src_mode = value;
+	else if (i == NODE_CFG_SRC_AUTH)
+		_src_auth = value;
+	else if (i == NODE_CFG_DST_PROTOCOL)
+		_dst_protocol = value;
+	else if (i == NODE_CFG_DST_MODE)
+		_dst_mode = value;
+	else if (i == NODE_CFG_DST_AUTH)
+		_dst_auth = value;
 	else if (i == NODE_CFG_COMPRESS)
 		_compress = value;
 	else if (i == NODE_CFG_LOOKBACK)
@@ -234,9 +288,12 @@ int node::reset()
 {
 	_conftype = -1;
 	_status = -1;
-	_proto = -1;
-	_mode = -1;
-	_auth = -1;
+	_src_protocol = -1;
+	_src_mode = -1;
+	_src_auth = -1;
+	_dst_protocol = -1;
+	_dst_mode = -1;
+	_dst_auth = -1;
 	_compress = -1;
 	_lookback = -1;
 	_sleeptime = -1;
@@ -249,17 +306,23 @@ int node::reset()
 	_name = "";
 	_shortdesc = "";
 	_longdesc = "";
-	_ipaddress = "";
-	_username = "";
-	_password = "";
-	_privatekey = "";
-	_bucket = "";
+	_src_ipaddress = "";
+	_src_username = "";
+	_src_password = "";
+	_src_domain = "";
+	_src_privatekey = "";
+	_dst_ipaddress = "";
+	_dst_username = "";
+	_dst_password = "";
+	_dst_domain = "";
+	_dst_privatekey = "";
 	_pickpath[0] = "";
 	_pickpath[1] = "";
 	_pickpath[2] = "";
 	_pickpath[3] = "";
 	_pickpath[4] = "";
 	_droppath = "";
+	_bucket = "";
 	_filemask = "";
 	_ignore = "";
 	_remmask = "";
@@ -267,7 +330,6 @@ int node::reset()
 	_exec = "";
 	_prerun = "";
 	_postrun = "";
-	_domain = "";
 
 	isdead = false;
 
@@ -380,69 +442,87 @@ int node::run()
 
 	try {
 
-		if (_conftype == 0)
+		switch (_src_protocol)
 		{
-			std::shared_ptr<axon::transport::transfer::file> q(new axon::transport::transfer::file(_ipaddress, _username, _password));
-			destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(q);
-		}
-		else if (_conftype == 1)
-		{
-			std::shared_ptr<axon::transport::transfer::file> q(new axon::transport::transfer::file(_ipaddress, _username, _password));
-			source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(q);
-		}
-
-		switch (_proto)
-		{
-			case axon::entrytypes::SFTP:
+			case axon::protocol::FILE:
 				{
-					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_ipaddress, _username, _password));
+					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_src_ipaddress, _src_username, _src_password));
+					
+					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				}
+				break;
 
-					if (_auth == axon::authtypes::PRIVATEKEY)
+			case axon::protocol::SFTP:
+				{
+					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_src_ipaddress, _src_username, _src_password));
+
+					if (_src_auth == axon::authtypes::PRIVATEKEY)
 					{
 						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
-						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _privatekey);
+						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _src_privatekey);
 					}
 
-					if (_conftype == 0)
-						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-					else if (_conftype == 1)
-						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-
+					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 				}
 				break;
 
-			case axon::entrytypes::FTP:
+			case axon::protocol::FTP:
 				{
-					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_ipaddress, _username, _password));
+					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_src_ipaddress, _src_username, _src_password));
 					
-					if (_conftype == 0)
-						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-					else if (_conftype == 1)
-						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			case axon::entrytypes::FILE:
-				{
-					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_ipaddress, _username, _password));
-					
-					if (_conftype == 0)
-						source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-					else if (_conftype == 1)
-						destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 				}
 				break;
 
 			default:
-				_log->print("ERROR", "%s - not a valid protocol selected %d", _name, _proto);
+				_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _src_protocol);
+				return 0;
 				break;
 		}
 
+		switch (_dst_protocol)
+		{
+			case axon::protocol::FILE:
+				{
+					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_dst_ipaddress, _dst_username, _dst_password));
+					
+					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				}
+				break;
+
+			case axon::protocol::SFTP:
+				{
+					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_dst_ipaddress, _dst_username, _dst_password));
+
+					if (_dst_auth == axon::authtypes::PRIVATEKEY)
+					{
+						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
+						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _dst_privatekey);
+					}
+
+					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				}
+				break;
+
+			case axon::protocol::FTP:
+				{
+					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_dst_ipaddress, _dst_username, _dst_password));
+					
+					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				}
+				break;
+
+			default:
+				_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _dst_protocol);
+				return 0;
+				break;
+		}
 	} catch (...) {
 		_log->print("FATAL", "%s - error creating object", _name);
 	}
 
-	try {
+
+	// try {
 
 		if (source)
 		{
@@ -477,6 +557,7 @@ int node::run()
 					if (elm.flag == axon::flags::FILE)
 					{
 						try {
+							DBGPRN("source->list [] => %s", elm.name.c_str());
 							_db->execute("INSERT INTO " + _dbc.gtt + "(FILENAME) VALUES (TRIM('" + elm.name + "'))");
 						} catch (axon::exception &e) {
 		
@@ -535,17 +616,22 @@ int node::run()
 
 					if (filemask.size() == 0 || boost::regex_match(list[current], mask))
 					{
-						axon::timer t1("file download");
+						std::thread th_tmp([&]() {
 
-						long long filesize = source->get(list[current], _buffer + "/" + list[current]);
-						destination->put(_buffer + "/" + list[current], _droppath + "/" + list[current]);
-						unlink(std::string(_buffer + "/" + list[current]).c_str());
-						
-						_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, ((filesize/1000.00)/(t1.now()/1000000.00)));
+							axon::timer t1("file download");
 
-						sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), filesize, t1.now(), 1);
-						//sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d)", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), filesize, since(start).count(), 1);
-						_db->execute(sqltext);
+							DBGPRN("queuing [%d] %s", current, list[current].c_str());
+							long long filesize = source->get(list[current], _buffer + "/" + list[current], _compress);
+							long long putsize = destination->put(_buffer + "/" + list[current], _droppath + "/" + list[current], false);
+							unlink(std::string(_buffer + "/" + list[current]).c_str());
+							
+							_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d <> %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, putsize, ((filesize/1000.00)/(t1.now()/1000000.00)));
+
+							sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), filesize, t1.now(), 1);
+							//sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d)", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), filesize, since(start).count(), 1);
+							_db->execute(sqltext);
+						});
+						th_tmp.join();
 					}
 					else
 					{
@@ -574,9 +660,9 @@ int node::run()
 			if (_conftype == 1)
 				destination->disconnect();
 		}
-	} catch (axon::exception &e) {
-		_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
-	}
+	// } catch (axon::exception &e) {
+	// 	_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
+	// }
 
 	return true;
 }
@@ -609,10 +695,10 @@ void node::print(int width)
 	std::string padding = "                                                    ";
 	std::cout<<std::right<<std::setw(width)<<_name.substr(0, width)<<"─┬─ "<<_shortdesc<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          description ── "<<_longdesc<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─               ip/url ── "<<_ipaddress<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             username ── "<<_username<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             password ── "<<_password<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─           public key ── "<<_privatekey<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─               ip/url ── "<<_src_ipaddress<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─             username ── "<<_src_username<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─             password ── "<<_src_password<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─           public key ── "<<_src_privatekey<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─            S3 Bucket ── "<<_bucket<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          pickup path ── "<<_pickpath[0]<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─            drop path ── "<<_droppath<<std::endl;
@@ -623,12 +709,12 @@ void node::print(int width)
 	std::cout<<padding.substr(0, width+1)<<"├─           run script ── "<<_exec<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─  pre-download script ── "<<_prerun<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─ post-download script ── "<<_postrun<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─               domain ── "<<_domain<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─               domain ── "<<_src_domain<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─   configuration type ── "<<_conftype<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─               status ── "<<_status<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             protocol ── "<<_proto<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─                 mode ── "<<_mode<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─  authentication type ── "<<_auth<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─             protocol ── "<<_src_protocol<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─                 mode ── "<<_src_mode<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─  authentication type ── "<<_src_auth<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          compression ── "<<_compress<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─       look back time ── "<<_lookback<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─           sleep time ── "<<_sleeptime<<std::endl;

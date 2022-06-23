@@ -57,7 +57,7 @@ int node::operator[] (int i)
 	else if (i == NODE_CFG_STATUS)
 		return _status;
 	else if (i == NODE_CFG_PROTOCOL)
-		return _proto;
+		return _src_protocol;
 	else if (i == NODE_CFG_MODE)
 		return _mode;
 	else if (i == NODE_CFG_COMPRESS)
@@ -119,7 +119,7 @@ int &node::set(int i)
 	else if (i == NODE_CFG_STATUS)
 		return _status;
 	else if (i == NODE_CFG_PROTOCOL)
-		return _proto;
+		return _src_protocol;
 	else if (i == NODE_CFG_MODE)
 		return _mode;
 	else if (i == NODE_CFG_COMPRESS)
@@ -142,7 +142,7 @@ int node::reset()
 {
 	_conftype = 0;
 	_status = 0;
-	_proto = 0;
+	_src_protocol = 0;
 	_mode = 0;
 	_compress = 0;
 	_lookback = 0;

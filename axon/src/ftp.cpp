@@ -373,6 +373,7 @@ namespace axon
 								
 									e.name = trim(ftpl.name);
 									e.size = ftpl.size;
+									e.et = axon::protocol::FTP;
 									vec.push_back(e);					
 								}
 							}
@@ -380,6 +381,7 @@ namespace axon
 							{
 								e.name = trim(ftpl.name);
 								e.size = ftpl.size;
+								e.et = axon::protocol::FTP;
 								vec.push_back(e);
 							}
 						}

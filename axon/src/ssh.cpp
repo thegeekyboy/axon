@@ -461,7 +461,7 @@ namespace axon
 									else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
 										file.flag = axon::flags::SOCKET;
 
-									file.et = axon::entrytypes::SFTP;
+									file.et = axon::protocol::SFTP;
 
 									cbfn(file);
 								}
@@ -488,7 +488,7 @@ namespace axon
 								else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
 									file.flag = axon::flags::SOCKET;
 
-								file.et = axon::entrytypes::SFTP;
+								file.et = axon::protocol::SFTP;
 
 								cbfn(file);
 							}
@@ -555,7 +555,7 @@ namespace axon
 								else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
 									file.flag = axon::flags::SOCKET;
 
-								file.et = axon::entrytypes::SFTP;
+								file.et = axon::protocol::SFTP;
 
 								vec.push_back(file);						
 							}
@@ -582,7 +582,7 @@ namespace axon
 							else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
 								file.flag = axon::flags::SOCKET;
 
-							file.et = axon::entrytypes::SFTP;
+							file.et = axon::protocol::SFTP;
 								
 							vec.push_back(file);
 						}
@@ -739,6 +739,7 @@ namespace axon
 
 				if (compress)
 					BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+				fflush(fp);
 				fclose(fp);
 
 				return filesize;

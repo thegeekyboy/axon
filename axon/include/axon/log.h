@@ -20,6 +20,7 @@ namespace axon
 	{
 		std::string _filename, _path;
 		int _level;
+		bool _writable = false;
 		FILE *_fd;
 		std::ofstream _ofs;
 		std::mutex _mtx;
@@ -62,11 +63,11 @@ namespace axon
 			static_cast<void>(unroll);
 
 			std::lock_guard<std::mutex> lock(_mtx);
-			
-			if (!_ofs.is_open())
-				std::cerr<<text<<boost::str(f)<<std::endl;
-			else
+
+			if (_writable)
 				_ofs<<text<<boost::str(f)<<std::endl;
+			else
+				std::cout<<text<<boost::str(f)<<std::endl;
 		};
 	};
 

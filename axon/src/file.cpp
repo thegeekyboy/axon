@@ -37,8 +37,8 @@ namespace axon
 			{
 				int bzerr;
 				unsigned int inbyte, outbyte;
-				unsigned long long filesize = 0;
-				char FILEBUF[MAXBUF];
+				size_t filesize = 0, szr, szw;
+				unsigned char FILEBUF[MAXBUF];
 
 				std::string srcx;
 
@@ -62,7 +62,6 @@ namespace axon
 				if (compress)
 				{
 					bfp = BZ2_bzWriteOpen(&bzerr, fpd, 3, 0, 30);
-
 					if (bzerr != BZ_OK)
 					{
 						BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
@@ -76,13 +75,11 @@ namespace axon
 
 				do {
 
-					int rc = fread(FILEBUF, MAXBUF, 1, fps);
-
-					if (rc > 0)
+					if ((szr = fread(FILEBUF, 1, MAXBUF, fps)) > 0)
 					{
 						if (compress)
 						{
-							BZ2_bzWrite(&bzerr, bfp, FILEBUF, rc);
+							BZ2_bzWrite(&bzerr, bfp, FILEBUF, szr);
 							
 							if (bzerr == BZ_IO_ERROR)
 							{
@@ -95,15 +92,19 @@ namespace axon
 							}
 						}
 						else
-							fwrite(FILEBUF, rc, 1, fpd);
-						filesize += rc;
+							szw = fwrite(FILEBUF, 1, szr, fpd);
+						filesize += szr;
 					}
 					else
 						break;
 
 				} while (true);
 
+				if (compress)
+					BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+
 				fclose(fps);
+				fflush(fpd);
 				fclose(fpd);
 
 				return filesize;
@@ -239,7 +240,7 @@ namespace axon
 							struct entry file;
 
 							file.name = e->d_name;
-							file.et = axon::entrytypes::FILE;
+							file.et = axon::protocol::FILE;
 
 							switch(d_type)
 							{
@@ -301,17 +302,14 @@ namespace axon
 
 			long long file::get(std::string src, std::string dest, bool compress = false)
 			{
-				copy(src, dest, compress);
-				return 0; // return the size
+				return copy(src, dest, compress); // return size
 			}
 
 			long long file::put(std::string src, std::string dest, bool compress = false)
 			{
-				// copy(dest, src, compress);
-				copy(src, dest, compress);
 				//ren(temp, dest);
 
-				return 0; // return size
+				return copy(src, dest, compress); // return size
 			}
 		}
 	}

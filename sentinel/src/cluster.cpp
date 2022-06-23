@@ -84,11 +84,18 @@ void cluster::load(axon::config &cfg)
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 
+			if (tint == 0)
+			{
+				_log->print("ERROR", "%s - is disabled, ignoring the rest of the config.", name);
+				cfg.close();
+				continue;
+			}
+
 		} catch (axon::exception &e) {
 			_log->print("ERROR", "%s - mandatory parameter [status] missing; disabling [%s]", name, name);
 			tnode->set(NODE_CFG_STATUS, 0);
 		}
-
+	/* general config */
 		try {
 			cfg.get("conftype", tint);
 			tnode->set(NODE_CFG_CONFTYPE, tint);
@@ -117,136 +124,6 @@ void cluster::load(axon::config &cfg)
 			tnode->set(NODE_CFG_LONGDESC, stemp);
 		} catch (axon::exception &e) {
 			// ignore
-		}
-
-		try {
-			cfg.get("proto", tint);
-			tnode->set(NODE_CFG_PROTOCOL, tint);
-
-			if (!(tint >= 0 && tint <= 3))
-			{
-				_log->print("ERROR", "%s - parameter [conftype] value is unacceptable; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-
-		} catch (axon::exception &e) {
-			_log->print("ERROR", "%s - mandatory parameter [proto] missing; disabling [%s]", name, name);
-			tnode->set(NODE_CFG_STATUS, 0);
-		}
-
-		try {
-			cfg.get("mode", tint);
-			tnode->set(NODE_CFG_MODE, tint);
-
-			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_PROTOCOL] == 0)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [conftype] not acceptable");
-
-		} catch (axon::exception &e) {
-
-			if ((*tnode)[NODE_CFG_PROTOCOL] == 0)
-			{
-				_log->print("ERROR", "%s - mandatory parameter [mode] missing; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-		}
-
-		try {
-			cfg.get("auth", tint);
-			tnode->set(NODE_CFG_AUTH, tint);
-
-			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_PROTOCOL] == 0)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [auth] not acceptable");
-
-		} catch (axon::exception &e) {
-
-			if ((*tnode)[NODE_CFG_PROTOCOL] == 0)
-			{
-				_log->print("ERROR", "%s - mandatory parameter [auth] missing; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-		}
-
-		try {
-			cfg.get("ipaddress", stemp);
-			tnode->set(NODE_CFG_IPADDRESS, stemp);
-		} catch (axon::exception &e) {
-			_log->print("ERROR", "%s - mandatory parameter [ipadress] missing; disabling [%s]", name, name);
-			tnode->set(NODE_CFG_STATUS, 0);
-		}
-
-		try {
-			cfg.get("port", tint);
-			tnode->set(NODE_CFG_PORT, tint);
-
-		} catch (axon::exception &e) {
-
-			switch((*tnode)[NODE_CFG_PROTOCOL])
-			{
-				case 0:
-					tnode->set(NODE_CFG_PORT, 22);
-					break;
-				case 1:
-					tnode->set(NODE_CFG_PORT, 23);
-					break;
-			}
-		}
-
-		try {
-			cfg.get("username", stemp);
-			tnode->set(NODE_CFG_USERNAME, stemp);
-		} catch (axon::exception &e) {
-			_log->print("ERROR", "%s - mandatory parameter [username] missing; disabling [%s]", name, name);
-			tnode->set(NODE_CFG_STATUS, 0);
-		}
-
-		try {
-			cfg.get("password", stemp);
-			tnode->set(NODE_CFG_PASSWORD, stemp);
-		} catch (axon::exception &e) {
-
-			if ((*tnode)[NODE_CFG_AUTH] != 1)
-			{
-				_log->print("ERROR", "%s - mandatory parameter [password] missing; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-		}
-
-		try {
-			cfg.get("privkey", stemp);
-			tnode->set(NODE_CFG_PRIVATE_KEY, stemp);
-		} catch (axon::exception &e) {
-			if ((*tnode)[NODE_CFG_PROTOCOL] == 0 && (*tnode)[NODE_CFG_AUTH] == 1)
-			{
-				_log->print("ERROR", "%s - mandatory parameter [privkey] missing; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-		}
-
-		try {
-			cfg.get("domain", stemp);
-			tnode->set(NODE_CFG_DOMAIN, stemp);
-		} catch (axon::exception &e) {
-			if ((*tnode)[NODE_CFG_PROTOCOL] == 3)
-			{
-				_log->print("ERROR", "%s - mandatory parameter [domain] missing; disabling [%s]", name, name);
-				tnode->set(NODE_CFG_STATUS, 0);
-			}
-		}
-
-		try {
-			cfg.get("pickpath", stemp);
-			tnode->set(NODE_CFG_PICKPATH, stemp);
-		} catch (axon::exception &e) {
-			_log->print("ERROR", "%s - mandatory parameter [pickpath] missing; disabling [%s]", name, name);
-			tnode->set(NODE_CFG_STATUS, 0);
-		}
-
-		try {
-			cfg.get("droppath", stemp);
-			tnode->set(NODE_CFG_DROPPATH, stemp);
-		} catch (axon::exception &e) {
-			_log->print("ERROR", "%s - mandatory parameter [droppath] missing; disabling [%s]", name, name);
-			tnode->set(NODE_CFG_STATUS, 0);
 		}
 
 		try {
@@ -296,6 +173,14 @@ void cluster::load(axon::config &cfg)
 		}
 
 		try {
+			cfg.get("parallel", stemp);
+			tnode->set(NODE_CFG_PARALLEL, stemp);
+		} catch (axon::exception &e) {
+			// _log->print("ERROR", "%s - mandatory parameter [parallel] missing; disabling [%s]", name, name);
+			// tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
 			cfg.get("lookback", tint);
 			tnode->set(NODE_CFG_LOOKBACK, tint);
 
@@ -332,7 +217,7 @@ void cluster::load(axon::config &cfg)
 		} catch (axon::exception &e) {
 			if ((*tnode)[NODE_CFG_CONFTYPE] == 2)
 			{
-				_log->print("ERROR", "%s - mandatory parameter [domain] missing; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - mandatory parameter [trigger] missing; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 		}
@@ -350,6 +235,259 @@ void cluster::load(axon::config &cfg)
 		} catch (axon::exception &e) {
 			// ignore if missing
 		}
+	/* end */
+	/* source */
+		cfg.open("source");
+		try {
+			cfg.get("protocol", tint);
+			tnode->set(NODE_CFG_SRC_PROTOCOL, tint);
+
+			if (!(tint >= 0 && tint <= 3))
+			{
+				_log->print("ERROR", "%s - parameter [source.protocol] value is unacceptable; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [source.protocol] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("mode", tint);
+			tnode->set(NODE_CFG_SRC_MODE, tint);
+
+			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [conftype] not acceptable");
+
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [source.mode] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("auth", tint);
+			tnode->set(NODE_CFG_SRC_AUTH, tint);
+
+			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [auth] not acceptable");
+
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [source.auth] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("ipaddress", stemp);
+			tnode->set(NODE_CFG_SRC_IPADDRESS, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [source.ipadress] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("port", tint);
+			tnode->set(NODE_CFG_SRC_PORT, tint);
+
+		} catch (axon::exception &e) {
+
+			switch((*tnode)[NODE_CFG_SRC_PROTOCOL])
+			{
+				case axon::protocol::SFTP:
+					tnode->set(NODE_CFG_SRC_PORT, 22);
+					break;
+				case axon::protocol::FTP:
+					tnode->set(NODE_CFG_SRC_PORT, 23);
+					break;
+			}
+		}
+
+		try {
+			cfg.get("username", stemp);
+			tnode->set(NODE_CFG_SRC_USERNAME, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [source.username] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("password", stemp);
+			tnode->set(NODE_CFG_SRC_PASSWORD, stemp);
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_SRC_AUTH] != 1)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [source.password] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("privkey", stemp);
+			tnode->set(NODE_CFG_SRC_PRIVATE_KEY, stemp);
+		} catch (axon::exception &e) {
+			if ((*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP && (*tnode)[NODE_CFG_SRC_AUTH] == 1)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [source.privkey] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("domain", stemp);
+			tnode->set(NODE_CFG_SRC_DOMAIN, stemp);
+		} catch (axon::exception &e) {
+			if ((*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SAMBA)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [source.domain] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("path", 0, stemp);
+			tnode->set(NODE_CFG_PICKPATH, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [source.path] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		cfg.close();
+		/* end */
+		/* destination */
+		cfg.open("destination");
+		try {
+			cfg.get("protocol", tint);
+			tnode->set(NODE_CFG_DST_PROTOCOL, tint);
+
+			if (!(tint >= 0 && tint <= 3))
+			{
+				_log->print("ERROR", "%s - parameter [destination.protocol] value is unacceptable; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [destination.protocol] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("mode", tint);
+			tnode->set(NODE_CFG_DST_MODE, tint);
+
+			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [conftype] not acceptable");
+
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [destination.mode] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("auth", tint);
+			tnode->set(NODE_CFG_DST_AUTH, tint);
+
+			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [destination.auth] not acceptable");
+
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [destination.auth] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("ipaddress", stemp);
+			tnode->set(NODE_CFG_DST_IPADDRESS, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [destination.ipadress] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("port", tint);
+			tnode->set(NODE_CFG_DST_PORT, tint);
+
+		} catch (axon::exception &e) {
+
+			switch((*tnode)[NODE_CFG_DST_PROTOCOL])
+			{
+				case axon::protocol::SFTP:
+					tnode->set(NODE_CFG_DST_PORT, 22);
+					break;
+				case axon::protocol::FTP:
+					tnode->set(NODE_CFG_DST_PORT, 23);
+					break;
+			}
+		}
+
+		try {
+			cfg.get("username", stemp);
+			tnode->set(NODE_CFG_DST_USERNAME, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [destination.username] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		try {
+			cfg.get("password", stemp);
+			tnode->set(NODE_CFG_DST_PASSWORD, stemp);
+		} catch (axon::exception &e) {
+
+			if ((*tnode)[NODE_CFG_DST_AUTH] != 1)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [destination.password] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("privkey", stemp);
+			tnode->set(NODE_CFG_DST_PRIVATE_KEY, stemp);
+		} catch (axon::exception &e) {
+			if ((*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP && (*tnode)[NODE_CFG_DST_AUTH] == 1)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [destination.privkey] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("domain", stemp);
+			tnode->set(NODE_CFG_DST_DOMAIN, stemp);
+		} catch (axon::exception &e) {
+			if ((*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SAMBA)
+			{
+				_log->print("ERROR", "%s - mandatory parameter [destination.domain] missing; disabling [%s]", name, name);
+				tnode->set(NODE_CFG_STATUS, 0);
+			}
+		}
+
+		try {
+			cfg.get("path", 0, stemp);
+			tnode->set(NODE_CFG_DROPPATH, stemp);
+		} catch (axon::exception &e) {
+			_log->print("ERROR", "%s - mandatory parameter [destination.path] missing; disabling [%s]", name, name);
+			tnode->set(NODE_CFG_STATUS, 0);
+		}
+
+		cfg.close();
+		/* end */
 
 		_node.push_back(tnode);
 		cfg.close();

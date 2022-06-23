@@ -16,6 +16,7 @@ namespace axon
 		INTEGER = 0,
 		STRING,
 		GROUP,
+		ARRAY,
 		UNKNOWN,
 		MISSING
 	};
@@ -71,6 +72,9 @@ namespace axon
 		proxy get(std::string);
 		bool get(std::string, std::string &);
 		bool get(std::string, int &);
+
+		bool get(std::string, int, std::string &);
+		bool get(std::string, int, int &);
 
 		proxy get(int);
 		bool get(int, std::string &);

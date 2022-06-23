@@ -11,13 +11,15 @@ namespace axon
 
 		_ofs.open(filename, std::ofstream::out | std::ofstream::app);
 
-		if (!_ofs.is_open())
+		if (!_ofs.is_open() || _ofs.fail() == 1)
 		{
-			char errmsg[2048];
+			char errmsg[5120];
 
 			sprintf(errmsg, "Error opening log file %s. Cannot output log (%s), aborting process...", filename, strerror (errno));
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, errmsg);
 		}
+
+		_writable = true;
 	}
 
 	log::log()

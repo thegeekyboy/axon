@@ -21,10 +21,16 @@
 
 #define NODE_CFG_SHORTDESC 'A'
 #define NODE_CFG_LONGDESC 'B'
-#define NODE_CFG_IPADDRESS 'C'
-#define NODE_CFG_USERNAME 'D'
-#define NODE_CFG_PASSWORD 'E'
-#define NODE_CFG_PRIVATE_KEY 'F'
+#define NODE_CFG_SRC_IPADDRESS 'C'
+#define NODE_CFG_SRC_USERNAME 'D'
+#define NODE_CFG_SRC_PASSWORD 'E'
+#define NODE_CFG_SRC_DOMAIN 'Q'
+#define NODE_CFG_SRC_PRIVATE_KEY 'F'
+#define NODE_CFG_DST_IPADDRESS 'S'
+#define NODE_CFG_DST_USERNAME 'T'
+#define NODE_CFG_DST_PASSWORD 'U'
+#define NODE_CFG_DST_DOMAIN 'V'
+#define NODE_CFG_DST_PRIVATE_KEY 'W'
 #define NODE_CFG_BUCKET 'G'
 #define NODE_CFG_PICKPATH 'H'
 #define NODE_CFG_DROPPATH 'I'
@@ -35,28 +41,34 @@
 #define NODE_CFG_EXEC 'N'
 #define NODE_CFG_PRERUN 'O'
 #define NODE_CFG_POSTRUN 'P'
-#define NODE_CFG_DOMAIN 'Q'
 #define NODE_CFG_BUFFER 'R'
 
 #define NODE_CFG_STATUS 1
 #define NODE_CFG_CONFTYPE 2
-#define NODE_CFG_PROTOCOL 3
-#define NODE_CFG_MODE 4
-#define NODE_CFG_AUTH 5
-#define NODE_CFG_COMPRESS 6
-#define NODE_CFG_LOOKBACK 7
-#define NODE_CFG_SLEEPTIME 8
-#define NODE_CFG_TRIGGER 9
-#define NODE_CFG_PORT 10
-#define NODE_CFG_TRIM 11
+#define NODE_CFG_SRC_PROTOCOL 3
+#define NODE_CFG_SRC_MODE 4
+#define NODE_CFG_SRC_AUTH 5
+#define NODE_CFG_SRC_PORT 6
+#define NODE_CFG_DST_PROTOCOL 7
+#define NODE_CFG_DST_MODE 8
+#define NODE_CFG_DST_AUTH 9
+#define NODE_CFG_DST_PORT 10
+#define NODE_CFG_COMPRESS 11
+#define NODE_CFG_LOOKBACK 12
+#define NODE_CFG_SLEEPTIME 13
+#define NODE_CFG_TRIGGER 14
+#define NODE_CFG_TRIM 15
+#define NODE_CFG_PARALLEL 16
 
-#define NODE_CFG_PID 11
-#define NODE_CFG_PPID 12
+#define NODE_CFG_PID 17
+#define NODE_CFG_PPID 18
 
 class node {
 
-	std::string _name, _shortdesc, _longdesc, _ipaddress, _username, _password, _privatekey, _bucket, _pickpath[5], _droppath, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _domain, _buffer;
-	int _conftype, _status, _proto, _mode, _auth, _compress, _lookback, _sleeptime, _trim, _trigger;
+	std::string _name, _shortdesc, _longdesc, _pickpath[5], _droppath, _bucket, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _buffer;
+	std::string _src_ipaddress, _src_username, _src_password, _src_domain, _src_privatekey, _dst_ipaddress, _dst_username, _dst_password, _dst_domain, _dst_privatekey;
+	int _conftype, _status, _compress, _parallel, _lookback, _sleeptime, _trim, _trigger;
+	int _src_protocol, _src_mode, _src_auth, _dst_protocol, _dst_mode, _dst_auth;
 
 	bool isdead, _canrun, _running, _sleeping;
 	int *serial;
@@ -66,6 +78,7 @@ class node {
 	axon::log *_log, dummy;
 	struct dbconf _dbc;
 
+	std::queue<std::thread> _pipe;
 	std::thread _th;
 	// std::condition_variable _cv;
 	// std::mutex cv_m;

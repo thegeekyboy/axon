@@ -169,6 +169,11 @@ namespace axon
 				_setting = setting;				
 				return GROUP;
 			}
+			else if (settingstype == CONFIG_TYPE_ARRAY)
+			{
+				_setting = setting;
+				return ARRAY;
+			}
 			else
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
 		}
@@ -287,6 +292,59 @@ namespace axon
 			if (settingstype == CONFIG_TYPE_INT)
 			{
 				retval = config_setting_get_int(setting);
+			}
+			else
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+		}
+		else
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error reading config parameter '" + path + "'");
+
+		_setting = setting;
+
+		return true;
+	}
+
+	bool config::get(std::string path, int index, std::string& retval)
+	{
+		std::string strval;
+
+		config_setting_t *setting;
+
+		if ((setting = config_setting_get_member(_root, path.c_str())) != NULL)
+		{
+			int settingstype = config_setting_type(setting);
+
+			if (settingstype == CONFIG_TYPE_ARRAY)
+			{
+				const char *strval;
+				if ((strval = config_setting_get_string_elem(setting, index)) == NULL)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
+				retval = strval;
+			}
+			else
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+		}
+		else
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error reading config parameter '" + path + "'");
+
+		_setting = setting;
+
+		return true;
+	}
+
+	bool config::get(std::string path, int index, int& retval)
+	{
+		config_setting_t *setting;
+
+		if ((setting = config_setting_get_member(_root, path.c_str())) != NULL)
+		{
+			int settingstype = config_setting_type(setting);
+
+			if (settingstype == CONFIG_TYPE_ARRAY)
+			{
+				const char *strval;
+				if ((retval = config_setting_get_int_elem(setting, index)) == NULL)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
 			}
 			else
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");

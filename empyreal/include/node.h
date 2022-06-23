@@ -40,7 +40,7 @@ class node {
 	int *num;
 
 public:
-	int _conftype, _status, _proto, _mode, _compress, _lookback, _sleeptime, _trim, _trigger, _pid, _ppid;
+	int _conftype, _status, _src_protocol, _mode, _compress, _lookback, _sleeptime, _trim, _trigger, _pid, _ppid;
 
 	node();
 	~node();

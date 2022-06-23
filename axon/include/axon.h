@@ -46,7 +46,7 @@
 namespace axon
 {
 	typedef unsigned int flags_t;
-	typedef unsigned int entry_t;
+	typedef unsigned int proto_t;
 	typedef unsigned int auth_t;
 
 	struct flags {
@@ -61,18 +61,18 @@ namespace axon
 		static const flags_t UNKNOWN = 64;
 	};
 
-	struct entrytypes {
+	struct protocol {
 
-		static const entry_t SFTP = 0;
-		static const entry_t FTP = 1;
-		static const entry_t S3 = 2;
-		static const entry_t SAMBA = 3;
-		static const entry_t SCP = 4;
-		static const entry_t FILE = 5;
-		static const entry_t AWS = 6;
-		static const entry_t HDFS = 7;
-		static const entry_t DATABASE = 8;
-		static const entry_t KAFKA = 9;
+		static const proto_t FILE = 0;
+		static const proto_t SFTP = 1;
+		static const proto_t FTP = 2;
+		static const proto_t S3 = 3;
+		static const proto_t SAMBA = 4;
+		static const proto_t SCP = 5;
+		static const proto_t AWS = 6;
+		static const proto_t HDFS = 7;
+		static const proto_t DATABASE = 8;
+		static const proto_t KAFKA = 9;
 	};
 
 	struct authtypes {
@@ -89,7 +89,7 @@ namespace axon
 		int type;
 		long long size;
 		flags_t flag;
-		entry_t et;
+		proto_t et;
 		struct stat st;
 	};
 
