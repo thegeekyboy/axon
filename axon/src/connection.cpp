@@ -1,5 +1,6 @@
 #include <axon.h>
 #include <axon/connection.h>
+#include <axon/util.h>
 
 namespace axon
 {
@@ -42,11 +43,20 @@ namespace axon
 				_hostname = hostname;
 				_username = username;
 				_password = password;
+				_id = axon::uuid();
+			}
+
+			connection::connection(const connection& rhs)
+			{
+				_hostname = rhs._hostname;
+				_username = rhs._username;
+				_password = rhs._password;
+				_id = axon::uuid();
 			}
 
 			connection::~connection()
 			{
-
+				DBGPRN("[%s] connection parent class dying.", _id.c_str());
 			}
 
 			bool connection::filter(std::string flt)

@@ -191,6 +191,7 @@ namespace axon {
 				bool watch(std::string, cbfn);
 				bool unwatch();
 
+				bool transaction(axon::trans_t);
 				bool execute(const std::string&);
 				bool execute(const std::string&, axon::database::bind*, ...);
 				

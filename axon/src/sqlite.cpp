@@ -115,6 +115,16 @@ namespace axon
 
 		}
 
+		bool sqlite::transaction(axon::trans_t ttype)
+		{
+			if (ttype == axon::transaction::BEGIN)
+				return execute("BEGIN TRANSACTION;");
+			else if (ttype == axon::transaction::END)
+				return execute("END TRANSACTION;");
+
+			return false;
+		}
+
 		bool sqlite::execute(const std::string &sqltext)
 		{
 			axon::timer t1(__PRETTY_FUNCTION__);

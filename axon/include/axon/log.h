@@ -23,7 +23,7 @@ namespace axon
 		bool _writable = false;
 		FILE *_fd;
 		std::ofstream _ofs;
-		std::mutex _mtx;
+		std::mutex _safety;
 
 		void fopen();
 
@@ -62,7 +62,7 @@ namespace axon
 			int unroll[] {0, (f % std::forward<Arguments>(args), 0)...};
 			static_cast<void>(unroll);
 
-			std::lock_guard<std::mutex> lock(_mtx);
+			std::lock_guard<std::mutex> lock(_safety);
 
 			if (_writable)
 				_ofs<<text<<boost::str(f)<<std::endl;

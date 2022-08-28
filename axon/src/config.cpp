@@ -342,7 +342,6 @@ namespace axon
 
 			if (settingstype == CONFIG_TYPE_ARRAY)
 			{
-				const char *strval;
 				if ((retval = config_setting_get_int_elem(setting, index)) == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
 			}

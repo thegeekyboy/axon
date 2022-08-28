@@ -1,3 +1,13 @@
+#include <iomanip>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <libssh2.h>
+#include <libssh2_sftp.h>
+#include <bzlib.h>
+
 #include <axon.h>
 #include <axon/connection.h>
 #include <axon/ssh.h>
@@ -8,7 +18,6 @@ namespace axon
 	{
 		namespace transfer
 		{
-
 			static std::atomic_uint __libshh2_session_count;
 			static std::mutex __libssh2_init_mutex;
 
@@ -363,12 +372,12 @@ namespace axon
 
 				if (!(_sftp = libssh2_sftp_init(_session)))
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot initialize SFTP Session");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot initialize SFTP Session");
 				}
 
 				if ((len = libssh2_sftp_realpath(_sftp, ".", path, PATH_MAX-1)) <= 0)
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot retrive home/landing folder path");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot retrive home/landing folder path");
 				}
 				_path = path;
 
@@ -377,18 +386,22 @@ namespace axon
 
 			bool sftp::chwd(std::string path)
 			{
+				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
+				DBGPRN("[%s] requested chwd to %s", _id.c_str(), path.c_str());
+
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, path.c_str())))
 				{
 					int i = libssh2_session_last_errno(_session);
 
+
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -397,6 +410,8 @@ namespace axon
 				}
 				else
 					_path = path;
+
+				libssh2_sftp_closedir(hsftp);
 
 				return true;
 			}
@@ -408,18 +423,20 @@ namespace axon
 
 			int sftp::list(const axon::transport::transfer::cb &cbfn)
 			{
+				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
+				DBGPRN("[%s] requested kist to %s", _id.c_str(), _path.c_str());
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str() )))
 				{
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -499,23 +516,27 @@ namespace axon
 
 				} while (true);
 
+				libssh2_sftp_closedir(hsftp);
+
 				return 0; // this should return the count of files?
 			}
 
 			int sftp::list(std::vector<entry> &vec)
 			{
+				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
-				
+
+				DBGPRN("[%s] requested list(vector) to %s", _id.c_str(), _path.c_str());
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str())))
 				{
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -592,14 +613,26 @@ namespace axon
 
 				} while (true);
 
+				libssh2_sftp_closedir(hsftp);
+
 				return true;
+			}
+
+			long long sftp::copy(std::string &src, std::string &dest, bool compress)
+			{
+				// TODO:     implement remote system copy function
+				// ISSUE:    there is no sftp or scp copy API
+				// SOLUTION: https://www.libssh2.org/examples/ssh2_exec.html
+				return 0L;
 			}
 
 			bool sftp::ren(std::string src, std::string dest)
 			{
+				std::lock_guard<std::mutex> lock(_lock);
 				int i;
 				std::string srcx, destx;
 
+				DBGPRN("[%s] requested ren() %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -613,11 +646,11 @@ namespace axon
 				if ((i = libssh2_sftp_rename(_sftp, srcx.c_str(), destx.c_str())) != 0)
 				{
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -630,9 +663,11 @@ namespace axon
 
 			bool sftp::del(std::string src)
 			{
+				std::lock_guard<std::mutex> lock(_lock);
 				int i;
 				std::string srcx;
 
+				DBGPRN("[%s] requested del() of %s", _id.c_str(), src.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -641,11 +676,11 @@ namespace axon
 				if ((i = libssh2_sftp_unlink(_sftp, srcx.c_str())) != 0)
 				{
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -656,34 +691,36 @@ namespace axon
 				return true;
 			}
 
-			long long sftp::get(std::string src, std::string dest, bool compress = false)
+			long long sftp::_scp_get(std::string src, std::string dest, bool compress)
 			{
-				LIBSSH2_SFTP_HANDLE *hsftp;
+				LIBSSH2_CHANNEL *channel;
 				char FILEBUF[MAXBUF];
 				int bzerr;
-				unsigned long long filesize = 0;
+				long long filesize = 0;
 				unsigned int inbyte, outbyte;
+				struct stat fileinfo;
 
 				std::string srcx, destx, temp;
 				
 				FILE *fp;
 				BZFILE *bfp = NULL;
 
+				DBGPRN("[%s] requested _scp_get() = %s", _id.c_str(), src.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
 					srcx = _path + "/" + src;
 
-				if (!(hsftp = libssh2_sftp_open(_sftp, srcx.c_str(), LIBSSH2_FXF_READ, 0)))
+				if (!(channel = libssh2_scp_recv(_session, srcx.c_str(), &fileinfo)))
 				{
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
@@ -692,7 +729,8 @@ namespace axon
 				}
 
 				if (!(fp = fopen(dest.c_str(), "wb")))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file for writing");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing - " + dest);
+					// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing - " + std::string(strerror(errno)));
 
 				if (compress)
 				{
@@ -704,7 +742,98 @@ namespace axon
 						fclose(fp);
 						unlink(dest.c_str());
 
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not open compression stream");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not open compression stream");
+					}
+				}
+
+				while (filesize < fileinfo.st_size)
+				{
+					int rc = libssh2_channel_read(channel, FILEBUF, MAXBUF);
+
+					if (rc > 0)
+					{
+						if (compress)
+						{
+							BZ2_bzWrite(&bzerr, bfp, FILEBUF, rc);
+							if (bzerr == BZ_IO_ERROR)
+							{
+								BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+								fclose(fp);
+								unlink(dest.c_str());
+
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in compression stream");
+							}
+						}
+						else
+							fwrite(FILEBUF, rc, 1, fp);
+						filesize += rc;
+					}
+					else
+						break;
+				};
+
+				libssh2_channel_free(channel);
+				channel = NULL;
+
+				if (compress)
+					BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+				fflush(fp);
+				fclose(fp);
+
+				return filesize;
+			}
+
+			long long sftp::_sftp_get(std::string src, std::string dest, bool compress)
+			{
+				std::lock_guard<std::mutex> lock(_lock);
+				LIBSSH2_SFTP_HANDLE *hsftp;
+				char FILEBUF[MAXBUF];
+				int bzerr;
+				unsigned long long filesize = 0;
+				unsigned int inbyte, outbyte;
+
+				std::string srcx, destx, temp;
+				
+				FILE *fp;
+				BZFILE *bfp = NULL;
+
+				DBGPRN("[%s] requested _sftp_get() of %s", _id.c_str(), src.c_str());
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+
+				if (!(hsftp = libssh2_sftp_open(_sftp, srcx.c_str(), LIBSSH2_FXF_READ, 0)))
+				{
+					int i = libssh2_session_last_errno(_session);
+
+					if (i == LIBSSH2_ERROR_ALLOC)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
+					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
+					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
+					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
+					{
+						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr));
+					}
+				}
+
+				if (!(fp = fopen(dest.c_str(), "wb")))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing - " + dest);
+
+				if (compress)
+				{
+					bfp = BZ2_bzWriteOpen(&bzerr, fp, 3, 0, 30);
+
+					if (bzerr != BZ_OK)
+					{
+						BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+						fclose(fp);
+						unlink(dest.c_str());
+
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not open compression stream");
 					}
 				}
 
@@ -723,7 +852,7 @@ namespace axon
 								fclose(fp);
 								unlink(dest.c_str());
 
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error in comppression stream");
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in comppression stream");
 							}
 						}
 						else
@@ -745,8 +874,14 @@ namespace axon
 				return filesize;
 			}
 
-			long long sftp::put(std::string src, std::string dest, bool compress = false)
+			long long sftp::get(std::string src, std::string dest, bool compress)
 			{
+				return this->_sftp_get(src, dest, compress);
+			}
+
+			long long sftp::put(std::string src, std::string dest, bool compress)
+			{
+				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				std::string destx, temp;
 				char *BUFPTR, FILEBUF[MAXBUF];
@@ -755,6 +890,7 @@ namespace axon
 				size_t sb;
 				FILE *fp;
 
+				DBGPRN("[%s] requested put() = %s", _id.c_str(), src.c_str());
 				if (dest[0] == '/')
 				{
 					temp = dest + ".tmp";
@@ -767,18 +903,18 @@ namespace axon
 				}
 
 				if (!(fp = fopen(src.c_str(), "rb")))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open source file '" + src + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
 
 				if (!(hsftp = libssh2_sftp_open(_sftp, temp.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH)))
 				{
 					int i = libssh2_session_last_errno(_session);
 
 					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "An internal memory allocation call failed");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
 					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unable to send data on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
 					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Timeout while waiting on socket");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						fclose(fp);

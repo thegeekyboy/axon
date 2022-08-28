@@ -1,19 +1,128 @@
+#include <iomanip>
+
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+
+#include <axon/util.h>
+
 #include <main.h>
 #include <node.h>
+#include <drone.h>
 
 node::node()
 {
-	//lg.print("DBUG", "%s - node class constructing", _name);
+	_id = axon::uuid();
 	_canrun = true;
 	_running = false;
 	_sleeping = false;
+	
+	DBGPRN("[%s] %s - node class constructing", _id.c_str(), _name.c_str());
 
 	reset();
 }
 
 node::~node()
 {
-	_log->print("INFO", "%s - process terminating", _name);
+	_log->print("INFO", "%s - process terminating", _name.c_str());
+	// std::cout<<"["<<_id<<"] "<<_name<<"- node class terminating"<<std::endl;
+}
+
+bool node::_connect(std::shared_ptr<axon::transport::transfer::connection> &srcobj, std::shared_ptr<axon::transport::transfer::connection> &dstobj)
+{
+	// TODO: try static_cast<const Base&>(derived)
+
+	switch (_src_protocol)
+	{
+		case axon::protocol::FILE:
+			{
+				std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_src_ipaddress, _src_username, _src_password));
+				
+				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		case axon::protocol::SFTP:
+			{
+				std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_src_ipaddress, _src_username, _src_password));
+
+				if (_src_auth == axon::authtypes::PRIVATEKEY)
+				{
+					p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
+					p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _src_privatekey);
+				}
+
+				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		case axon::protocol::FTP:
+			{
+				std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_src_ipaddress, _src_username, _src_password));
+				
+				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		default:
+			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name.c_str(), _src_protocol);
+			return false;
+			break;
+	}
+
+	switch (_dst_protocol)
+	{
+		case axon::protocol::FILE:
+			{
+				std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_dst_ipaddress, _dst_username, _dst_password));
+				
+				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		case axon::protocol::SFTP:
+			{
+				std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_dst_ipaddress, _dst_username, _dst_password));
+
+				if (_dst_auth == axon::authtypes::PRIVATEKEY)
+				{
+					p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
+					p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _dst_privatekey);
+				}
+
+				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		case axon::protocol::FTP:
+			{
+				std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_dst_ipaddress, _dst_username, _dst_password));
+				
+				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		default:
+			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _dst_protocol);
+			return false;
+			break;
+	}
+
+	srcobj->connect();
+	srcobj->chwd(_pickpath[0]);
+
+	dstobj->connect();
+	dstobj->chwd(_droppath);
+
+	return true;
+}
+
+long long node::_transfer(std::shared_ptr<axon::transport::transfer::connection> srcobj, std::shared_ptr<axon::transport::transfer::connection> dstobj, std::string &filename)
+{
+	long long filesize = srcobj->get(filename, _buffer + "/" + filename, _compress);
+	long long putsize = dstobj->put(_buffer + "/" + filename, _droppath + "/" + filename, false);
+	unlink(std::string(_buffer + "/" + filename).c_str());
+
+	return filesize;
 }
 
 std::string node::operator[](char i)
@@ -92,6 +201,8 @@ int node::operator[] (int i)
 		return _trim;
 	else if (i == NODE_CFG_TRIGGER)
 		return _trigger;
+	else if (i == NODE_CFG_PARALLEL)
+		return _parallel;
 	else if (i == NODE_CFG_PID)
 		return _pid;
 	else if (i == NODE_CFG_PPID)
@@ -114,6 +225,8 @@ std::string node::get(char i)
 		return _src_username;
 	else if (i == NODE_CFG_SRC_PASSWORD)
 		return _src_password;
+	else if (i == NODE_CFG_SRC_PRIVATE_KEY)
+		return _src_privatekey;
 	else if (i == NODE_CFG_SRC_DOMAIN)
 		return _src_domain;
 	else if (i == NODE_CFG_DST_IPADDRESS)
@@ -122,6 +235,8 @@ std::string node::get(char i)
 		return _dst_username;
 	else if (i == NODE_CFG_DST_PASSWORD)
 		return _dst_password;
+	else if (i == NODE_CFG_DST_PRIVATE_KEY)
+		return _dst_privatekey;
 	else if (i == NODE_CFG_DST_DOMAIN)
 		return _dst_domain;
 	else if (i == NODE_CFG_PICKPATH)
@@ -176,6 +291,8 @@ int node::get(int i)
 		return _trim;
 	else if (i == NODE_CFG_TRIGGER)
 		return _trigger;
+	else if (i == NODE_CFG_PARALLEL)
+		return _parallel;
 	else if (i == NODE_CFG_PID)
 		return _pid;
 	else if (i == NODE_CFG_PPID)
@@ -264,6 +381,8 @@ bool node::set(int i, int value)
 		_trim = value;
 	else if (i == NODE_CFG_TRIGGER)
 		_trigger = value;
+	else if (i == NODE_CFG_PARALLEL)
+		_parallel = value;
 	else if (i == NODE_CFG_PID)
 		_pid = value;
 	else if (i == NODE_CFG_PPID)
@@ -299,6 +418,7 @@ int node::reset()
 	_sleeptime = -1;
 	_trim = -1;
 	_trigger = -1;
+	_parallel = 1;
 	
 	_pid = -1;
 	_ppid = -1;
@@ -436,95 +556,13 @@ int node::run()
 {
 	// actual stuff is being done here :) welcome to the world of spaghetti coding
 
-	_log->print("INFO", "%s - booting up > %d", _name, _conftype);
-
-	std::shared_ptr<axon::transport::transfer::connection> source, destination;
-
 	try {
 
-		switch (_src_protocol)
-		{
-			case axon::protocol::FILE:
-				{
-					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_src_ipaddress, _src_username, _src_password));
-					
-					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
+		// std::shared_ptr<axon::transport::transfer::connection> source, destination;
+		// _connect(source, destination);
+		drone _master(*this);
 
-			case axon::protocol::SFTP:
-				{
-					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_src_ipaddress, _src_username, _src_password));
-
-					if (_src_auth == axon::authtypes::PRIVATEKEY)
-					{
-						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
-						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _src_privatekey);
-					}
-
-					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			case axon::protocol::FTP:
-				{
-					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_src_ipaddress, _src_username, _src_password));
-					
-					source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			default:
-				_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _src_protocol);
-				return 0;
-				break;
-		}
-
-		switch (_dst_protocol)
-		{
-			case axon::protocol::FILE:
-				{
-					std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_dst_ipaddress, _dst_username, _dst_password));
-					
-					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			case axon::protocol::SFTP:
-				{
-					std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_dst_ipaddress, _dst_username, _dst_password));
-
-					if (_dst_auth == axon::authtypes::PRIVATEKEY)
-					{
-						p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
-						p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _dst_privatekey);
-					}
-
-					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			case axon::protocol::FTP:
-				{
-					std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_dst_ipaddress, _dst_username, _dst_password));
-					
-					destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-				}
-				break;
-
-			default:
-				_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _dst_protocol);
-				return 0;
-				break;
-		}
-	} catch (...) {
-		_log->print("FATAL", "%s - error creating object", _name);
-	}
-
-
-	// try {
-
-		if (source)
+		if (_master.source())
 		{
 			std::string pickpath, droppath, filemask;
 			std::vector<axon::entry> v;
@@ -543,15 +581,9 @@ int node::run()
 			_db->execute("DELETE FROM " + _dbc.gtt);
 			_db->flush();
 
-			source->connect();
-			source->chwd(_pickpath[0]);
-
-			destination->connect();
-			destination->chwd(_droppath);
-
-			if (source->list(v))
+			if (_master.source()->list(v))
 			{
-				// _db->execute("BEGIN TRANSACTION;");
+				_db->transaction(axon::transaction::BEGIN);
 
 				for (auto &elm : v)
 					if (elm.flag == axon::flags::FILE)
@@ -566,7 +598,7 @@ int node::run()
 						count++;
 					}
 
-				// _db->execute("END TRANSACTION;");
+				_db->transaction(axon::transaction::END);
 			}
 			_db->flush();
 
@@ -597,48 +629,47 @@ int node::run()
 
 			count = 0;
 			std::vector<std::string> list;
+			const boost::regex mask(filemask);
+			char sqltext[4096];
+
 			while (_db->next())
 			{
 				list.push_back(_db->get(0));
 				count++;
+
+				if (filemask.size() == 0 || boost::regex_match(_db->get(0), mask))
+				{
+					DBGPRN("[%d] queuing %s", count, _db->get(0).c_str());
+					_pipe.push(_db->get(0));
+				}
+				else
+				{
+					sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), _db->get(0).c_str(), 0ULL, 0L, 2);
+					_db->execute(sqltext);
+				}
+				
+
 			}
 			_db->done();
 
 			if (count > 0)
 			{
+				drone *dn[_parallel];
+
 				_log->print("INFO", "%s - preparing to down %d files...", _name, count);
 
-				for (int current = 0; current < count; current++)
+				for (int i = 0; i < _parallel; i++)
 				{
-					char sqltext[4096];
-					
-					const boost::regex mask(filemask);
-
-					if (filemask.size() == 0 || boost::regex_match(list[current], mask))
-					{
-						std::thread th_tmp([&]() {
-
-							axon::timer t1("file download");
-
-							DBGPRN("queuing [%d] %s", current, list[current].c_str());
-							long long filesize = source->get(list[current], _buffer + "/" + list[current], _compress);
-							long long putsize = destination->put(_buffer + "/" + list[current], _droppath + "/" + list[current], false);
-							unlink(std::string(_buffer + "/" + list[current]).c_str());
-							
-							_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d <> %d, Speed: %.2fkb/sec", _name, current, count, list[current].c_str(), filesize, putsize, ((filesize/1000.00)/(t1.now()/1000000.00)));
-
-							sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), filesize, t1.now(), 1);
-							//sprintf(sqltext, "INSERT INTO %s (LISTDATE,FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES(%lu,'%s',%lld, %ld, %d)", _dbc.list.c_str(), std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count(), list[current].c_str(), filesize, since(start).count(), 1);
-							_db->execute(sqltext);
-						});
-						th_tmp.join();
-					}
-					else
-					{
-						sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), list[current].c_str(), 0ULL, 0L, 2);
-						_db->execute(sqltext);
-					}
+					dn[i] = new drone(*this);
+					dn[i]->set(_log);
+					dn[i]->set(_db);
+					dn[i]->set(&_dbc);
+					dn[i]->set(i);
+					dn[i]->start();
 				}
+
+				for (int i = 0; i < _parallel; i++)
+					delete dn[i]; // this will wait until thread.join() is successful.
 
 				if (_postrun.size() > 0)
 				{
@@ -656,13 +687,12 @@ int node::run()
 			else
 				_log->print("INFO", "%s - no new files to download", _name);
 
-			source->disconnect();
-			if (_conftype == 1)
-				destination->disconnect();
 		}
-	// } catch (axon::exception &e) {
-	// 	_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
-	// }
+	} catch (axon::exception &e) {
+		_log->print("ERROR", "%s(%d): %s - %s", __FILENAME__, __LINE__, _name, e.msg());
+	} catch (std::system_error &e) {
+		
+	}
 
 	return true;
 }
@@ -715,9 +745,22 @@ void node::print(int width)
 	std::cout<<padding.substr(0, width+1)<<"├─             protocol ── "<<_src_protocol<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─                 mode ── "<<_src_mode<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─  authentication type ── "<<_src_auth<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─             parallel ── "<<_parallel<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          compression ── "<<_compress<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─       look back time ── "<<_lookback<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─           sleep time ── "<<_sleeptime<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─       trim extension ── "<<_trim<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"└─         trigger time ── "<<_trigger<<std::endl<<std::endl;;
+}
+
+std::string node::pop()
+{
+	std::lock_guard<std::mutex> lock(_safety);
+
+	if (_pipe.size() <= 0)
+		return "";
+
+	std::string retval = _pipe.front();
+	_pipe.pop();
+	return retval;
 }

@@ -2,11 +2,15 @@
 
 #include <boost/regex.hpp>
 
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+
 #include <axon.h>
 #include <axon/config.h>
 #include <axon/log.h>
 
 #include <main.h>
+#include <node.h>
 #include <cluster.h>
 
 cluster::cluster()
@@ -88,6 +92,7 @@ void cluster::load(axon::config &cfg)
 			{
 				_log->print("ERROR", "%s - is disabled, ignoring the rest of the config.", name);
 				cfg.close();
+				delete tnode;
 				continue;
 			}
 
@@ -173,8 +178,9 @@ void cluster::load(axon::config &cfg)
 		}
 
 		try {
-			cfg.get("parallel", stemp);
-			tnode->set(NODE_CFG_PARALLEL, stemp);
+			cfg.get("parallel", tint);
+			tint = (tint<1||tint>NODE_MAX_PARALLEL)?NODE_MAX_PARALLEL:tint;
+			tnode->set(NODE_CFG_PARALLEL, tint);
 		} catch (axon::exception &e) {
 			// _log->print("ERROR", "%s - mandatory parameter [parallel] missing; disabling [%s]", name, name);
 			// tnode->set(NODE_CFG_STATUS, 0);

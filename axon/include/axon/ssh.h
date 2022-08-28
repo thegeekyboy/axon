@@ -2,15 +2,9 @@
 #define AXON_SSH_H_
 
 #include <mutex>
-#include <iomanip>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <libssh2.h>
 #include <libssh2_sftp.h>
-#include <bzlib.h>
 
 #define AXON_TRANSFER_SSH_MODE       0x0001
 #define AXON_TRANSFER_SSH_PRIVATEKEY 0x0002
@@ -94,12 +88,16 @@ namespace axon
 
 			class sftp : public connection, public session {
 
-				LIBSSH2_SFTP * _sftp;
+				LIBSSH2_SFTP *_sftp;
+				std::mutex _lock;
 
 				bool init();
+				long long _scp_get(std::string, std::string, bool = false);
+				long long _sftp_get(std::string, std::string, bool = false);
 
 			public:
 				sftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { _sftp = NULL; };
+				sftp(const sftp& rhs) : connection(rhs) { _sftp = NULL; };
 				~sftp();
 
 				bool connect();
@@ -109,13 +107,14 @@ namespace axon
 				std::string pwd();
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
+				long long copy(std::string &, std::string &, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 
 				int cb(const struct entry *);
 
-				long long get(std::string, std::string, bool);
-				long long put(std::string, std::string, bool);
+				long long get(std::string, std::string, bool = false);
+				long long put(std::string, std::string, bool = false);
 			};
 		}
 	}

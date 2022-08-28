@@ -48,6 +48,7 @@ namespace axon
 	typedef unsigned int flags_t;
 	typedef unsigned int proto_t;
 	typedef unsigned int auth_t;
+	typedef unsigned int trans_t;
 
 	struct flags {
 
@@ -63,10 +64,10 @@ namespace axon
 
 	struct protocol {
 
-		static const proto_t FILE = 0;
-		static const proto_t SFTP = 1;
-		static const proto_t FTP = 2;
-		static const proto_t S3 = 3;
+		static const proto_t FILE = 0; // done
+		static const proto_t SFTP = 1; // done
+		static const proto_t FTP = 2; // done
+		static const proto_t S3 = 3; // done
 		static const proto_t SAMBA = 4;
 		static const proto_t SCP = 5;
 		static const proto_t AWS = 6;
@@ -81,6 +82,12 @@ namespace axon
 		static const auth_t PRIVATEKEY = 1;
 		static const auth_t KERBEROS = 2;
 		static const auth_t ADC = 3;
+	};
+
+	struct transaction {
+
+		static const trans_t END = 0;
+		static const trans_t BEGIN = 1;
 	};
 
 	struct entry {
@@ -193,11 +200,16 @@ namespace axon
 			_start = std::chrono::high_resolution_clock::now();
 		}
 
+		timer(std::string &name):_name(name)
+		{
+			_start = std::chrono::high_resolution_clock::now();
+		}
+
 		~timer()
 		{
 			_end = std::chrono::high_resolution_clock::now();
 			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
-			// DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
+			DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
 		}
 
 		long now()

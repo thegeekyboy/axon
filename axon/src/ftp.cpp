@@ -219,6 +219,12 @@ namespace axon
 				return _path;
 			}
 
+			long long ftp::copy(std::string &src, std::string &dest, bool compress)
+			{
+				// TODO: implement remote system copy function
+				return 0L;
+			}
+
 			bool ftp::ren(std::string from, std::string to)
 			{
 				_sock.writeline("RNFR " + from);
@@ -407,7 +413,7 @@ namespace axon
 				return true;
 			}
 
-			long long ftp::get(std::string src, std::string dest, bool compress = false)
+			long long ftp::get(std::string src, std::string dest, bool compress)
 			{
 				char pasvhost[16];
 				unsigned char v[6];
@@ -481,7 +487,7 @@ namespace axon
 				return szx;
 			}
 
-			long long ftp::put(std::string src, std::string dest, bool compress = false)
+			long long ftp::put(std::string src, std::string dest, bool compress)
 			{
 				unsigned char v[6];
 				char pasvhost[18];

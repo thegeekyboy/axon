@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include <main.h>
 #include <sendmail.h>
 

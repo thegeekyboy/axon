@@ -15,7 +15,10 @@
 #include <axon/socket.h>
 #include <axon/ftp.h>
 #include <axon/file.h>
+#include <axon/s3.h>
 #include <axon/util.h>
+
+#include <pool.h>
 
 #define NODE_CFG_NAME 'X'
 
@@ -63,6 +66,8 @@
 #define NODE_CFG_PID 17
 #define NODE_CFG_PPID 18
 
+#define NODE_MAX_PARALLEL 5
+
 class node {
 
 	std::string _name, _shortdesc, _longdesc, _pickpath[5], _droppath, _bucket, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _buffer;
@@ -78,10 +83,15 @@ class node {
 	axon::log *_log, dummy;
 	struct dbconf _dbc;
 
-	std::queue<std::thread> _pipe;
 	std::thread _th;
+	std::string _id;
 	// std::condition_variable _cv;
-	// std::mutex cv_m;
+	std::queue<std::string> _pipe;
+	std::mutex _safety;
+
+	bool _connect(std::shared_ptr<axon::transport::transfer::connection>&, std::shared_ptr<axon::transport::transfer::connection>&);
+	long long _transfer(std::shared_ptr<axon::transport::transfer::connection>, std::shared_ptr<axon::transport::transfer::connection>, std::string&);
+	long long _transfer(pool &, std::string&);
 
 public:
 
@@ -114,6 +124,8 @@ public:
 	int run();
 
 	void print(int);
+
+	std::string pop();
 };
 
 #endif

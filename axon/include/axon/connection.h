@@ -16,14 +16,15 @@ namespace axon
 			class connection {
 
 			protected:
-				std::string _hostname, _username, _password, _path;
-
+				std::string _hostname, _username, _password, _path, _id;
 				bool _connected;
 				std::vector<boost::regex> _filter;
+				axon::proto_t _proto;
 
 			public:
 
 				connection(std::string, std::string, std::string);
+				connection(const connection&);
 				~connection();
 
 				virtual bool connect() = 0;
@@ -35,6 +36,7 @@ namespace axon
 				virtual std::string pwd() = 0;
 				virtual int list(const cb &) = 0;
 				virtual int list(std::vector<axon::entry> &) = 0;
+				virtual long long copy(std::string&, std::string&, bool = false) = 0;
 				virtual bool ren(std::string, std::string) = 0;
 				virtual bool del(std::string) = 0;
 

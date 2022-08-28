@@ -25,6 +25,8 @@ namespace axon {
 				virtual bool ping() = 0;
 				virtual void version() = 0;
 
+				virtual bool transaction(axon::trans_t) = 0;
+
 				virtual bool execute(const std::string&) = 0;
 				virtual bool execute(const std::string&, axon::database::bind*, ...) = 0;
 

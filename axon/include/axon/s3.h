@@ -1,12 +1,5 @@
-#ifndef AXON_FILE_H_
-#define AXON_FILE_H_
-
-struct linux_dirent {
-	unsigned long  d_ino;
-	off_t          d_off;
-	unsigned short d_reclen;
-	char           d_name[];
-};
+#ifndef AXON_S3_H_
+#define AXON_S3_H_
 
 namespace axon
 {
@@ -14,17 +7,22 @@ namespace axon
 	{
 		namespace transfer
 		{
-			class file : public connection {
+			class s3 : public connection {
 
-				int _fd = -1;
+				Aws::SDKOptions *_options;
+				Aws::S3::S3Client *_client;
+
 				std::string _path;
+
+				static std::atomic<int> _instance;
+				static std::mutex _mtx;
 
 				bool init();
 
 			public:
-				file(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };
-				file(const file& rhs) : connection(rhs) {  };
-				~file();
+				s3(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { };
+				s3(const s3& rhs) : connection(rhs) {  };
+				~s3();
 
 				bool connect();
 				bool disconnect();

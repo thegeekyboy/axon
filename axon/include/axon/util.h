@@ -21,6 +21,8 @@ namespace axon
 	bool execmd(const char *cmd, const char *name);
 	std::string base64_encode(BYTE const* buf, unsigned int bufLen);
 	std::vector<BYTE> base64_decode(std::string const&);
+	std::string uuid();
+	std::string demangle(const char*);
 }
 
 #endif

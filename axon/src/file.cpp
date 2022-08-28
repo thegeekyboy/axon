@@ -33,7 +33,7 @@ namespace axon
 				return true;
 			}
 
-			long long file::copy(std::string &src, std::string &dest, bool compress = false)
+			long long file::copy(std::string &src, std::string &dest, bool compress)
 			{
 				int bzerr;
 				unsigned int inbyte, outbyte;
@@ -92,7 +92,7 @@ namespace axon
 							}
 						}
 						else
-							szw = fwrite(FILEBUF, 1, szr, fpd);
+							szw += fwrite(FILEBUF, 1, szr, fpd);
 						filesize += szr;
 					}
 					else
@@ -300,12 +300,12 @@ namespace axon
 				});
 			}
 
-			long long file::get(std::string src, std::string dest, bool compress = false)
+			long long file::get(std::string src, std::string dest, bool compress)
 			{
 				return copy(src, dest, compress); // return size
 			}
 
-			long long file::put(std::string src, std::string dest, bool compress = false)
+			long long file::put(std::string src, std::string dest, bool compress)
 			{
 				//ren(temp, dest);
 

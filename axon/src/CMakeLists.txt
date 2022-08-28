@@ -19,4 +19,5 @@ target_sources(axon
 	mml.cpp
 	socket.cpp
 	ssh.cpp
+	s3.cpp
 )

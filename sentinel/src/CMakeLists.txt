@@ -1,6 +1,7 @@
 #
 target_sources(sentinel
     PRIVATE
+        drone.cpp
         sendmail.cpp
         node.cpp
         cluster.cpp

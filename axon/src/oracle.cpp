@@ -353,6 +353,12 @@ namespace axon {
 			return !_subscribing;
 		}
 
+		bool oracle::transaction(axon::trans_t ttype)
+		{
+
+			return true;
+		}
+
 		bool oracle::execute(const std::string &sql)
 		{
 			// TODO: DONE! How do we select all columns from a select statement? This we need to iterate between the field and see

@@ -19,6 +19,7 @@ namespace axon
 
 			public:
 				ftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };
+				ftp(const ftp& rhs) : connection(rhs) {  };
 				~ftp();
 
 				bool connect();
@@ -28,11 +29,12 @@ namespace axon
 				std::string pwd();
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<axon::entry> &);
+				long long copy(std::string &, std::string &, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 
-				long long get(std::string, std::string, bool);
-				long long put(std::string, std::string, bool);
+				long long get(std::string, std::string, bool = false);
+				long long put(std::string, std::string, bool = false);
 			};
 		}
 	}

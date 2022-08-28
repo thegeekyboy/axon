@@ -22,6 +22,8 @@
 #define SZBUFFER 262144
 #define MSGSIZE 2048
 
+#define quote(x) #x
+
 // helper library
 #include <axon.h>
 #include <axon/config.h>
@@ -100,8 +102,5 @@ struct mailconf {
 };
 
 // local definitions
-#include <interface.h>
-#include <node.h>
-#include <cluster.h>
 
 #endif

@@ -5,11 +5,16 @@
 #include <pwd.h>
 #include <sys/mount.h>
 
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+
 #include <axon/config.h>
 #include <axon/log.h>
 #include <axon/database.h>
 #include <axon/oracle.h>
 
+#include <node.h>
+#include <cluster.h>
 #include <sendmail.h>
 
 axon::log logger;
@@ -192,6 +197,12 @@ int install_signal_manager()
 		return false;
 	}
 
+	if ((retval = sigaction(SIGINT, &action, NULL)) == -1)
+	{
+		logger.print("ERROR", "overlord - cannot attach signal manager for SIGINT (%d), cannot continue.", retval);
+		return false;
+	}
+
 	return true;
 }
 
@@ -201,6 +212,7 @@ void sigman(int signum, siginfo_t *siginfo, void *context)
 
 	signal (SIGINT, SIG_IGN);
 	signal (SIGQUIT, SIG_IGN);
+	signal (SIGINT, SIG_IGN);
 	signal (SIGTSTP, SIG_IGN);
 #ifndef DEBUG
 	signal (SIGSEGV, SIG_IGN);
@@ -214,6 +226,7 @@ void sigman(int signum, siginfo_t *siginfo, void *context)
 			break;
 #endif
 		case SIGTERM:
+		case SIGINT:
 			logger.print("WARNING", "overlord - SIGTERM received, shutting down processes...");
 			overlord.killall();
 			break;
@@ -230,18 +243,6 @@ void sigman(int signum, siginfo_t *siginfo, void *context)
 
 int main(int argc, char *argv[])
 {
-
-	// sm[SENTINEL_SENDMAIL_SERVER] = "smtp://exedge-st-2.bkash.com";
-	// sm[SENTINEL_SENDMAIL_FROM] = "data@bkash.com";
-	// sm[SENTINEL_SENDMAIL_TEMPLATE] = "/home/amirul.islam/development/medutils/sentinel/test/email.html";
-	// sm[SENTINEL_SENDMAIL_LOGO] = "/home/amirul.islam/development/medutils/sentinel/test/bkash-orange.png";
-	// sm[SENTINEL_SENDMAIL_TO] = "amirul.islam@bkash.com";
-	// sm[SENTINEL_SENDMAIL_CC] = "alam.sarker@bkash.com";
-	// sm[SENTINEL_SENDMAIL_SUBJECT] = "Test email";
-	// sm[SENTINEL_SENDMAIL_BODY] = "This is a mail body";
-	// sm.send();
-	// return 0;
-
 	int hcfg = false;
 	char logfile[PATH_MAX] = "sentine.log";
 
@@ -292,11 +293,11 @@ int main(int argc, char *argv[])
 
 	int pid;
 
-	if ((pid = fork()) == 0) // detaching from terminal and going to background
+	//if ((pid = fork()) == 0) // detaching from terminal and going to background
 	{
 		try {
 #if DEBUG == 0
-			freopen("/dev/null", "w", stderr); // disabling stderr. this is to prevend pre-post script errors to bleed into terminal
+			freopen("/dev/null", "w", stderr); // disabling stderr. this is to prevent pre-post script errors to bleed into terminal
 #endif
 			if (!setup())
 			{
