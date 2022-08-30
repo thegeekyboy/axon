@@ -1,6 +1,15 @@
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 
+#include <axon.h>
+#include <axon/connection.h>
+#include <axon/ssh.h>
+#include <axon/socket.h>
+#include <axon/ftp.h>
+#include <axon/file.h>
+#include <axon/s3.h>
+#include <axon/samba.h>
+
 #include <main.h>
 #include <node.h>
 #include <drone.h>
@@ -68,6 +77,19 @@ drone::drone(node &n)
 			}
 			break;
 
+		case axon::protocol::SAMBA:
+			{
+				std::shared_ptr<axon::transport::transfer::samba> p(new axon::transport::transfer::samba(n.get(NODE_CFG_SRC_IPADDRESS), n.get(NODE_CFG_SRC_USERNAME), n.get(NODE_CFG_SRC_PASSWORD)));
+
+				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_SRC_DOMAIN));
+
+				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_PICKPATH), '/');
+				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
+
+				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
 		default:
 			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", n.get(NODE_CFG_NAME).c_str(), n.get(NODE_CFG_SRC_PROTOCOL));
 			break;
@@ -113,8 +135,21 @@ drone::drone(node &n)
 			}
 			break;
 
+		case axon::protocol::SAMBA:
+			{
+				std::shared_ptr<axon::transport::transfer::samba> p(new axon::transport::transfer::samba(n.get(NODE_CFG_DST_IPADDRESS), n.get(NODE_CFG_DST_USERNAME), n.get(NODE_CFG_DST_PASSWORD)));
+
+				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_DST_DOMAIN));
+
+				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_DROPPATH), '/');
+				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
+
+				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
 		default:
-			// _log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name.c_str(), n.get(NODE_CFG_SRC_PROTOCOL));
+			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", n.get(NODE_CFG_NAME).c_str(), n.get(NODE_CFG_DST_PROTOCOL));
 			break;
 	}
 

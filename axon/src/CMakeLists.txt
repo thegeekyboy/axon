@@ -20,4 +20,5 @@ target_sources(axon
 	socket.cpp
 	ssh.cpp
 	s3.cpp
+	samba.cpp
 )

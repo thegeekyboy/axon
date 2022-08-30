@@ -246,28 +246,4 @@ namespace axon
 	};
 }
 
-// Forward Definition
-
-// Custom Headers
-// #include <md5.h>
-// #include <aes.h>
-// #include <util.h>
-// #include <dmi.h>
-// #include <log.h>
-// #include <config.h>
-// #include <msg.h>
-// #include <database.h>
-// #include <node.h>
-// #include <config.h>
-// #include <connection.h>
-// #include <ssh.h>
-// #include <socket.h>
-// #include <file.h>
-// #include <ftplist.h>
-// #include <ftp.h>
-// #include <telecom.h>
-// #include <mml.h>
-
-// Global Variables
-
 #endif

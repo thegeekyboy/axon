@@ -1,6 +1,8 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <queue>
+
 #include <boost/algorithm/string/replace.hpp>
 
 #include <axon.h>
@@ -10,15 +12,7 @@
 #include <axon/sqlite.h>
 #include <axon/oracle.h>
 
-#include <axon/connection.h>
-#include <axon/ssh.h>
-#include <axon/socket.h>
-#include <axon/ftp.h>
-#include <axon/file.h>
-#include <axon/s3.h>
 #include <axon/util.h>
-
-#include <pool.h>
 
 #define NODE_CFG_NAME 'X'
 
@@ -88,10 +82,6 @@ class node {
 	// std::condition_variable _cv;
 	std::queue<std::string> _pipe;
 	std::mutex _safety;
-
-	bool _connect(std::shared_ptr<axon::transport::transfer::connection>&, std::shared_ptr<axon::transport::transfer::connection>&);
-	long long _transfer(std::shared_ptr<axon::transport::transfer::connection>, std::shared_ptr<axon::transport::transfer::connection>, std::string&);
-	long long _transfer(pool &, std::string&);
 
 public:
 

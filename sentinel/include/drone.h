@@ -1,6 +1,6 @@
 #ifndef DRONE_H
 #define DRONE_H
-
+#include <axon/connection.h>
 class drone {
 
 	std::atomic_flag _busy = ATOMIC_FLAG_INIT;

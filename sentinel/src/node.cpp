@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <queue>
 
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
@@ -25,104 +26,6 @@ node::~node()
 {
 	_log->print("INFO", "%s - process terminating", _name.c_str());
 	// std::cout<<"["<<_id<<"] "<<_name<<"- node class terminating"<<std::endl;
-}
-
-bool node::_connect(std::shared_ptr<axon::transport::transfer::connection> &srcobj, std::shared_ptr<axon::transport::transfer::connection> &dstobj)
-{
-	// TODO: try static_cast<const Base&>(derived)
-
-	switch (_src_protocol)
-	{
-		case axon::protocol::FILE:
-			{
-				std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_src_ipaddress, _src_username, _src_password));
-				
-				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		case axon::protocol::SFTP:
-			{
-				std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_src_ipaddress, _src_username, _src_password));
-
-				if (_src_auth == axon::authtypes::PRIVATEKEY)
-				{
-					p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
-					p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _src_privatekey);
-				}
-
-				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		case axon::protocol::FTP:
-			{
-				std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_src_ipaddress, _src_username, _src_password));
-				
-				srcobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		default:
-			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name.c_str(), _src_protocol);
-			return false;
-			break;
-	}
-
-	switch (_dst_protocol)
-	{
-		case axon::protocol::FILE:
-			{
-				std::shared_ptr<axon::transport::transfer::file> p(new axon::transport::transfer::file(_dst_ipaddress, _dst_username, _dst_password));
-				
-				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		case axon::protocol::SFTP:
-			{
-				std::shared_ptr<axon::transport::transfer::sftp> p(new axon::transport::transfer::sftp(_dst_ipaddress, _dst_username, _dst_password));
-
-				if (_dst_auth == axon::authtypes::PRIVATEKEY)
-				{
-					p->set(AXON_TRANSFER_SSH_MODE, axon::transport::transfer::auth_methods::PRIVATEKEY);
-					p->set(AXON_TRANSFER_SSH_PRIVATEKEY, _dst_privatekey);
-				}
-
-				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		case axon::protocol::FTP:
-			{
-				std::shared_ptr<axon::transport::transfer::ftp> p(new axon::transport::transfer::ftp(_dst_ipaddress, _dst_username, _dst_password));
-				
-				dstobj = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
-			}
-			break;
-
-		default:
-			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", _name, _dst_protocol);
-			return false;
-			break;
-	}
-
-	srcobj->connect();
-	srcobj->chwd(_pickpath[0]);
-
-	dstobj->connect();
-	dstobj->chwd(_droppath);
-
-	return true;
-}
-
-long long node::_transfer(std::shared_ptr<axon::transport::transfer::connection> srcobj, std::shared_ptr<axon::transport::transfer::connection> dstobj, std::string &filename)
-{
-	long long filesize = srcobj->get(filename, _buffer + "/" + filename, _compress);
-	long long putsize = dstobj->put(_buffer + "/" + filename, _droppath + "/" + filename, false);
-	unlink(std::string(_buffer + "/" + filename).c_str());
-
-	return filesize;
 }
 
 std::string node::operator[](char i)

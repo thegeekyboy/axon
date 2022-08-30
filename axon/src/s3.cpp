@@ -68,8 +68,9 @@ namespace axon
 				Aws::Client::ClientConfiguration cfg;
 
 				cfg.region = Aws::Region::AP_SOUTHEAST_1;
-				cfg.proxyHost = "10.96.66.246";
+				cfg.proxyHost = "10.96.66.246"; // need to do something about proxy
 				cfg.proxyPort = 4951;
+
 				_client = new Aws::S3::S3Client(auth, cfg);
 
 				auto outcome = _client->ListBuckets();
@@ -122,7 +123,8 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "could not change directory - " + err.GetMessage());
 				}
 
-				_path = path;
+				_path = (path[path.size()] = '/')?path:path+"/";
+
 
 				return false;
 			}
