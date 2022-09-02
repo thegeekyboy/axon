@@ -27,7 +27,7 @@
 
 #define SENTINEL_SENDMAIL_PORT 1
 
-namespace sentinel {
+namespace hyperion {
 
 	struct upload_status {
 		size_t bytes_read;

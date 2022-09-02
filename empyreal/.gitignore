@@ -1,9 +1,0 @@
-.DS_Store
-._.DS_Store
-*.o
-old/
-*.old
-*.tar.gz
-*.tar.bz2
-*tmp*
-build

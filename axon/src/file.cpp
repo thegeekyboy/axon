@@ -51,12 +51,12 @@ namespace axon
 					srcx = _path + "/" + src;
 
 				if (!(fpd = fopen(dest.c_str(), "wb")))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file for writing " + dest);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing " + dest);
 				
 				if (!(fps = fopen(srcx.c_str(), "rb")))
 				{
 					fclose(fpd);
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file for reading " + srcx);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for reading " + srcx);
 				}
 
 				if (compress)
@@ -69,7 +69,7 @@ namespace axon
 						fclose(fpd);
 						unlink(dest.c_str());
 
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not open compression stream");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not open compression stream");
 					}
 				}
 
@@ -88,7 +88,7 @@ namespace axon
 								fclose(fpd);
 								unlink(dest.c_str());
 
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error in comppression stream");
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in comppression stream");
 							}
 						}
 						else
@@ -123,7 +123,7 @@ namespace axon
 				struct passwd *pw = getpwnam(_username.c_str());
 
 				if (pw == NULL)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not lookup UID using username");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not lookup UID using username");
 
 				if (setfsuid(-1) != (int) pw->pw_uid)
 				{
@@ -131,7 +131,7 @@ namespace axon
 					DBGPRN("requested uid = %d", pw->pw_uid);
 
 					if (setfsuid(-1) != (int) pw->pw_uid)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not change fs uid with 'setfsuid'");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change fs uid with 'setfsuid'");
 				}
 				// else
 				// 	std::cout<<"same user id as effective user"<<std::endl;
@@ -153,7 +153,7 @@ namespace axon
 					close(_fd);
 
 				if ((_fd = open(path.c_str(), O_RDONLY | O_DIRECTORY)) == -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not change directory - " + std::string(strerror(errno)));
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change directory - " + std::string(strerror(errno)));
 
 				_path = path;
 					
@@ -163,9 +163,14 @@ namespace axon
 			std::string file::pwd()
 			{
 				if (_path.size() <= 0 && _fd != -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
 				
 				return _path;
+			}
+
+			bool file::mkdir(std::string dir)
+			{
+				return true;
 			}
 
 			bool file::ren(std::string src, std::string dest)
@@ -174,7 +179,7 @@ namespace axon
 				std::string parent, remainder;
 
 				if (_path.size() <= 0 && _fd != -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
 				
 				if (src[0] == '/')
 					srcx = src;
@@ -190,7 +195,7 @@ namespace axon
 				boost::filesystem::create_directories(parent);
 
 				if (std::rename(srcx.c_str(), destx.c_str()))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "File rename failed - " + std::string(strerror(errno)));
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] File rename failed - " + std::string(strerror(errno)));
 				
 				return true;
 			}
@@ -200,7 +205,7 @@ namespace axon
 				std::string targetx;
 
 				if (_path.size() <= 0 && _fd != -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
 				
 				if (target[0] == '/')
 					targetx = target;
@@ -208,7 +213,7 @@ namespace axon
 					targetx = _path + "/" + target;
 
 				if (std::remove(targetx.c_str()))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "File rename failed - " + std::string(strerror(errno)));
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] File rename failed - " + std::string(strerror(errno)));
 
 				return false;
 			}
@@ -220,7 +225,7 @@ namespace axon
 				long nread, count = 0;
 
 				if (_path.size() <= 0 && _fd != -1)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path not initialized yet");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
 
 				while (true)
 				{

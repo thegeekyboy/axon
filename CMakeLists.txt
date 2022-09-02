@@ -12,7 +12,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" ${CMAKE_CXX_FLAGS})
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g") 
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug)
@@ -62,9 +62,9 @@ endif()
 if (SYSTEMD_FOUND)
 	set(WITH_SYSTEMD "ON")
 	message(STATUS "systemd services install dir: ${SYSTEMD_SERVICES_INSTALL_DIR}")
-	# configure_file(extras/sentinel.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service)
+	# configure_file(extras/hyperion.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/extras/hyperion.service)
 	# install (
-	#	 FILES ${CMAKE_CURRENT_BINARY_DIR}/extras/sentinel.service 
+	#	 FILES ${CMAKE_CURRENT_BINARY_DIR}/extras/hyperion.service 
 	#	 DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
 	# )
 else()
@@ -281,4 +281,4 @@ endif ()
 
 add_subdirectory(axon)
 # add_subdirectory(empyreal)
-add_subdirectory(sentinel)
+add_subdirectory(hyperion)

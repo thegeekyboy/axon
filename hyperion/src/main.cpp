@@ -24,7 +24,7 @@ dbconf dbc;
 mailconf mc;
 
 cluster overlord;
-sentinel::sendmail sm;
+hyperion::sendmail sm;
 
 uid_t uid;
 

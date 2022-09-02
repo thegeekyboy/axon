@@ -1,5 +1,5 @@
 #
-target_sources(sentinel
+target_sources(hyperion
     PRIVATE
         drone.cpp
         sendmail.cpp

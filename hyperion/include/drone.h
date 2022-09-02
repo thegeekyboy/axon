@@ -9,7 +9,7 @@ class drone {
 	std::shared_ptr<axon::transport::transfer::connection> _source = nullptr, _destination = nullptr; // need to change it to unique_ptr
 	std::shared_ptr<axon::database::interface> _db;
 
-	axon::log *_log;
+	axon::log *_log, dummy;
 	struct dbconf *_dbc;
 	node *_node;
 
@@ -36,6 +36,7 @@ public:
 	void set(int i) { _serial = i; };
 
 	std::shared_ptr<axon::transport::transfer::connection> source() const { return _source; }
+	std::shared_ptr<axon::transport::transfer::connection> destination() const { return _destination; }
 };
 
 #endif

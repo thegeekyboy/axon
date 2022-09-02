@@ -36,6 +36,7 @@ std::string drone::_speed(long long size, long usec)
 drone::drone(node &n)
 {
 	_node = &n;
+	std::cout<<"+++"<<n.get(NODE_CFG_SRC_PROTOCOL)<<std::endl;
 
 	switch (n.get(NODE_CFG_SRC_PROTOCOL))
 	{
@@ -83,7 +84,7 @@ drone::drone(node &n)
 
 				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_SRC_DOMAIN));
 
-				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_PICKPATH), '/');
+				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_SRC_PATH), '/');
 				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
 
 				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
@@ -141,10 +142,10 @@ drone::drone(node &n)
 
 				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_DST_DOMAIN));
 
-				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_DROPPATH), '/');
+				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_DST_PATH), '/');
 				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
 
-				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+				_destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 			}
 			break;
 
@@ -154,9 +155,9 @@ drone::drone(node &n)
 	}
 
 	_source->connect();
-	_source->chwd(n.get(NODE_CFG_PICKPATH));
+	_source->chwd(n.get(NODE_CFG_SRC_PATH));
 	_destination->connect();
-	_destination->chwd(n.get(NODE_CFG_DROPPATH));
+	_destination->chwd(n.get(NODE_CFG_DST_PATH));
 }
 
 drone::~drone()
@@ -194,7 +195,7 @@ void drone::start()
 			axon::timer t1(filename);
 
 			long long filesize = _source->get(filename, _node->get(NODE_CFG_BUFFER) + "/" + filename, _node->get(NODE_CFG_COMPRESS));
-			long long putsize = _destination->put(_node->get(NODE_CFG_BUFFER) + "/" + filename, _node->get(NODE_CFG_DROPPATH) + "/" + filename, false);
+			long long putsize = _destination->put(_node->get(NODE_CFG_BUFFER) + "/" + filename, _node->get(NODE_CFG_DST_PATH) + "/" + filename, false);
 			unlink(std::string(_node->get(NODE_CFG_BUFFER) + "/" + filename).c_str());
 
 			_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %s", _node->get(NODE_CFG_NAME), 0, 0, filename.c_str(), filesize, _speed(filesize,t1.now()).c_str());

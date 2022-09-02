@@ -421,6 +421,12 @@ namespace axon
 				return _path;
 			}
 
+			bool sftp::mkdir(std::string dir)
+			{
+
+				return true;
+			}
+
 			int sftp::list(const axon::transport::transfer::cb &cbfn)
 			{
 				std::lock_guard<std::mutex> lock(_lock);
@@ -852,7 +858,7 @@ namespace axon
 								fclose(fp);
 								unlink(dest.c_str());
 
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in comppression stream");
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in compression stream");
 							}
 						}
 						else

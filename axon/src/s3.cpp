@@ -76,7 +76,7 @@ namespace axon
 				auto outcome = _client->ListBuckets();
 
 				if (!outcome.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, std::string("there was an error connecting to S3 - ") + outcome.GetError().GetExceptionName().c_str());
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "]" + std::string("there was an error connecting to S3 - ") + outcome.GetError().GetExceptionName().c_str());
 
 				_connected = true;
 
@@ -102,10 +102,10 @@ namespace axon
 			bool s3::chwd(std::string path)
 			{
 				if (path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid path");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path");
 
 				if (path.substr(0, 1) == "." || path.substr(0, 2) == "..")
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "relative path not supported");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] relative path not supported");
 
 				// TODO: implement relative path
 
@@ -120,7 +120,7 @@ namespace axon
 				if (!result.IsSuccess())
 				{
 					auto err = result.GetError();
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "could not change directory - " + err.GetMessage());
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " + err.GetMessage());
 				}
 
 				_path = (path[path.size()] = '/')?path:path+"/";
@@ -132,9 +132,14 @@ namespace axon
 			std::string s3::pwd()
 			{
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
 				return _path;
+			}
+
+			bool s3::mkdir(std::string dir)
+			{
+				return true;
 			}
 
 			long long s3::copy(std::string &src, std::string &dest, bool compress)
@@ -151,7 +156,7 @@ namespace axon
 					destx = _path + "/" + dest;
 
 				if (srcx == destx)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "source and destination object cannot be same for copy operation");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
 
 
 				{
@@ -160,7 +165,7 @@ namespace axon
 					auto result = _client->HeadObject(request);
 
 					if (result.IsSuccess())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "destination object already exist");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] destination object already exist");
 				}
 				{
 					Aws::S3::Model::HeadObjectRequest request;
@@ -168,7 +173,7 @@ namespace axon
 					auto result = _client->HeadObject(request);
 
 					if (!result.IsSuccess())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "source object does not exist");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source object does not exist");
 
 					Aws::S3::Model::HeadObjectResult fileinfo = result.GetResult();
 					filesize = fileinfo.GetContentLength(); 
@@ -183,7 +188,7 @@ namespace axon
 				auto response = _client->CopyObject(request);
 
 				if (!response.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "object copy failed");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] object copy failed");
 
 				return filesize;
 			}
@@ -194,7 +199,7 @@ namespace axon
 				std::string parent, remainder;
 
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
 				if (src[0] == '/')
 					srcx = src;
@@ -217,7 +222,7 @@ namespace axon
 				std::string targetx;
 
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
 				if (target[0] == '/')
 					targetx = target;
@@ -230,7 +235,7 @@ namespace axon
 					auto result = _client->HeadObject(request);
 
 					if (!result.IsSuccess())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "object does not exist");
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] object does not exist");
 
 					Aws::S3::Model::HeadObjectResult fileinfo = result.GetResult();
 				}
@@ -241,7 +246,7 @@ namespace axon
 				auto response = _client->DeleteObject(request);
 				
 				if (!response.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "object delete error");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] object delete error");
 
 				return true;
 			}
@@ -251,7 +256,7 @@ namespace axon
 				long count = 0;
 
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 				std::vector<std::string> parts = split(_path, '/');
 
@@ -266,7 +271,7 @@ namespace axon
 				auto response = _client->ListObjects(request);
 
 				if (!response.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "error generating list");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error generating list");
 
 				Aws::Vector<Aws::S3::Model::Object> objects = response.GetResult().GetContents();
 
@@ -303,7 +308,7 @@ namespace axon
 				Aws::S3::Model::GetObjectRequest request;
 
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
 				if (src[0] == '/')
 					srcx = src;
@@ -316,7 +321,7 @@ namespace axon
 				std::string prefix;
 
 				if (parts.size() < 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid path and/or object");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path and/or object");
 
 				for (unsigned int i = 1; i < parts.size(); i++)
 					prefix += parts[i] + "/";
@@ -328,7 +333,7 @@ namespace axon
 				Aws::S3::Model::GetObjectOutcome result = _client->GetObject(request);
 
 				if (!result.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "error downloading object");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error downloading object");
 
 				Aws::S3::Model::GetObjectResult& details = result.GetResult();
 
@@ -358,7 +363,7 @@ namespace axon
 				Aws::S3::Model::PutObjectRequest request;
 				
 				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "path not initialized");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
 				if (dest[0] == '/')
 					destx = dest;
@@ -371,7 +376,7 @@ namespace axon
 				std::string prefix;
 
 				if (parts.size() < 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid path and/or object");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path and/or object");
 
 				for (unsigned int i = 1; i < parts.size(); i++)
 					prefix += parts[i] + "/";
@@ -388,7 +393,7 @@ namespace axon
 				auto result = _client->PutObject(request);
 
 				if (!result.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "error uploading object");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error uploading object");
 
 				return filesize;
 			}

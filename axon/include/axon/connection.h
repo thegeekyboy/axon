@@ -34,6 +34,7 @@ namespace axon
 
 				virtual bool chwd(std::string) = 0;
 				virtual std::string pwd() = 0;
+				virtual bool mkdir(std::string) = 0;
 				virtual int list(const cb &) = 0;
 				virtual int list(std::vector<axon::entry> &) = 0;
 				virtual long long copy(std::string&, std::string&, bool = false) = 0;

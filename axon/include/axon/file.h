@@ -31,6 +31,7 @@ namespace axon
 
 				bool chwd(std::string);
 				std::string pwd();
+				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
 				long long copy(std::string&, std::string&, bool = false);

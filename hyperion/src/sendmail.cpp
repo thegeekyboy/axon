@@ -3,7 +3,7 @@
 #include <main.h>
 #include <sendmail.h>
 
-namespace sentinel {
+namespace hyperion {
 
 	std::string& sendmail::operator[] (char x)
 	{
@@ -95,7 +95,7 @@ namespace sentinel {
 	std::string sendmail::build()
 	{
 		boost::uuids::uuid uuid = boost::uuids::random_generator()();
-		std::string msgid = boost::uuids::to_string(uuid) + "@sentinel.bkash.com";
+		std::string msgid = boost::uuids::to_string(uuid) + "@hyperion.binutil.com";
 
 		auto in_time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -119,7 +119,7 @@ namespace sentinel {
 		CURLcode res = CURLE_OK;
 
 		boost::uuids::uuid uuid = boost::uuids::random_generator()();
-		std::string msgid = boost::uuids::to_string(uuid) + "@sentinel.bkash.com";
+		std::string msgid = boost::uuids::to_string(uuid) + "@hyperion.binutil.com";
 
 		auto in_time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

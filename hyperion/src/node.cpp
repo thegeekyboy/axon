@@ -52,10 +52,10 @@ std::string node::operator[](char i)
 		return _dst_password;
 	else if (i == NODE_CFG_DST_DOMAIN)
 		return _dst_domain;
-	else if (i == NODE_CFG_PICKPATH)
-		return _pickpath[0];
-	else if (i == NODE_CFG_DROPPATH)
-		return _droppath;
+	else if (i == NODE_CFG_SRC_PATH)
+		return _src_path[0];
+	else if (i == NODE_CFG_DST_PATH)
+		return _dst_path[0];
 	else if (i == NODE_CFG_FILEMASK)
 		return _filemask;
 	else if (i == NODE_CFG_IGNORE)
@@ -142,10 +142,10 @@ std::string node::get(char i)
 		return _dst_privatekey;
 	else if (i == NODE_CFG_DST_DOMAIN)
 		return _dst_domain;
-	else if (i == NODE_CFG_PICKPATH)
-		return _pickpath[0];
-	else if (i == NODE_CFG_DROPPATH)
-		return _droppath;
+	else if (i == NODE_CFG_SRC_PATH)
+		return _src_path[0];
+	else if (i == NODE_CFG_DST_PATH)
+		return _dst_path[0];
 	else if (i == NODE_CFG_FILEMASK)
 		return _filemask;
 	else if (i == NODE_CFG_IGNORE)
@@ -232,10 +232,10 @@ bool node::set(char i, std::string value)
 		_dst_privatekey = value;
 	else if (i == NODE_CFG_DST_DOMAIN)
 		_dst_domain = value;
-	else if (i == NODE_CFG_PICKPATH)
-		_pickpath[0] = value;
-	else if (i == NODE_CFG_DROPPATH)
-		_droppath = value;
+	else if (i == NODE_CFG_SRC_PATH)
+		_src_path[0] = value;
+	else if (i == NODE_CFG_DST_PATH)
+		_dst_path[0] = value;
 	else if (i == NODE_CFG_FILEMASK)
 		_filemask = value;
 	else if (i == NODE_CFG_IGNORE)
@@ -339,13 +339,18 @@ int node::reset()
 	_dst_password = "";
 	_dst_domain = "";
 	_dst_privatekey = "";
-	_pickpath[0] = "";
-	_pickpath[1] = "";
-	_pickpath[2] = "";
-	_pickpath[3] = "";
-	_pickpath[4] = "";
-	_droppath = "";
-	_bucket = "";
+	_src_path[0] = "";
+	_src_path[1] = "";
+	_src_path[2] = "";
+	_src_path[3] = "";
+	_src_path[4] = "";
+	_dst_path[0] = "";
+	_dst_path[1] = "";
+	_dst_path[2] = "";
+	_dst_path[3] = "";
+	_dst_path[4] = "";
+	_src_bucket = "";
+	_dst_bucket = "";
 	_filemask = "";
 	_ignore = "";
 	_remmask = "";
@@ -464,10 +469,11 @@ int node::run()
 		// std::shared_ptr<axon::transport::transfer::connection> source, destination;
 		// _connect(source, destination);
 		drone _master(*this);
+		_master.set(_log);
 
 		if (_master.source())
 		{
-			std::string pickpath, droppath, filemask;
+			std::string src_path, dst_path, filemask;
 			std::vector<axon::entry> v;
 			int count = 0;
 			char buffer[PATH_MAX];
@@ -477,18 +483,20 @@ int node::run()
 			xctime -= (_lookback*60);
 			struct tm *xtstamp = localtime(&xctime);
 			
-			strftime(buffer, PATH_MAX, _pickpath[0].c_str(), xtstamp); pickpath = buffer;
-			strftime(buffer, PATH_MAX, _droppath.c_str(), xtstamp); droppath = buffer;
+			strftime(buffer, PATH_MAX, _src_path[0].c_str(), xtstamp); src_path = buffer;
+			strftime(buffer, PATH_MAX, _dst_path[0].c_str(), xtstamp); dst_path = buffer;
 			strftime(buffer, PATH_MAX, _filemask.c_str(), xtstamp); filemask = buffer;
 
 			_db->execute("DELETE FROM " + _dbc.gtt);
 			_db->flush();
 
+			_master.source()->chwd(src_path);
 			if (_master.source()->list(v))
 			{
 				_db->transaction(axon::transaction::BEGIN);
 
 				for (auto &elm : v)
+				{
 					if (elm.flag == axon::flags::FILE)
 					{
 						try {
@@ -500,7 +508,7 @@ int node::run()
 						}
 						count++;
 					}
-
+				}
 				_db->transaction(axon::transaction::END);
 			}
 			_db->flush();
@@ -516,7 +524,7 @@ int node::run()
 			{
 				std::string prerun = _prerun;
 
-				boost::replace_all(prerun, "%PATH%", droppath.c_str());
+				boost::replace_all(prerun, "%PATH%", dst_path.c_str());
 
 				_log->print("INFO", "%s - running pre-script (%s)", _name, prerun.c_str());
 				
@@ -550,8 +558,6 @@ int node::run()
 					sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc.list.c_str(), _db->get(0).c_str(), 0ULL, 0L, 2);
 					_db->execute(sqltext);
 				}
-				
-
 			}
 			_db->done();
 
@@ -564,6 +570,8 @@ int node::run()
 				for (int i = 0; i < _parallel; i++)
 				{
 					dn[i] = new drone(*this);
+					dn[i]->source()->chwd(src_path);
+					dn[i]->destination()->chwd(dst_path);
 					dn[i]->set(_log);
 					dn[i]->set(_db);
 					dn[i]->set(&_dbc);
@@ -576,7 +584,7 @@ int node::run()
 
 				if (_postrun.size() > 0)
 				{
-					boost::replace_all(_postrun, "%PATH%", droppath.c_str());
+					boost::replace_all(_postrun, "%PATH%", dst_path.c_str());
 					_log->print("INFO", "%s - running post-script (%s)", _name, _postrun);
 					
 					if (axon::execmd(_postrun.c_str(), _name.c_str()))
@@ -627,14 +635,29 @@ void node::print(int width)
 
 	std::string padding = "                                                    ";
 	std::cout<<std::right<<std::setw(width)<<_name.substr(0, width)<<"─┬─ "<<_shortdesc<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─          description ── "<<_longdesc<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─               ip/url ── "<<_src_ipaddress<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             username ── "<<_src_username<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             password ── "<<_src_password<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─           public key ── "<<_src_privatekey<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─            S3 Bucket ── "<<_bucket<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─          pickup path ── "<<_pickpath[0]<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─            drop path ── "<<_droppath<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─             description ── "<<_longdesc<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"├─┬─ source                   "<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│ └┬─               ip/url ── "<<_src_ipaddress<<std::endl;
+    std::cout<<padding.substr(0, width+1)<<"│  ├──            protocol ── "<<_protoname(_src_protocol)<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──                mode ── "<<_src_mode<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├── authentication type ── "<<_src_auth<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──            username ── "<<_src_username<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──            password ── "<<_src_password<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──              domain ── "<<_src_domain<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──          public key ── "<<_src_privatekey<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──           S3 Bucket ── "<<_src_bucket<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  └──                path ── "<<_src_path[0]<<std::endl;
+    std::cout<<padding.substr(0, width+1)<<"├─┬─ destination              "<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│ └┬─               ip/url ── "<<_dst_ipaddress<<std::endl;
+    std::cout<<padding.substr(0, width+1)<<"│  ├──            protocol ── "<<_protoname(_dst_protocol)<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──                mode ── "<<_dst_mode<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├── authentication type ── "<<_dst_auth<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──            username ── "<<_dst_username<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──            password ── "<<_dst_password<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──              domain ── "<<_dst_domain<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──          public key ── "<<_dst_privatekey<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  ├──           S3 Bucket ── "<<_dst_bucket<<std::endl;
+	std::cout<<padding.substr(0, width+1)<<"│  └──                path ── "<<_dst_path[0]<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          filter mask ── "<<_filemask<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          ignore mask ── "<<_ignore<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─           alter name ── "<<_remmask<<std::endl;
@@ -642,12 +665,8 @@ void node::print(int width)
 	std::cout<<padding.substr(0, width+1)<<"├─           run script ── "<<_exec<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─  pre-download script ── "<<_prerun<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─ post-download script ── "<<_postrun<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─               domain ── "<<_src_domain<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─   configuration type ── "<<_conftype<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─               status ── "<<_status<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─             protocol ── "<<_src_protocol<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─                 mode ── "<<_src_mode<<std::endl;
-	std::cout<<padding.substr(0, width+1)<<"├─  authentication type ── "<<_src_auth<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─             parallel ── "<<_parallel<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─          compression ── "<<_compress<<std::endl;
 	std::cout<<padding.substr(0, width+1)<<"├─       look back time ── "<<_lookback<<std::endl;
@@ -666,4 +685,52 @@ std::string node::pop()
 	std::string retval = _pipe.front();
 	_pipe.pop();
 	return retval;
+}
+
+std::string node::_protoname(int i)
+{
+	switch (i)
+	{
+		case axon::protocol::FILE:
+			return "axon::protocol::FILE";
+			break;
+		
+		case axon::protocol::SFTP:
+			return "axon::protocol::SFTP";
+			break;
+		
+		case axon::protocol::FTP:
+			return "axon::protocol::FTP";
+			break;
+		
+		case axon::protocol::S3:
+			return "axon::protocol::S3";
+			break;
+		
+		case axon::protocol::SAMBA:
+			return "axon::protocol::SAMBA";
+			break;
+		
+		case axon::protocol::SCP:
+			return "axon::protocol::SCP";
+			break;
+		
+		case axon::protocol::HDFS:
+			return "axon::protocol::HDFS";
+			break;
+		
+		case axon::protocol::DATABASE:
+			return "axon::protocol::DATABASE";
+			break;
+
+		case axon::protocol::KAFKA:
+			return "axon::protocol::KAFKA";
+			break;
+
+		default:
+			return "UNKNOWN";
+			break;
+	}
+
+	return "UNKNOWN";
 }

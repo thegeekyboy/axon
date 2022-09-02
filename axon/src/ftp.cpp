@@ -87,7 +87,7 @@ namespace axon
 							if (tokens[0] == "331")
 								break;
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -108,7 +108,7 @@ namespace axon
 							if (tokens[0] == "230")
 								break;
 							else if (tokens[0] == "530")
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Login incorrect");
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Login incorrect");
 						}
 					}
 					usleep(10000);
@@ -131,9 +131,9 @@ namespace axon
 							if (tokens[0] == "200")
 								return true;
 							else if (tokens[0] == "500")
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot change transfer type to binary");
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot change transfer type to binary");
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response? - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response? - " + resp);
 						}
 					}
 					usleep(10000);
@@ -161,10 +161,10 @@ namespace axon
 							}
 							else if (tokens[0] == "550")
 							{
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not change directory to " + path);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change directory to " + path);
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -210,13 +210,19 @@ namespace axon
 								}
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
 				}
 
 				return _path;
+			}
+
+			bool ftp::mkdir(std::string dir)
+			{
+
+				return true;
 			}
 
 			long long ftp::copy(std::string &src, std::string &dest, bool compress)
@@ -246,7 +252,7 @@ namespace axon
 								return false;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -271,7 +277,7 @@ namespace axon
 								return false;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -301,7 +307,7 @@ namespace axon
 								return false;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -343,7 +349,7 @@ namespace axon
 								break;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
@@ -442,14 +448,14 @@ namespace axon
 								break;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
 				}
 
 				if (!(fp = fopen(dest.c_str(), "wb")))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening file (" + dest +") for writing");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file (" + dest +") for writing");
 
 				_sock.writeline("RETR " + src);
 
@@ -521,14 +527,14 @@ namespace axon
 								break;
 							}
 							else
-								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpcted response - " + resp);
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unexpected response - " + resp);
 						}
 					}
 					usleep(10000);
 				}
 
 				if (!(fp = fopen(src.c_str(), "rb")))
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open source file '" + src + "'");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
 
 				_sock.writeline("STOR " + temp);
 
