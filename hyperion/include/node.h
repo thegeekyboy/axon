@@ -66,6 +66,13 @@
 
 #define NODE_MAX_PARALLEL         5
 
+struct dlobj {
+
+	unsigned int index;
+	unsigned int total;
+	std::string filename;
+};
+
 class node {
 
 	std::string _name, _shortdesc, _longdesc, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _buffer;
@@ -83,10 +90,10 @@ class node {
 	axon::log *_log, dummy;
 	struct dbconf _dbc;
 
-	std::thread _th;
 	std::string _id;
-	// std::condition_variable _cv;
-	std::queue<std::string> _pipe;
+	std::queue<struct dlobj> _pipe;
+
+	std::thread _th;
 	std::mutex _safety;
 	
 	std::string _protoname(int);
@@ -123,7 +130,7 @@ public:
 
 	void print(int);
 
-	std::string pop();
+	struct dlobj pop();
 };
 
 #endif

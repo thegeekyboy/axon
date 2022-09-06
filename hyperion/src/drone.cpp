@@ -36,7 +36,7 @@ std::string drone::_speed(long long size, long usec)
 drone::drone(node &n)
 {
 	_node = &n;
-	std::cout<<"+++"<<n.get(NODE_CFG_SRC_PROTOCOL)<<std::endl;
+	_log = &dummy;
 
 	switch (n.get(NODE_CFG_SRC_PROTOCOL))
 	{
@@ -84,7 +84,7 @@ drone::drone(node &n)
 
 				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_SRC_DOMAIN));
 
-				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_SRC_PATH), '/');
+				std::vector<std::string> parts = axon::helper::split(n.get(NODE_CFG_SRC_PATH), '/');
 				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
 
 				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
@@ -142,7 +142,7 @@ drone::drone(node &n)
 
 				p->set(AXON_TRANSFER_SAMBA_DOMAIN, n.get(NODE_CFG_DST_DOMAIN));
 
-				std::vector<std::string> parts = axon::split(n.get(NODE_CFG_DST_PATH), '/');
+				std::vector<std::string> parts = axon::helper::split(n.get(NODE_CFG_DST_PATH), '/');
 				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
 
 				_destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
@@ -155,14 +155,12 @@ drone::drone(node &n)
 	}
 
 	_source->connect();
-	_source->chwd(n.get(NODE_CFG_SRC_PATH));
 	_destination->connect();
-	_destination->chwd(n.get(NODE_CFG_DST_PATH));
 }
 
 drone::~drone()
 {
-	if (_enabled)
+	if (_th.joinable())
 		_th.join();
 }
 
@@ -185,32 +183,36 @@ void drone::start()
 {
 	_th = std::thread([&] {
 
-		std::string filename;
-		
 		_enabled = true;
 
-		while ((filename = _node->pop()) != "")
+		while (_enabled)
 		{
 			char sqltext[512];
-			axon::timer t1(filename);
+			struct dlobj e = _node->pop();
+			
+			if (e.filename == "")
+				break;
 
-			long long filesize = _source->get(filename, _node->get(NODE_CFG_BUFFER) + "/" + filename, _node->get(NODE_CFG_COMPRESS));
-			long long putsize = _destination->put(_node->get(NODE_CFG_BUFFER) + "/" + filename, _node->get(NODE_CFG_DST_PATH) + "/" + filename, false);
-			unlink(std::string(_node->get(NODE_CFG_BUFFER) + "/" + filename).c_str());
+			axon::timer t1(e.filename);
+			
+			long long filesize = _source->get(e.filename, _node->get(NODE_CFG_BUFFER) + "/" + e.filename, _node->get(NODE_CFG_COMPRESS));
+			/*long long putsize =*/ _destination->put(_node->get(NODE_CFG_BUFFER) + "/" + e.filename, e.filename, false);
+			unlink(std::string(_node->get(NODE_CFG_BUFFER) + "/" + e.filename).c_str());
 
-			_log->print("INFO", "%s - [%d/%d] Downloaded file %s, Size: %d, Speed: %s", _node->get(NODE_CFG_NAME), 0, 0, filename.c_str(), filesize, _speed(filesize,t1.now()).c_str());
+			_log->print("INFO", "%s - [%hhu/%hhu] processed file %s, Size: %d, Speed: %s", _node->get(NODE_CFG_NAME), e.index, e.total, e.filename.c_str(), filesize, _speed(filesize,t1.now()).c_str());
 
-			sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc->list.c_str(), filename.c_str(), filesize, t1.now(), 1);
+			sprintf(sqltext, "INSERT INTO %s (FILENAME,FILESIZE,ELAPSDUR,STATUS) VALUES('%s',%lld, %ld, %d)", _dbc->list.c_str(), e.filename.c_str(), filesize, t1.now(), 1);
 			_db->execute(sqltext);
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	});
 }
 
 void drone::stop()
 {
-
+	// TODO: Need to implement a way to call this function to kill download 
+	_enabled = false;
 }
 
 bool drone::busy()

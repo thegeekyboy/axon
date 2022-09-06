@@ -32,7 +32,7 @@ void sigman(int, siginfo_t*, void*);
 int install_signal_manager();
 
 bool create_ramdisk(size_t mb, std::string location)
-{return true;
+{
 	uid_t ruid, euid, suid;
 
 	if (mb > 16384)
@@ -50,7 +50,7 @@ bool create_ramdisk(size_t mb, std::string location)
 		FILE *fp;
 		bool exists = false;
 
-		if (!axon::exists(location))
+		if (!axon::helper::exists(location))
 		{
 			logger.print("FATAL", "mount point does not exist. aborting!");
 			return false;
@@ -83,6 +83,7 @@ bool create_ramdisk(size_t mb, std::string location)
 			char options[128];
 
 			sprintf(options, "size=%luM,uid=%d,gid=%d,mode=700", mb, uid, uid);
+			logger.print("INFO", "options => %s", options);
 			if (mount("tmpfs", location.c_str(), "tmpfs", MS_NOSUID|MS_NOATIME|MS_NODEV|MS_NODIRATIME|MS_NOEXEC, &options) != 0)
 			{
 				logger.print("FATAL", "mount() failed, errCode=%d, reason=%s", errno, strerror(errno));

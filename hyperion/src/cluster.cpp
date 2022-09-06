@@ -248,7 +248,7 @@ void cluster::load(axon::config &cfg)
 			cfg.get("protocol", tint);
 			tnode->set(NODE_CFG_SRC_PROTOCOL, tint);
 
-			if (!(tint >= 0 && tint <= 4))
+			if (!(tint >= 0 && tint <= 5))
 			{
 				_log->print("ERROR", "%s - parameter [source.protocol] value is unacceptable; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
@@ -374,7 +374,7 @@ void cluster::load(axon::config &cfg)
 			cfg.get("protocol", tint);
 			tnode->set(NODE_CFG_DST_PROTOCOL, tint);
 
-			if (!(tint >= 0 && tint <= 4))
+			if (!(tint >= 0 && tint <= 5))
 			{
 				_log->print("ERROR", "%s - parameter [destination.protocol] value is unacceptable; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);

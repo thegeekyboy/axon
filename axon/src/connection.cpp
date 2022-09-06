@@ -43,7 +43,7 @@ namespace axon
 				_hostname = hostname;
 				_username = username;
 				_password = password;
-				_id = axon::uuid();
+				_id = axon::helper::uuid();
 			}
 
 			connection::connection(const connection& rhs)
@@ -51,7 +51,7 @@ namespace axon
 				_hostname = rhs._hostname;
 				_username = rhs._username;
 				_password = rhs._password;
-				_id = axon::uuid();
+				_id = axon::helper::uuid();
 			}
 
 			connection::~connection()

@@ -108,7 +108,7 @@ namespace axon
 
 				// TODO: implement relative path
 
-				std::vector<std::string> parts = axon::split(path, '/');
+				std::vector<std::string> parts = axon::helper::split(path, '/');
 
 				if (parts[0] != _share)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] changing share from " + _share + " to " + parts[0] + " is not supported after connect");
@@ -142,8 +142,8 @@ namespace axon
 			{
 				std::string dirx, prefix;
 
-				if (_path.size() <= 2)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
+				// if (_path.size() <= 2)
+				// 	throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized"); <- should we do this?
 
 				if (dir.substr(0, 1) == "." || dir.substr(0, 2) == "..")
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] relative path not supported");
@@ -153,10 +153,10 @@ namespace axon
 				else
 					dirx = _path + "/" + dir;
 
-				std::vector<std::string> parts = axon::split(dirx, '/');
+				std::vector<std::string> parts = axon::helper::split(dirx, '/');
 
 				if (parts[0] != _share)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] mkdir:changing share from " + _share + " to " + parts[0] + " is not supported after connect");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] changing share from " + _share + " to " + parts[0] + " is not supported after connect");
 
 				for (unsigned int i = 1; i < parts.size(); i++)
 					prefix += parts[i] + "/";
@@ -206,8 +206,8 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> src_parts = axon::split(srcx, '/');
-				std::vector<std::string> dest_parts = axon::split(destx, '/');
+				std::vector<std::string> src_parts = axon::helper::split(srcx, '/');
+				std::vector<std::string> dest_parts = axon::helper::split(destx, '/');
 
 				if (src_parts[0] != _share)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] ren:changing share from " + _share + " to " + src_parts[0] + " is not supported after connect");
@@ -243,7 +243,7 @@ namespace axon
 				else
 					targetx = _path + "/" + target;
 
-				std::vector<std::string> parts = axon::split(targetx, '/');
+				std::vector<std::string> parts = axon::helper::split(targetx, '/');
 				std::string prefix;
 
 				for (unsigned int i = 1; i < parts.size(); i++)
@@ -321,7 +321,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				std::vector<std::string> parts = axon::split(srcx, '/');
+				std::vector<std::string> parts = axon::helper::split(srcx, '/');
 				std::string prefix;
 
 				if (parts[0] != _share)
@@ -373,7 +373,7 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> parts = axon::split(destx, '/');
+				std::vector<std::string> parts = axon::helper::split(destx, '/');
 				std::string prefix;
 
 				if (parts[0] != _share)
@@ -389,7 +389,7 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file for reading");
 
 				if ((fh = smb2_open(_smb2, prefix.c_str(), O_WRONLY|O_CREAT)) == NULL)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open remote file for writing - " + smb2_get_error(_smb2));
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open remote file for writing - " + prefix + "<~~>" + smb2_get_error(_smb2));
 
 				while (true)
 				{

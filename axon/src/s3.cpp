@@ -109,7 +109,7 @@ namespace axon
 
 				// TODO: implement relative path
 
-				std::vector<std::string> parts = split(path, '/');
+				std::vector<std::string> parts = axon::helper::split(path, '/');
 
 				std::string bucket = parts[0];
 
@@ -258,7 +258,7 @@ namespace axon
 				if (_path.size() <= 2)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
-				std::vector<std::string> parts = split(_path, '/');
+				std::vector<std::string> parts = axon::helper::split(_path, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;
@@ -283,7 +283,7 @@ namespace axon
 					file.flag = axon::flags::FILE;
 					file.size = object.GetSize();
 
-					std::vector<std::string> parts = axon::split(object.GetKey(), '/');
+					std::vector<std::string> parts = axon::helper::split(object.GetKey(), '/');
 					file.name = parts[parts.size()-1];
 
 					cbfn(file);
@@ -315,7 +315,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				std::vector<std::string> parts = split(srcx, '/');
+				std::vector<std::string> parts = axon::helper::split(srcx, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;
@@ -370,7 +370,7 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> parts = split(destx, '/');
+				std::vector<std::string> parts = axon::helper::split(destx, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;

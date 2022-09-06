@@ -49,7 +49,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "220")
 								break;
 						}
@@ -83,7 +83,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "331")
 								break;
 							else
@@ -103,7 +103,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 
 							if (tokens[0] == "230")
 								break;
@@ -126,7 +126,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 
 							if (tokens[0] == "200")
 								return true;
@@ -153,7 +153,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								pwd();
@@ -185,7 +185,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 
 							if (tokens[0] == "257")
 							{
@@ -242,7 +242,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "350")
 							{
 								break;
@@ -267,7 +267,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								return true;
@@ -297,7 +297,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								return true;
@@ -339,7 +339,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								sscanf(tokens[4].c_str()+1, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &v[0],&v[1],&v[2],&v[3],&v[4],&v[5]);
@@ -383,7 +383,7 @@ namespace axon
 								{
 									struct entry file;
 								
-									e.name = trim(ftpl.name);
+									e.name = axon::helper::trim(ftpl.name);
 									e.size = ftpl.size;
 									e.et = axon::protocol::FTP;
 									vec.push_back(e);					
@@ -391,7 +391,7 @@ namespace axon
 							}
 							else
 							{
-								e.name = trim(ftpl.name);
+								e.name = axon::helper::trim(ftpl.name);
 								e.size = ftpl.size;
 								e.et = axon::protocol::FTP;
 								vec.push_back(e);
@@ -408,7 +408,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}
@@ -438,7 +438,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								sscanf(tokens[4].c_str()+1, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &v[0],&v[1],&v[2],&v[3],&v[4],&v[5]);
@@ -482,7 +482,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}
@@ -512,7 +512,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								char tok[64];
@@ -564,7 +564,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = split(resp, ' ');
+							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}

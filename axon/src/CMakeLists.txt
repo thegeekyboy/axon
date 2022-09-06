@@ -21,4 +21,5 @@ target_sources(axon
 	ssh.cpp
 	s3.cpp
 	samba.cpp
+	hdfs.cpp
 )

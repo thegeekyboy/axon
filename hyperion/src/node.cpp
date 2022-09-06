@@ -12,7 +12,7 @@
 
 node::node()
 {
-	_id = axon::uuid();
+	_id = axon::helper::uuid();
 	_canrun = true;
 	_running = false;
 	_sleeping = false;
@@ -468,30 +468,33 @@ int node::run()
 
 		// std::shared_ptr<axon::transport::transfer::connection> source, destination;
 		// _connect(source, destination);
-		drone _master(*this);
-		_master.set(_log);
+		drone master(*this);
+		std::string src_path, dst_path, filemask;
+		char buffer[PATH_MAX];
 
-		if (_master.source())
+		time_t xctime;
+		time(&xctime);
+		xctime -= (_lookback*60);
+		struct tm *xtstamp = localtime(&xctime);
+		
+		strftime(buffer, PATH_MAX, _src_path[0].c_str(), xtstamp); src_path = buffer;
+		strftime(buffer, PATH_MAX, _dst_path[0].c_str(), xtstamp); dst_path = buffer;
+		strftime(buffer, PATH_MAX, _filemask.c_str(), xtstamp); filemask = buffer;
+
+		master.set(_log);
+
+		master.source()->connect();
+		master.source()->chwd(src_path);
+
+		if (master.source())
 		{
-			std::string src_path, dst_path, filemask;
 			std::vector<axon::entry> v;
-			int count = 0;
-			char buffer[PATH_MAX];
-
-			time_t xctime;
-			time(&xctime);
-			xctime -= (_lookback*60);
-			struct tm *xtstamp = localtime(&xctime);
-			
-			strftime(buffer, PATH_MAX, _src_path[0].c_str(), xtstamp); src_path = buffer;
-			strftime(buffer, PATH_MAX, _dst_path[0].c_str(), xtstamp); dst_path = buffer;
-			strftime(buffer, PATH_MAX, _filemask.c_str(), xtstamp); filemask = buffer;
+			unsigned int count = 0, index = 0;
 
 			_db->execute("DELETE FROM " + _dbc.gtt);
 			_db->flush();
 
-			_master.source()->chwd(src_path);
-			if (_master.source()->list(v))
+			if (master.source()->list(v))
 			{
 				_db->transaction(axon::transaction::BEGIN);
 
@@ -528,7 +531,7 @@ int node::run()
 
 				_log->print("INFO", "%s - running pre-script (%s)", _name, prerun.c_str());
 				
-				if (axon::execmd(prerun.c_str(), _name.c_str()))
+				if (axon::helper::execmd(prerun.c_str(), _name.c_str()))
 				{
 					_log->print("DEBUG", "%s - successfully completed running pre-script", _name);
 				}
@@ -538,7 +541,6 @@ int node::run()
 				}
 			}
 
-			count = 0;
 			std::vector<std::string> list;
 			const boost::regex mask(filemask);
 			char sqltext[4096];
@@ -546,12 +548,12 @@ int node::run()
 			while (_db->next())
 			{
 				list.push_back(_db->get(0));
-				count++;
+				index++;
 
 				if (filemask.size() == 0 || boost::regex_match(_db->get(0), mask))
 				{
-					DBGPRN("[%d] queuing %s", count, _db->get(0).c_str());
-					_pipe.push(_db->get(0));
+					DBGPRN("[%d/%d] queuing %s", index, count, _db->get(0).c_str());
+					_pipe.push({index, count, _db->get(0)});
 				}
 				else
 				{
@@ -565,13 +567,19 @@ int node::run()
 			{
 				drone *dn[_parallel];
 
-				_log->print("INFO", "%s - preparing to down %d files...", _name, count);
+				_log->print("INFO", "%s - preparing to process %d files...", _name, count);
 
 				for (int i = 0; i < _parallel; i++)
 				{
 					dn[i] = new drone(*this);
 					dn[i]->source()->chwd(src_path);
-					dn[i]->destination()->chwd(dst_path);
+					try {
+						dn[i]->destination()->chwd(dst_path);
+					} catch (axon::exception &e) {
+						_log->print("INFO", "%s - failed to chwd (%s)", _name, dst_path);
+						dn[i]->destination()->mkdir(dst_path);
+						dn[i]->destination()->chwd(dst_path);
+					}
 					dn[i]->set(_log);
 					dn[i]->set(_db);
 					dn[i]->set(&_dbc);
@@ -587,7 +595,7 @@ int node::run()
 					boost::replace_all(_postrun, "%PATH%", dst_path.c_str());
 					_log->print("INFO", "%s - running post-script (%s)", _name, _postrun);
 					
-					if (axon::execmd(_postrun.c_str(), _name.c_str()))
+					if (axon::helper::execmd(_postrun.c_str(), _name.c_str()))
 					{
 						_log->print("DEBUG", "%s - successfully completed running post-script", _name);
 					}
@@ -675,16 +683,16 @@ void node::print(int width)
 	std::cout<<padding.substr(0, width+1)<<"└─         trigger time ── "<<_trigger<<std::endl<<std::endl;;
 }
 
-std::string node::pop()
+struct dlobj node::pop()
 {
 	std::lock_guard<std::mutex> lock(_safety);
 
 	if (_pipe.size() <= 0)
-		return "";
+		return {0,0,""};
 
-	std::string retval = _pipe.front();
+	struct dlobj e = _pipe.front();
 	_pipe.pop();
-	return retval;
+	return e;
 }
 
 std::string node::_protoname(int i)
