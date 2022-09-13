@@ -45,9 +45,15 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 
-# pkg_check_modules(RDKAFKA REQUIRED rdkafka)
-# include_directories (${RDKAFKA_INCLUDE_DIRS})
-# link_directories (${RDKAFKA_LIBRARY_DIRS})
+## application home dir
+execute_process(
+    COMMAND bash "-c" "cat /etc/passwd | grep hyperion | cut -d ':' -f6"
+    OUTPUT_VARIABLE HYPERION_HOME_PATH
+)
+string(REGEX REPLACE "\n$" "" HYPERION_HOME_PATH "${HYPERION_HOME_PATH}")
+if (HYPERION_HOME_PATH)
+    message(STATUS "Application home folder: ${HYPERION_HOME_PATH}")
+endif()
 
 ## systemd unit file path
 pkg_check_modules(SYSTEMD "systemd")
@@ -62,16 +68,16 @@ endif()
 if (SYSTEMD_FOUND)
 	set(WITH_SYSTEMD "ON")
 	message(STATUS "systemd services install dir: ${SYSTEMD_SERVICES_INSTALL_DIR}")
-	# configure_file(extras/hyperion.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/extras/hyperion.service)
-	# install (
-	#	 FILES ${CMAKE_CURRENT_BINARY_DIR}/extras/hyperion.service 
-	#	 DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
-	# )
+	configure_file(hyperion/extras/hyperion.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/hyperion/extras/hyperion.service)
+	install (
+		 FILES ${CMAKE_CURRENT_BINARY_DIR}/hyperion/extras/hyperion.service 
+		 DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
+	)
 else()
 	set(WITH_SYSTEMD "OFF")
 endif (SYSTEMD_FOUND)
 
-# Crypt
+#Crypt
 find_package(Crypt REQUIRED)
 
 if (CRYPT_FOUND)
@@ -81,21 +87,24 @@ else (NOT CRYPT_FOUND)
 	message(FATAL_ERROR "crypt library not found!")
 endif ()
 
-# SSH2
-option(CMAKE_USE_LIBSSH2 "Use libSSH2" ON)
-mark_as_advanced(CMAKE_USE_LIBSSH2)
-set(USE_LIBSSH2 OFF)
-set(HAVE_LIBSSH2 OFF)
-set(HAVE_LIBSSH2_H OFF)
-
 # OpenSSL
-find_package (OpenSSL REQUIRED)
+# find_package (OpenSSL REQUIRED)
 
-if (OPENSSL_FOUND)
-	list(APPEND INCLUDE_DIRS ${OPENSSL_INCLUDE_DIRS})
-	list(APPEND LIBRARIES ${OPENSSL_LIBRARIES})
-else (NOT OPENSSL_FOUND)
-	message(FATAL_ERROR "OpenSSL Library missing!")
+# if (OPENSSL_FOUND)
+# 	list(APPEND INCLUDE_DIRS ${OPENSSL_INCLUDE_DIRS})
+# 	list(APPEND LIBRARIES ${OPENSSL_LIBRARIES})
+# else (NOT OPENSSL_FOUND)
+# 	message(FATAL_ERROR "OpenSSL Library missing!")
+# endif ()
+
+# GSSAPI
+find_package (GSSAPI REQUIRED)
+
+if (GSSAPI_FOUND)
+	list(APPEND INCLUDE_DIRS ${GSSAPI_INCLUDE_DIR})
+	list(APPEND LIBRARIES ${GSSAPI_LIBRARIES})
+else (NOT GSSAPI_FOUND)
+	message(FATAL_ERROR "GSSAPI Library missing!")
 endif ()
 
 # CURL
@@ -104,6 +113,7 @@ find_package (CURL REQUIRED)
 if (CURL_FOUND)
 	list(APPEND INCLUDE_DIRS ${CURL_INCLUDE_DIRS})
 	list(APPEND LIBRARIES ${CURL_LIBRARIES})
+	MESSAGE(STATUS "Found CURL at ${CURL_LIBRARIES}")
 else (NOT CURL_FOUND)
 	message(FATAL_ERROR "CURL library missing!")
 endif ()
@@ -114,8 +124,9 @@ find_package (BZip2 REQUIRED)
 if (BZIP2_FOUND)
 	list(APPEND INCLUDE_DIRS ${BZIP2_INCLUDE_DIRS})
 	list(APPEND LIBRARIES ${BZIP2_LIBRARIES})
+	MESSAGE(STATUS "Found BZip2 at ${BZIP2_LIBRARIES}")
 else (NOT BZIP2_FOUND)
-	message(FATAL_ERROR "BZIP2 Library missing!")
+	message(FATAL_ERROR "BZip2 library missing!")
 endif ()
 
 # Zstd
@@ -124,6 +135,7 @@ find_package (ZSTD REQUIRED)
 if (ZSTD_FOUND)
 	list(APPEND INCLUDE_DIRS ${ZSTD_INCLUDE_DIRS})
 	list(APPEND LIBRARIES ${ZSTD_LIBRARIES})
+	MESSAGE(STATUS "Found ZStandard at ${ZSTD_LIBRARIES}")
 else (NOT ZSTD_FOUND)
 	message(FATAL_ERROR "ZStandard Library missing!")
 endif ()
@@ -140,6 +152,15 @@ if (Boost_FOUND)
 	list(APPEND LIBRARIES ${Boost_LIBRARIES})
 else (NOT Boost_FOUND)
 	message(FATAL_ERROR "Boost RegEx library not found!")
+endif ()
+
+# Oracle
+find_package(ORACLE REQUIRED)
+if (ORACLE_FOUND)
+	list(APPEND INCLUDE_DIRS ${ORACLE_INCLUDE_DIR})
+	list(APPEND LIBRARIES ${ORACLE_LIBRARY})
+else (NOT ORACLE_FOUND)
+		message(FATAL_ERROR "Oracle library not found!")
 endif ()
 
 # SQLite3
@@ -160,42 +181,6 @@ if (LIBSSH2_FOUND)
 else (NOT LIBSSH2_FOUND)
 	message(FATAL_ERROR "SSH2 library not found!")
 endif ()
-# if(CMAKE_USE_LIBSSH2)
-
-#	 # find_package(LibSSH2)
-#	 pkg_check_modules(LIBSSH2 REQUIRED libssh2)
-#	 message(STATUS "LIBSSH2_PKG_INCLUDE_DIRS = ${LIBSSH2_PKG_INCLUDE_DIRS}")
-
-#	 if(LIBSSH2_FOUND)
-#		 list(APPEND CURL_LIBS ${LIBSSH2_LIBRARY})
-#		 set(CMAKE_REQUIRED_LIBRARIES ${LIBSSH2_LIBRARY})
-#		 list(APPEND CMAKE_REQUIRED_INCLUDES "${LIBSSH2_INCLUDE_DIR}")
-#		 include_directories("${LIBSSH2_INCLUDE_DIR}")
-
-#		 list(APPEND INCLUDE_DIRS ${LIBSSH2_INCLUDE_DIR})
-#		 list(APPEND LIBRARIES ${LIBSSH2_LIBRARY})
-
-#		 set(HAVE_LIBSSH2 ON)
-#		 set(USE_LIBSSH2 ON)
-
-#		 # find_package has already found the headers
-#		 set(HAVE_LIBSSH2_H ON)
-#		 set(CURL_INCLUDES ${CURL_INCLUDES} "${LIBSSH2_INCLUDE_DIR}/libssh2.h")
-#		 set(CURL_TEST_DEFINES "${CURL_TEST_DEFINES} -DHAVE_LIBSSH2_H")
-
-#		 # now check for specific libssh2 symbols as they were added in different versions
-#		 set(CMAKE_EXTRA_INCLUDE_FILES "libssh2.h")
-#		 check_function_exists(libssh2_version		   HAVE_LIBSSH2_VERSION)
-#		 #check_function_exists(libssh2_init			  HAVE_LIBSSH2_INIT)
-#		 #check_function_exists(libssh2_exit			  HAVE_LIBSSH2_EXIT)
-#		 #check_function_exists(libssh2_scp_send64		HAVE_LIBSSH2_SCP_SEND64)
-#		 #check_function_exists(libssh2_session_handshake HAVE_LIBSSH2_SESSION_HANDSHAKE)
-#		 #set(CMAKE_EXTRA_INCLUDE_FILES "")
-#		 #unset(CMAKE_REQUIRED_LIBRARIES)
-#	 else (NOT LIBSSH2_FOUND)
-#		 message(FATAL_ERROR "LIBSSH2 Library missing!")
-#	 endif()
-# endif()
 
 # Config++
 find_package(Config++ REQUIRED)
@@ -270,15 +255,33 @@ else (NOT SERDES_FOUND)
 	message(FATAL_ERROR "SERDES library not found!")
 endif ()
 
-# Oracle
-find_package(ORACLE REQUIRED)
-if (ORACLE_FOUND)
-	list(APPEND INCLUDE_DIRS ${ORACLE_INCLUDE_DIR})
-	list(APPEND LIBRARIES ${ORACLE_LIBRARY})
-else (NOT ORACLE_FOUND)
-		message(FATAL_ERROR "Oracle library not found!")
-endif ()
+# Kerberos 5
+find_package(KRB5 REQUIRED gssapi)
+if (KRB5_FOUND)
+    list(APPEND INCLUDE_DIRS ${KRB5_INCLUDE_DIRS})
+    list(APPEND LIBRARIES ${KRB5_LIBRARIES})
+else (NOT KRB5_FOUND)
+	message(FATAL_ERROR "Kerberos 5 library not found!")
+endif()
+
+# Java Native Interface
+find_package(JNI REQUIRED)
+if (JNI_FOUND)
+    list(APPEND INCLUDE_DIRS ${JAVA_INCLUDE_PATH})
+    list(APPEND LIBRARIES ${JAVA_JVM_LIBRARY})
+endif()
+
+# HDFS
+find_package(HDFS REQUIRED)
+if (HDFS_FOUND)
+    list(APPEND INCLUDE_DIRS ${HDFS_INCLUDE_DIR})
+    list(APPEND LIBRARIES ${HDFS_SHARED_LIB})
+else (NOT KRB5_FOUND)
+	message(FATAL_ERROR "LibHDFS Not Found!")
+endif()
+
+##############################################################################
+##############################################################################
 
 add_subdirectory(axon)
-# add_subdirectory(empyreal)
 add_subdirectory(hyperion)

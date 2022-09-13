@@ -12,10 +12,14 @@
 #include <axon/log.h>
 #include <axon/database.h>
 #include <axon/oracle.h>
+#include <axon/util.h>
 
 #include <node.h>
 #include <cluster.h>
 #include <sendmail.h>
+
+static std::string _base;
+static std::string _log_path;
 
 axon::log logger;
 axon::config cfg;
@@ -32,7 +36,7 @@ void sigman(int, siginfo_t*, void*);
 int install_signal_manager();
 
 bool create_ramdisk(size_t mb, std::string location)
-{
+{return true; /// <--------------------------- remove this
 	uid_t ruid, euid, suid;
 
 	if (mb > 16384)
@@ -118,15 +122,29 @@ bool setup()
 
 	uid = pw->pw_uid;
 
+	s = cfg.get("base");
+	if (!axon::helper::makedir(s))
+	{
+		logger.print("FATAL", "cannot access or create base directory");
+		return false;
+	}
+	_base = s;
+
 	cfg.open("log");
 	s = cfg.get("location");
-	logger[AXON_LOG_PATH] = s;
+	_log_path = (s[0]=='/')?s:_base+"/"+s;
+	if (!axon::helper::makedir(_log_path.c_str()))
+	{
+		logger.print("FATAL", "cannot access or create log directory");
+		return false;
+	}
+	logger[AXON_LOG_PATH] = _log_path;
 	s = cfg.get("file");
 	logger[AXON_LOG_FILENAME] = s;
 	logger.open();
 	cfg.close();
 
-	cfg.open("workarea");
+	cfg.open("ramdisk");
 	if (cfg.get("enabled"))
 	{
 		x = cfg.get("size");
@@ -153,6 +171,14 @@ bool setup()
 	overlord.set(dbc);
 
 	cfg.open("nodes");
+	// s = cfg.get("path");
+	// std::string workpath = (s[0]=='/')?s:_base+"/"+s;
+	// if (!axon::helper::makedir(workpath.c_str()))
+	// {
+	// 	logger.print("FATAL", "cannot access or create node base directory");
+	// 	return false;
+	// }
+	// overlord.set(CLUSTER_CFG_WORKPATH, workpath);
 	overlord.load(cfg);
 	cfg.close();
 #ifdef DEBUG

@@ -30,266 +30,330 @@ node::~node()
 
 std::string node::operator[](char i)
 {
-	if (i == NODE_CFG_NAME)
-		return _name;
-	else if (i == NODE_CFG_SHORTDESC)
-		return _shortdesc;
-	else if (i == NODE_CFG_LONGDESC)
-		return _longdesc;
-	else if (i == NODE_CFG_SRC_IPADDRESS)
-		return _src_ipaddress;
-	else if (i == NODE_CFG_SRC_USERNAME)
-		return _src_username;
-	else if (i == NODE_CFG_SRC_PASSWORD)
-		return _src_password;
-	else if (i == NODE_CFG_SRC_DOMAIN)
-		return _src_domain;
-	else if (i == NODE_CFG_DST_IPADDRESS)
-		return _dst_ipaddress;
-	else if (i == NODE_CFG_DST_USERNAME)
-		return _dst_username;
-	else if (i == NODE_CFG_DST_PASSWORD)
-		return _dst_password;
-	else if (i == NODE_CFG_DST_DOMAIN)
-		return _dst_domain;
-	else if (i == NODE_CFG_SRC_PATH)
-		return _src_path[0];
-	else if (i == NODE_CFG_DST_PATH)
-		return _dst_path[0];
-	else if (i == NODE_CFG_FILEMASK)
-		return _filemask;
-	else if (i == NODE_CFG_IGNORE)
-		return _ignore;
-	else if (i == NODE_CFG_REMMASK)
-		return _remmask;
-	else if (i == NODE_CFG_TRANSFORM)
-		return _transform;
-	else if (i == NODE_CFG_EXEC)
-		return _exec;
-	else if (i == NODE_CFG_PRERUN)
-		return _prerun;
-	else if (i == NODE_CFG_POSTRUN)
-		return _postrun;
-	else if (i == NODE_CFG_BUFFER)
-		return _buffer;
+	switch (i)
+	{
+		case NODE_CFG_NAME:
+			return _name;
+		case NODE_CFG_PATH:
+			return _path;
+		case NODE_CFG_SHORTDESC:
+			return _shortdesc;
+		case NODE_CFG_LONGDESC:
+			return _longdesc;
+		case NODE_CFG_SRC_IPADDRESS:
+			return _src_ipaddress;
+		case NODE_CFG_SRC_USERNAME:
+			return _src_username;
+		case NODE_CFG_SRC_PASSWORD:
+			return _src_password;
+		case NODE_CFG_SRC_DOMAIN:
+			return _src_domain;
+		case NODE_CFG_DST_IPADDRESS:
+			return _dst_ipaddress;
+		case NODE_CFG_DST_USERNAME:
+			return _dst_username;
+		case NODE_CFG_DST_PASSWORD:
+			return _dst_password;
+		case NODE_CFG_DST_DOMAIN:
+			return _dst_domain;
+		case NODE_CFG_SRC_PATH:
+			return _src_path[0];
+		case NODE_CFG_DST_PATH:
+			return _dst_path[0];
+		case NODE_CFG_FILEMASK:
+			return _filemask;
+		case NODE_CFG_IGNORE:
+			return _ignore;
+		case NODE_CFG_REMMASK:
+			return _remmask;
+		case NODE_CFG_TRANSFORM:
+			return _transform;
+		case NODE_CFG_EXEC:
+			return _exec;
+		case NODE_CFG_PRERUN:
+			return _prerun;
+		case NODE_CFG_POSTRUN:
+			return _postrun;
+		case NODE_CFG_BUFFER:
+			return _buffer;
+	}
 
 	return 0;
 }
 
 int node::operator[] (int i)
 {
-	if (i == NODE_CFG_CONFTYPE)
-		return _conftype;
-	else if (i == NODE_CFG_STATUS)
-		return _status;
-	else if (i == NODE_CFG_SRC_PROTOCOL)
-		return _src_protocol;
-	else if (i == NODE_CFG_SRC_MODE)
-		return _src_mode;
-	else if (i == NODE_CFG_SRC_AUTH)
-		return _src_auth;
-	else if (i == NODE_CFG_DST_PROTOCOL)
-		return _dst_protocol;
-	else if (i == NODE_CFG_DST_MODE)
-		return _dst_mode;
-	else if (i == NODE_CFG_DST_AUTH)
-		return _dst_auth;
-	else if (i == NODE_CFG_COMPRESS)
-		return _compress;
-	else if (i == NODE_CFG_LOOKBACK)
-		return _lookback;
-	else if (i == NODE_CFG_SLEEPTIME)
-		return _sleeptime;
-	else if (i == NODE_CFG_TRIM)
-		return _trim;
-	else if (i == NODE_CFG_TRIGGER)
-		return _trigger;
-	else if (i == NODE_CFG_PARALLEL)
-		return _parallel;
-	else if (i == NODE_CFG_PID)
-		return _pid;
-	else if (i == NODE_CFG_PPID)
-		return _ppid;
+	switch (i)
+	{
+		case NODE_CFG_CONFTYPE:
+			return _conftype;
+		case NODE_CFG_STATUS:
+			return _status;
+		case NODE_CFG_SRC_PROTOCOL:
+			return _src_protocol;
+		case NODE_CFG_SRC_MODE:
+			return _src_mode;
+		case NODE_CFG_SRC_AUTH:
+			return _src_auth;
+		case NODE_CFG_DST_PROTOCOL:
+			return _dst_protocol;
+		case NODE_CFG_DST_MODE:
+			return _dst_mode;
+		case NODE_CFG_DST_AUTH:
+			return _dst_auth;
+		case NODE_CFG_COMPRESS:
+			return _compress;
+		case NODE_CFG_LOOKBACK:
+			return _lookback;
+		case NODE_CFG_SLEEPTIME:
+			return _sleeptime;
+		case NODE_CFG_TRIM:
+			return _trim;
+		case NODE_CFG_TRIGGER:
+			return _trigger;
+		case NODE_CFG_PARALLEL:
+			return _parallel;
+		case NODE_CFG_PID:
+			return _pid;
+		case NODE_CFG_PPID:
+			return _ppid;
+	}
 
 	return -1;
 }
 
 std::string node::get(char i)
 {
-	if (i == NODE_CFG_NAME)
-		return _name;
-	else if (i == NODE_CFG_SHORTDESC)
-		return _shortdesc;
-	else if (i == NODE_CFG_LONGDESC)
-		return _longdesc;
-	else if (i == NODE_CFG_SRC_IPADDRESS)
-		return _src_ipaddress;
-	else if (i == NODE_CFG_SRC_USERNAME)
-		return _src_username;
-	else if (i == NODE_CFG_SRC_PASSWORD)
-		return _src_password;
-	else if (i == NODE_CFG_SRC_PRIVATE_KEY)
-		return _src_privatekey;
-	else if (i == NODE_CFG_SRC_DOMAIN)
-		return _src_domain;
-	else if (i == NODE_CFG_DST_IPADDRESS)
-		return _dst_ipaddress;
-	else if (i == NODE_CFG_DST_USERNAME)
-		return _dst_username;
-	else if (i == NODE_CFG_DST_PASSWORD)
-		return _dst_password;
-	else if (i == NODE_CFG_DST_PRIVATE_KEY)
-		return _dst_privatekey;
-	else if (i == NODE_CFG_DST_DOMAIN)
-		return _dst_domain;
-	else if (i == NODE_CFG_SRC_PATH)
-		return _src_path[0];
-	else if (i == NODE_CFG_DST_PATH)
-		return _dst_path[0];
-	else if (i == NODE_CFG_FILEMASK)
-		return _filemask;
-	else if (i == NODE_CFG_IGNORE)
-		return _ignore;
-	else if (i == NODE_CFG_REMMASK)
-		return _remmask;
-	else if (i == NODE_CFG_TRANSFORM)
-		return _transform;
-	else if (i == NODE_CFG_EXEC)
-		return _exec;
-	else if (i == NODE_CFG_PRERUN)
-		return _prerun;
-	else if (i == NODE_CFG_POSTRUN)
-		return _postrun;
-	else if (i == NODE_CFG_BUFFER)
-		return _buffer;
+	switch (i)
+	{
+		case NODE_CFG_NAME:
+			return _name;
+		case NODE_CFG_PATH:
+			return _path;
+		case NODE_CFG_SHORTDESC:
+			return _shortdesc;
+		case NODE_CFG_LONGDESC:
+			return _longdesc;
+		case NODE_CFG_SRC_IPADDRESS:
+			return _src_ipaddress;
+		case NODE_CFG_SRC_USERNAME:
+			return _src_username;
+		case NODE_CFG_SRC_PASSWORD:
+			return _src_password;
+		case NODE_CFG_SRC_PRIVATE_KEY:
+			return _src_privatekey;
+		case NODE_CFG_SRC_DOMAIN:
+			return _src_domain;
+		case NODE_CFG_DST_IPADDRESS:
+			return _dst_ipaddress;
+		case NODE_CFG_DST_USERNAME:
+			return _dst_username;
+		case NODE_CFG_DST_PASSWORD:
+			return _dst_password;
+		case NODE_CFG_DST_PRIVATE_KEY:
+			return _dst_privatekey;
+		case NODE_CFG_DST_DOMAIN:
+			return _dst_domain;
+		case NODE_CFG_SRC_PATH:
+			return _src_path[0];
+		case NODE_CFG_DST_PATH:
+			return _dst_path[0];
+		case NODE_CFG_FILEMASK:
+			return _filemask;
+		case NODE_CFG_IGNORE:
+			return _ignore;
+		case NODE_CFG_REMMASK:
+			return _remmask;
+		case NODE_CFG_TRANSFORM:
+			return _transform;
+		case NODE_CFG_EXEC:
+			return _exec;
+		case NODE_CFG_PRERUN:
+			return _prerun;
+		case NODE_CFG_POSTRUN:
+			return _postrun;
+		case NODE_CFG_BUFFER:
+			return _buffer;
+	}
 
 	return 0;
 }
 
 int node::get(int i)
 {
-	if (i == NODE_CFG_CONFTYPE)
-		return _conftype;
-	else if (i == NODE_CFG_STATUS)
-		return _status;
-	else if (i == NODE_CFG_SRC_PROTOCOL)
-		return _src_protocol;
-	else if (i == NODE_CFG_SRC_MODE)
-		return _src_mode;
-	else if (i == NODE_CFG_SRC_AUTH)
-		return _src_auth;
-	else if (i == NODE_CFG_DST_PROTOCOL)
-		return _dst_protocol;
-	else if (i == NODE_CFG_DST_MODE)
-		return _dst_mode;
-	else if (i == NODE_CFG_DST_AUTH)
-		return _dst_auth;
-	else if (i == NODE_CFG_COMPRESS)
-		return _compress;
-	else if (i == NODE_CFG_LOOKBACK)
-		return _lookback;
-	else if (i == NODE_CFG_SLEEPTIME)
-		return _sleeptime;
-	else if (i == NODE_CFG_TRIM)
-		return _trim;
-	else if (i == NODE_CFG_TRIGGER)
-		return _trigger;
-	else if (i == NODE_CFG_PARALLEL)
-		return _parallel;
-	else if (i == NODE_CFG_PID)
-		return _pid;
-	else if (i == NODE_CFG_PPID)
-		return _ppid;
+	switch (i)
+	{
+		case NODE_CFG_CONFTYPE:
+			return _conftype;
+		case NODE_CFG_STATUS:
+			return _status;
+		case NODE_CFG_SRC_PROTOCOL:
+			return _src_protocol;
+		case NODE_CFG_SRC_MODE:
+			return _src_mode;
+		case NODE_CFG_SRC_AUTH:
+			return _src_auth;
+		case NODE_CFG_DST_PROTOCOL:
+			return _dst_protocol;
+		case NODE_CFG_DST_MODE:
+			return _dst_mode;
+		case NODE_CFG_DST_AUTH:
+			return _dst_auth;
+		case NODE_CFG_COMPRESS:
+			return _compress;
+		case NODE_CFG_LOOKBACK:
+			return _lookback;
+		case NODE_CFG_SLEEPTIME:
+			return _sleeptime;
+		case NODE_CFG_TRIM:
+			return _trim;
+		case NODE_CFG_TRIGGER:
+			return _trigger;
+		case NODE_CFG_PARALLEL:
+			return _parallel;
+		case NODE_CFG_PID:
+			return _pid;
+		case NODE_CFG_PPID:
+			return _ppid;
+	}
 
 	return -1;
 }
 
 bool node::set(char i, std::string value)
 {
-	if (i == NODE_CFG_NAME)
-		_name = value;
-	else if (i == NODE_CFG_SHORTDESC)
-		_shortdesc = value;
-	else if (i == NODE_CFG_LONGDESC)
-		_longdesc = value;
-	else if (i == NODE_CFG_SRC_IPADDRESS)
-		_src_ipaddress = value;
-	else if (i == NODE_CFG_SRC_USERNAME)
-		_src_username = value;
-	else if (i == NODE_CFG_SRC_PASSWORD)
-		_src_password = value;
-	else if (i == NODE_CFG_SRC_PRIVATE_KEY)
-		_src_privatekey = value;
-	else if (i == NODE_CFG_SRC_DOMAIN)
-		_src_domain = value;
-	else if (i == NODE_CFG_DST_IPADDRESS)
-		_dst_ipaddress = value;
-	else if (i == NODE_CFG_DST_USERNAME)
-		_dst_username = value;
-	else if (i == NODE_CFG_DST_PASSWORD)
-		_dst_password = value;
-	else if (i == NODE_CFG_DST_PRIVATE_KEY)
-		_dst_privatekey = value;
-	else if (i == NODE_CFG_DST_DOMAIN)
-		_dst_domain = value;
-	else if (i == NODE_CFG_SRC_PATH)
-		_src_path[0] = value;
-	else if (i == NODE_CFG_DST_PATH)
-		_dst_path[0] = value;
-	else if (i == NODE_CFG_FILEMASK)
-		_filemask = value;
-	else if (i == NODE_CFG_IGNORE)
-		_ignore = value;
-	else if (i == NODE_CFG_REMMASK)
-		_remmask = value;
-	else if (i == NODE_CFG_TRANSFORM)
-		_transform = value;
-	else if (i == NODE_CFG_EXEC)
-		_exec = value;
-	else if (i == NODE_CFG_PRERUN)
-		_prerun = value;
-	else if (i == NODE_CFG_POSTRUN)
-		_postrun = value;
-	else if (i == NODE_CFG_BUFFER)
-		_buffer = value;
+	switch (i)
+	{
+		case NODE_CFG_NAME:
+			_name = value;
+			break;
+		case NODE_CFG_PATH:
+			_path = value;
+			break;
+		case NODE_CFG_SHORTDESC:
+			_shortdesc = value;
+			break;
+		case NODE_CFG_LONGDESC:
+			_longdesc = value;
+			break;
+		case NODE_CFG_SRC_IPADDRESS:
+			_src_ipaddress = value;
+			break;
+		case NODE_CFG_SRC_USERNAME:
+			_src_username = value;
+			break;
+		case NODE_CFG_SRC_PASSWORD:
+			_src_password = value;
+			break;
+		case NODE_CFG_SRC_PRIVATE_KEY:
+			_src_privatekey = value;
+			break;
+		case NODE_CFG_SRC_DOMAIN:
+			_src_domain = value;
+			break;
+		case NODE_CFG_DST_IPADDRESS:
+			_dst_ipaddress = value;
+			break;
+		case NODE_CFG_DST_USERNAME:
+			_dst_username = value;
+			break;
+		case NODE_CFG_DST_PASSWORD:
+			_dst_password = value;
+			break;
+		case NODE_CFG_DST_PRIVATE_KEY:
+			_dst_privatekey = value;
+			break;
+		case NODE_CFG_DST_DOMAIN:
+			_dst_domain = value;
+			break;
+		case NODE_CFG_SRC_PATH:
+			_src_path[0] = value;
+			break;
+		case NODE_CFG_DST_PATH:
+			_dst_path[0] = value;
+			break;
+		case NODE_CFG_FILEMASK:
+			_filemask = value;
+			break;
+		case NODE_CFG_IGNORE:
+			_ignore = value;
+			break;
+		case NODE_CFG_REMMASK:
+			_remmask = value;
+			break;
+		case NODE_CFG_TRANSFORM:
+			_transform = value;
+			break;
+		case NODE_CFG_EXEC:
+			_exec = value;
+			break;
+		case NODE_CFG_PRERUN:
+			_prerun = value;
+			break;
+		case NODE_CFG_POSTRUN:
+			_postrun = value;
+			break;
+		case NODE_CFG_BUFFER:
+			_buffer = value;
+			break;
+	}
 
 	return true;
 }
 
 bool node::set(int i, int value)
 {
-	if (i == NODE_CFG_CONFTYPE)
-		_conftype = value;
-	else if (i == NODE_CFG_STATUS)
-		_status = value;
-	else if (i == NODE_CFG_SRC_PROTOCOL)
-		_src_protocol = value;
-	else if (i == NODE_CFG_SRC_MODE)
-		_src_mode = value;
-	else if (i == NODE_CFG_SRC_AUTH)
-		_src_auth = value;
-	else if (i == NODE_CFG_DST_PROTOCOL)
-		_dst_protocol = value;
-	else if (i == NODE_CFG_DST_MODE)
-		_dst_mode = value;
-	else if (i == NODE_CFG_DST_AUTH)
-		_dst_auth = value;
-	else if (i == NODE_CFG_COMPRESS)
-		_compress = value;
-	else if (i == NODE_CFG_LOOKBACK)
-		_lookback = value;
-	else if (i == NODE_CFG_SLEEPTIME)
-		_sleeptime = value;
-	else if (i == NODE_CFG_TRIM)
-		_trim = value;
-	else if (i == NODE_CFG_TRIGGER)
-		_trigger = value;
-	else if (i == NODE_CFG_PARALLEL)
-		_parallel = value;
-	else if (i == NODE_CFG_PID)
-		_pid = value;
-	else if (i == NODE_CFG_PPID)
-		_ppid = value;
+	switch (i)
+	{
+		case NODE_CFG_CONFTYPE:
+			_conftype = value;
+			break;
+		case NODE_CFG_STATUS:
+			_status = value;
+			break;
+		case NODE_CFG_SRC_PROTOCOL:
+			_src_protocol = value;
+			break;
+		case NODE_CFG_SRC_MODE:
+			_src_mode = value;
+			break;
+		case NODE_CFG_SRC_AUTH:
+			_src_auth = value;
+			break;
+		case NODE_CFG_DST_PROTOCOL:
+			_dst_protocol = value;
+			break;
+		case NODE_CFG_DST_MODE:
+			_dst_mode = value;
+			break;
+		case NODE_CFG_DST_AUTH:
+			_dst_auth = value;
+			break;
+		case NODE_CFG_COMPRESS:
+			_compress = value;
+			break;
+		case NODE_CFG_LOOKBACK:
+			_lookback = value;
+			break;
+		case NODE_CFG_SLEEPTIME:
+			_sleeptime = value;
+			break;
+		case NODE_CFG_TRIM:
+			_trim = value;
+			break;
+		case NODE_CFG_TRIGGER:
+			_trigger = value;
+			break;
+		case NODE_CFG_PARALLEL:
+			_parallel = value;
+			break;
+		case NODE_CFG_PID:
+			_pid = value;
+			break;
+		case NODE_CFG_PPID:
+			_ppid = value;
+			break;
+	}
 
 	return true;
 }
@@ -327,6 +391,7 @@ int node::reset()
 	_ppid = -1;
 
 	_name = "";
+	_path = "";
 	_shortdesc = "";
 	_longdesc = "";
 	_src_ipaddress = "";

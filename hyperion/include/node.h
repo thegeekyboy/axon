@@ -14,46 +14,50 @@
 
 #include <axon/util.h>
 
-#define NODE_CFG_NAME            'Z'
+#define NODE_CFG_NAME            'A'
+#define NODE_CFG_PATH            'B'
 
-#define NODE_CFG_SHORTDESC       'A'
-#define NODE_CFG_LONGDESC        'B'
+#define NODE_CFG_SHORTDESC       'C'
+#define NODE_CFG_LONGDESC        'D'
 
-#define NODE_CFG_SRC_IPADDRESS   'C'
-#define NODE_CFG_SRC_USERNAME    'D'
-#define NODE_CFG_SRC_PASSWORD    'E'
-#define NODE_CFG_SRC_DOMAIN      'F'
-#define NODE_CFG_SRC_PRIVATE_KEY 'G'
-#define NODE_CFG_SRC_PATH        'H'
-#define NODE_CFG_SRC_BUCKET      'I'
+#define NODE_CFG_SRC_IPADDRESS   'E'
+#define NODE_CFG_SRC_USERNAME    'F'
+#define NODE_CFG_SRC_PASSWORD    'G'
+#define NODE_CFG_SRC_DOMAIN      'H'
+#define NODE_CFG_SRC_PRIVATE_KEY 'I'
+#define NODE_CFG_SRC_PATH        'J'
+#define NODE_CFG_SRC_BUCKET      'K'
 
-#define NODE_CFG_DST_IPADDRESS   'J'
-#define NODE_CFG_DST_USERNAME    'K'
-#define NODE_CFG_DST_PASSWORD    'L'
-#define NODE_CFG_DST_DOMAIN      'M'
-#define NODE_CFG_DST_PRIVATE_KEY 'N'
-#define NODE_CFG_DST_PATH        'O'
-#define NODE_CFG_DST_BUCKET      'P'
+#define NODE_CFG_DST_IPADDRESS   'L'
+#define NODE_CFG_DST_USERNAME    'M'
+#define NODE_CFG_DST_PASSWORD    'N'
+#define NODE_CFG_DST_DOMAIN      'O'
+#define NODE_CFG_DST_PRIVATE_KEY 'P'
+#define NODE_CFG_DST_PATH        'Q'
+#define NODE_CFG_DST_BUCKET      'R'
 
-#define NODE_CFG_FILEMASK        'Q'
-#define NODE_CFG_IGNORE          'R'
-#define NODE_CFG_REMMASK         'S'
-#define NODE_CFG_TRANSFORM       'T'
-#define NODE_CFG_EXEC            'U'
-#define NODE_CFG_PRERUN          'V'
-#define NODE_CFG_POSTRUN         'W'
-#define NODE_CFG_BUFFER          'X'
+#define NODE_CFG_FILEMASK        'S'
+#define NODE_CFG_IGNORE          'T'
+#define NODE_CFG_REMMASK         'U'
+#define NODE_CFG_TRANSFORM       'V'
+#define NODE_CFG_EXEC            'W'
+#define NODE_CFG_PRERUN          'X'
+#define NODE_CFG_POSTRUN         'Y'
+#define NODE_CFG_BUFFER          'Z'
 
 #define NODE_CFG_STATUS           0x00
 #define NODE_CFG_CONFTYPE         0x01
+
 #define NODE_CFG_SRC_PROTOCOL     0x02
 #define NODE_CFG_SRC_MODE         0x03
 #define NODE_CFG_SRC_AUTH         0x04
 #define NODE_CFG_SRC_PORT         0x05
+
 #define NODE_CFG_DST_PROTOCOL     0x06
 #define NODE_CFG_DST_MODE         0x07
 #define NODE_CFG_DST_AUTH         0x08
 #define NODE_CFG_DST_PORT         0x09
+
 #define NODE_CFG_COMPRESS         0x0A
 #define NODE_CFG_LOOKBACK         0x0B
 #define NODE_CFG_SLEEPTIME        0x0C
@@ -75,7 +79,7 @@ struct dlobj {
 
 class node {
 
-	std::string _name, _shortdesc, _longdesc, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _buffer;
+	std::string _name, _path, _shortdesc, _longdesc, _filemask, _ignore, _remmask, _transform, _exec, _prerun, _postrun, _buffer;
 	std::string _src_ipaddress, _src_username, _src_password, _src_domain, _src_privatekey, _src_path[5], _src_bucket;
 	std::string _dst_ipaddress, _dst_username, _dst_password, _dst_domain, _dst_privatekey, _dst_path[5], _dst_bucket;
 	

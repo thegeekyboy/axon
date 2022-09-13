@@ -2,6 +2,8 @@
 #include <aws/s3/S3Client.h>
 
 #include <axon.h>
+#include <axon/kerberos.h>
+
 #include <axon/connection.h>
 #include <axon/ssh.h>
 #include <axon/socket.h>
@@ -9,6 +11,7 @@
 #include <axon/file.h>
 #include <axon/s3.h>
 #include <axon/samba.h>
+#include <axon/hdfs.h>
 
 #include <main.h>
 #include <node.h>
@@ -91,6 +94,36 @@ drone::drone(node &n)
 			}
 			break;
 
+		case axon::protocol::HDFS:
+			{
+				std::shared_ptr<axon::transport::transfer::hdfs> p(new axon::transport::transfer::hdfs(n.get(NODE_CFG_SRC_IPADDRESS), n.get(NODE_CFG_SRC_USERNAME), n.get(NODE_CFG_SRC_PASSWORD)));
+
+				p->set(AXON_TRANSFER_HDFS_DOMAIN, n.get(NODE_CFG_SRC_DOMAIN));
+				// p->set(AXON_TRANSFER_HDFS_AUTH, AXON_TRANSFER_HDFS_KRB5); <- probably no need to implement this.
+
+				if (n.get(NODE_CFG_SRC_AUTH) == axon::authtypes::KERBEROS)
+				{
+					std::string cachefile = n.get(NODE_CFG_BUFFER) + "/" + n.get(NODE_CFG_NAME) + "_SRC_" + n.get(NODE_CFG_SRC_DOMAIN) + ".cache";
+					std::string principal = n.get(NODE_CFG_SRC_USERNAME) + "@" + n.get(NODE_CFG_SRC_DOMAIN);
+
+					axon::authentication::kerberos krb(n.get(NODE_CFG_SRC_PRIVATE_KEY), cachefile, n.get(NODE_CFG_SRC_DOMAIN), principal);
+					krb.init();
+
+					if (!krb.isCacheValid())
+					{
+						if (!krb.isValidKeytab())
+							std::cout<<"keytab does not contain desired entry!"<<std::endl;
+						else
+							krb.renew();
+					}
+					else
+						std::cout<<"cache is still valid for the given principal"<<std::endl;
+				}
+
+				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
 		default:
 			_log->print("ERROR", "%s - not a valid protocol selected %d, cannot continue!", n.get(NODE_CFG_NAME).c_str(), n.get(NODE_CFG_SRC_PROTOCOL));
 			break;
@@ -144,6 +177,36 @@ drone::drone(node &n)
 
 				std::vector<std::string> parts = axon::helper::split(n.get(NODE_CFG_DST_PATH), '/');
 				p->set(AXON_TRANSFER_SAMBA_SHARE, parts[0]);
+
+				_destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
+			}
+			break;
+
+		case axon::protocol::HDFS:
+			{
+				std::shared_ptr<axon::transport::transfer::hdfs> p(new axon::transport::transfer::hdfs(n.get(NODE_CFG_DST_IPADDRESS), n.get(NODE_CFG_DST_USERNAME), n.get(NODE_CFG_DST_PASSWORD)));
+
+				p->set(AXON_TRANSFER_HDFS_DOMAIN, n.get(NODE_CFG_DST_DOMAIN));
+				// p->set(AXON_TRANSFER_HDFS_AUTH, AXON_TRANSFER_HDFS_KRB5); <- probably no need to implement this.
+
+				if (n.get(NODE_CFG_DST_AUTH) == axon::authtypes::KERBEROS)
+				{
+					std::string cachefile = n.get(NODE_CFG_BUFFER) + "/" + n.get(NODE_CFG_NAME) + "_DST_" + n.get(NODE_CFG_DST_DOMAIN) + ".cache";
+					std::string principal = n.get(NODE_CFG_DST_USERNAME) + "@" + n.get(NODE_CFG_DST_DOMAIN);
+					
+					axon::authentication::kerberos krb(n.get(NODE_CFG_DST_PRIVATE_KEY), cachefile, n.get(NODE_CFG_DST_DOMAIN), principal);
+					krb.init();
+
+					if (!krb.isCacheValid())
+					{
+						if (!krb.isValidKeytab())
+							std::cout<<"keytab does not contain desired entry!"<<std::endl;
+						else
+							krb.renew();
+					}
+					else
+						std::cout<<"cache is still valid for the given principal"<<std::endl;
+				}
 
 				_destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
 			}

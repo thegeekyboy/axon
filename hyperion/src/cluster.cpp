@@ -46,8 +46,15 @@ void cluster::reset()
 
 bool cluster::set(char i, std::string value)
 {
-	if (i == CLUSTER_CFG_BUFFER)
-		_buffer = value;
+	switch (i)
+	{
+		case CLUSTER_CFG_BUFFER:
+			_buffer = value;
+			break;
+		case CLUSTER_CFG_WORKPATH:
+			_workpath = value;
+			break;
+	}
 
 	return true;
 }
@@ -75,6 +82,7 @@ void cluster::load(axon::config &cfg)
 
 		tnode->set(NODE_CFG_NAME, name);
 		tnode->set(NODE_CFG_BUFFER, _buffer);
+		tnode->set(NODE_CFG_PATH, _workpath);
 
 		cfg.open(cfg.name(i));
 
@@ -279,7 +287,7 @@ void cluster::load(axon::config &cfg)
 			cfg.get("auth", tint);
 			tnode->set(NODE_CFG_SRC_AUTH, tint);
 
-			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
+			if (!(tint >= 0 && tint <= 3) && (*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [auth] not acceptable");
 
 		} catch (axon::exception &e) {
@@ -337,12 +345,12 @@ void cluster::load(axon::config &cfg)
 		}
 
 		try {
-			cfg.get("privkey", stemp);
+			cfg.get("keyfile", stemp);
 			tnode->set(NODE_CFG_SRC_PRIVATE_KEY, stemp);
 		} catch (axon::exception &e) {
 			if ((*tnode)[NODE_CFG_SRC_PROTOCOL] == axon::protocol::SFTP && (*tnode)[NODE_CFG_SRC_AUTH] == 1)
 			{
-				_log->print("ERROR", "%s - mandatory parameter [source.privkey] missing; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - mandatory parameter [source.keyfile] missing; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 		}
@@ -389,7 +397,7 @@ void cluster::load(axon::config &cfg)
 			cfg.get("mode", tint);
 			tnode->set(NODE_CFG_DST_MODE, tint);
 
-			if (!(tint >= 0 && tint <= 1) && (*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
+			if (!(tint >= 0 && tint <= 3) && (*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "value for [conftype] not acceptable");
 
 		} catch (axon::exception &e) {
@@ -463,12 +471,12 @@ void cluster::load(axon::config &cfg)
 		}
 
 		try {
-			cfg.get("privkey", stemp);
+			cfg.get("keyfile", stemp);
 			tnode->set(NODE_CFG_DST_PRIVATE_KEY, stemp);
 		} catch (axon::exception &e) {
 			if ((*tnode)[NODE_CFG_DST_PROTOCOL] == axon::protocol::SFTP && (*tnode)[NODE_CFG_DST_AUTH] == 1)
 			{
-				_log->print("ERROR", "%s - mandatory parameter [destination.privkey] missing; disabling [%s]", name, name);
+				_log->print("ERROR", "%s - mandatory parameter [destination.keyfile] missing; disabling [%s]", name, name);
 				tnode->set(NODE_CFG_STATUS, 0);
 			}
 		}

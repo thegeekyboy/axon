@@ -4,49 +4,42 @@
 #include <string>
 #include <krb5/krb5.h>
 
-namespace axon {
+namespace axon
+{
+	namespace authentication
+	{
+		typedef unsigned char krb_t;
 
-	typedef unsigned char krb_t;
+		struct KRB {
+			static const krb_t KT = 1;
+			static const krb_t CC = 2;
+		};
 
-	struct KRB {
-		static const krb_t KT = 1;
-		static const krb_t CC = 2;
-	};
+		class kerberos {
 
-	class kerberos {
+			std::string _keytab_file, _cache_file, _realm, _principal;
 
-		std::string ktfile, ccfile, domain, username;
+			krb5_context _ctx;
+			krb5_keytab _keytab;
+			krb5_ccache _cache;
 
-		int nprinc;
-		char *principal_name;
-		
-		krb5_context ctx;
-		krb5_keytab keytab;
-		krb5_kt_cursor cursor;
-		krb5_keytab_entry entry;
-		krb5_ccache cache;
-		krb5_creds *creds;
+			std::string _errstr(long int);
 
-		krb5_principal *principal_list;
-		krb5_principal principal;
+		public:
+			kerberos() = delete;
+			kerberos(std::string, std::string, std::string, std::string);
+			~kerberos();
 
-	public:
-		kerberos() = delete;
-		kerberos(std::string, std::string, std::string);
-		~kerberos();
+			void print(const int, const int);
 
-		void eprint(const int, const int);
+			bool init();
+			std::string cachePrincipal();
+			bool isCacheValid();
+			bool isValidKeytab();
 
-		void reset();
-		bool init();
-
-		bool resolve(krb_t);
-		bool extract();
-		bool renew();
-		bool valid();
-		bool issue();
-
-	};
+			bool renew();
+		};
+	}
 }
 
 #endif //KERBEROS_H_

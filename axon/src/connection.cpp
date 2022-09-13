@@ -12,17 +12,16 @@ namespace axon
 			{
 				_connected = false;
 
-				const char* hostname_p = "\\b(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)"
-										"\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)"
-										"\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)"
-										"\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\\b";
+				const char* hostname_ip = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}";
+				const char* hostname_fqdn = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$";
 				
 				const char* username_p = "^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$";
 
-				boost::regex regex_ipaddr(hostname_p);
+				boost::regex regex_ipaddr(hostname_ip);
+				boost::regex regex_fqdn(hostname_fqdn);
 				boost::regex regex_username(username_p);
 
-				if (!boost::regex_match(hostname, regex_ipaddr))
+				if (!boost::regex_match(hostname, regex_ipaddr) && !boost::regex_match(hostname, regex_fqdn))
 				{
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname format");
 					return;

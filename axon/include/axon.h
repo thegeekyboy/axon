@@ -69,9 +69,9 @@ namespace axon
 		static const proto_t FTP = 2; // done
 		static const proto_t S3 = 3; // done
 		static const proto_t SAMBA = 4;
-		static const proto_t SCP = 5;
+		static const proto_t HDFS = 5;
 		static const proto_t AWS = 6;
-		static const proto_t HDFS = 7;
+		static const proto_t SCP = 7;
 		static const proto_t DATABASE = 8;
 		static const proto_t KAFKA = 9;
 	};
@@ -81,7 +81,7 @@ namespace axon
 		static const auth_t PASSWORD = 0;
 		static const auth_t PRIVATEKEY = 1;
 		static const auth_t KERBEROS = 2;
-		static const auth_t ADC = 3;
+		static const auth_t NTLM = 3;
 	};
 
 	struct transaction {

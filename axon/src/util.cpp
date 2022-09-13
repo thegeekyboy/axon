@@ -65,7 +65,7 @@ namespace axon
 			return std::make_tuple(parent, path.substr(found + 1));
 		}
 
-		int mkdir(const std::string& path, mode_t mode = 0700)
+		int _mkdir(const std::string& path, mode_t mode = 0700)
 		{
 			std::string parent, remainder;
 
@@ -80,7 +80,7 @@ namespace axon
 			std::cout<<">> parent: "<<parent<<", remainder: "<<remainder<<std::endl;
 			std::cin.get();
 
-			return mkdir(parent, mode);
+			return _mkdir(parent, mode);
 		}
 
 		std::vector<std::string> split(const std::string& str, const char delim)
@@ -129,7 +129,40 @@ namespace axon
 			return password;
 		}
 
-		bool exists(const std::string &path)
+		bool iswritable(const std::string &path)
+		{
+			if (isdir(path))
+			{
+				if (access(path.c_str(), W_OK) == 0)
+					return true;
+				else
+					return false;
+			}
+			else
+			{
+				if (exists(path))
+				{
+					if (access(path.c_str(), W_OK) == 0)
+						return true;
+					else
+						return false;
+				}
+				else
+				{
+					std::string folder, file;
+					std::tie (folder, file) = splitpath(path);
+
+					if (access(folder.c_str(), W_OK) == 0)
+						return true;
+					else
+						return false;
+				}
+			}
+
+			return false;
+		}
+
+		bool isdir(const std::string &path)
 		{
 			// for folder
 			struct stat info;
@@ -140,6 +173,16 @@ namespace axon
 				return true;
 			else
 				return false;
+		}
+
+		bool exists(const std::string &path)
+		{
+			struct stat info;
+
+			if(stat(path.c_str(), &info ) != 0)
+				return false;
+
+			return true;
 		}
 
 		bool exists(const std::string& filename, const std::string& path)
@@ -162,6 +205,37 @@ namespace axon
 					return false;
 			}
 
+			return true;
+		}
+
+		bool makedir(const char *dir)
+		{
+			char tmp[PATH_MAX];
+			char *p = NULL;
+			size_t len;
+
+			if ((len = snprintf(tmp, sizeof(tmp), "%s", dir)) >= sizeof(tmp))
+				return false;
+
+			if (tmp[len - 1] == '/')
+				tmp[len - 1] = 0;
+
+			for (p = tmp + 1; *p; p++)
+			{
+				if (*p == '/')
+				{
+					*p = 0;
+					if (mkdir(tmp, S_IRWXU) == -1)
+						if (errno != EEXIST)
+							return false;
+					*p = '/';
+				}
+			}
+			
+			if (mkdir(tmp, S_IRWXU) == -1)
+				if (errno != EEXIST)
+					return false;
+			
 			return true;
 		}
 

@@ -67,7 +67,7 @@ namespace axon
 
 				smb2_set_security_mode(_smb2, SMB2_NEGOTIATE_SIGNING_ENABLED);
 				smb2_set_authentication(_smb2, 1);
-
+				
 				smb2_set_domain(_smb2, _domain.c_str());
 				smb2_set_user(_smb2, _username.c_str());
 				smb2_set_password(_smb2, _password.c_str());

@@ -3,14 +3,15 @@
 
 #define MAX_NODE 32
 
-#define CLUSTER_CFG_BUFFER 'A'
+#define CLUSTER_CFG_BUFFER    'A'
+#define CLUSTER_CFG_WORKPATH  'B'
 
 class cluster {
 
 	bool _canrun, _running;
 
 	std::vector<node *> _node;
-	std::string _buffer;
+	std::string _buffer, _workpath;
 
 	axon::log *_log, dummy;
 
