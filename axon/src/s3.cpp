@@ -1,4 +1,6 @@
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filtering_stream.hpp>

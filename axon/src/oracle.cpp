@@ -370,7 +370,7 @@ namespace axon {
 
 			// if (!_running)
 			{
-				std::lock_guard lock(_lock);
+				std::lock_guard<std::mutex> lock(_lock);
 				_running = true;
 
 				sword rc;

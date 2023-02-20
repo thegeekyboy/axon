@@ -382,10 +382,9 @@ namespace axon
 			return isValid;
 		}
 
-		bool kerberos::renew()
+		void kerberos::renew()
 		{
 			long int retval;
-			bool success = false;
 			
 			krb5_principal principal;
 			krb5_creds creds;
@@ -413,8 +412,6 @@ namespace axon
 
 			krb5_free_creds(_ctx, &creds);
 			krb5_free_principal(_ctx, principal);
-
-			return success;
 		}
 	}
 }

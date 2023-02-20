@@ -37,7 +37,7 @@ namespace axon
 			bool isCacheValid();
 			bool isValidKeytab();
 
-			bool renew();
+			void renew();
 		};
 	}
 }

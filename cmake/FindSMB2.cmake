@@ -3,9 +3,8 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 find_path(SMB2_INCLUDE_DIR smb2/libsmb2.h
-			    PATHS
-					${PC_SMB2_INCLUDEDIR}
-          $ENV{PATH})
+	PATHS ${PC_SMB2_INCLUDEDIR} $ENV{PATH}
+)
 
 set(SMB2_VERSION ${PC_SMB2_VERSION})
 
@@ -15,8 +14,8 @@ find_library(SMB2_LIBRARY NAMES smb2
 													PATHS ${PC_SMB2_LIBDIR})
 
 find_package_handle_standard_args(SMB2
-																	REQUIRED_VARS SMB2_LIBRARY SMB2_INCLUDE_DIR
-																	VERSION_VAR SMB2_VERSION)
+	REQUIRED_VARS SMB2_LIBRARY SMB2_INCLUDE_DIR
+	VERSION_VAR SMB2_VERSION)
 
 if(SMB2_FOUND)
 	set(SMB2_LIBRARIES ${SMB2_LIBRARY})

@@ -31,7 +31,7 @@ FIND_PATH(CRYPT_INCLUDE_DIR crypt.h
 SET(CRYPT_NAMES crypt)
 FIND_LIBRARY(CRYPT_LIBRARY
   NAMES ${CRYPT_NAMES}
-  PATHS /usr/lib /usr/local/lib
+  PATHS /usr/lib /usr/lib64 /usr/local/lib
 )
 
 IF(CRYPT_INCLUDE_DIR AND CRYPT_LIBRARY)

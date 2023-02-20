@@ -1,6 +1,8 @@
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 
+#include <hdfs.h>
+
 #include <axon.h>
 #include <axon/kerberos.h>
 
@@ -112,12 +114,12 @@ drone::drone(node &n)
 					if (!krb.isCacheValid())
 					{
 						if (!krb.isValidKeytab())
-							std::cout<<"keytab does not contain desired entry!"<<std::endl;
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "no valid keytab found, cannot continue");
 						else
 							krb.renew();
 					}
-					else
-						std::cout<<"cache is still valid for the given principal"<<std::endl;
+
+					p->set(AXON_TRANSFER_HDFS_CACHE, cachefile);
 				}
 
 				_source = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);
@@ -191,21 +193,21 @@ drone::drone(node &n)
 
 				if (n.get(NODE_CFG_DST_AUTH) == axon::authtypes::KERBEROS)
 				{
-					std::string cachefile = n.get(NODE_CFG_BUFFER) + "/" + n.get(NODE_CFG_NAME) + "_DST_" + n.get(NODE_CFG_DST_DOMAIN) + ".cache";
+					std::string cachefile = n.get(NODE_CFG_BUFFER) + "/" + n.get(NODE_CFG_NAME) + "_SRC_" + n.get(NODE_CFG_DST_DOMAIN) + ".cache";
 					std::string principal = n.get(NODE_CFG_DST_USERNAME) + "@" + n.get(NODE_CFG_DST_DOMAIN);
-					
+
 					axon::authentication::kerberos krb(n.get(NODE_CFG_DST_PRIVATE_KEY), cachefile, n.get(NODE_CFG_DST_DOMAIN), principal);
 					krb.init();
 
 					if (!krb.isCacheValid())
 					{
 						if (!krb.isValidKeytab())
-							std::cout<<"keytab does not contain desired entry!"<<std::endl;
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "no valid keytab found, cannot continue");
 						else
 							krb.renew();
 					}
-					else
-						std::cout<<"cache is still valid for the given principal"<<std::endl;
+
+					p->set(AXON_TRANSFER_HDFS_CACHE, cachefile);
 				}
 
 				_destination = std::dynamic_pointer_cast<axon::transport::transfer::connection>(p);

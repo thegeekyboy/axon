@@ -3,6 +3,9 @@
 
 #define AXON_TRANSFER_HDFS_AUTH         'a'
 #define AXON_TRANSFER_HDFS_DOMAIN       'b'
+#define AXON_TRANSFER_HDFS_CACHE        'c'
+
+#define AXON_TRANSFER_HDFS_PORT         0x01
 
 namespace axon
 {
@@ -12,7 +15,11 @@ namespace axon
 		{
 			class hdfs : public connection {
 
-				std::string _path, _domain;
+				int _port;
+				std::string _path, _domain, _cache;
+
+				struct hdfsBuilder *_builder = NULL;
+				hdfsFS _filesystem = NULL;
 
 				static std::atomic<int> _instance;
 				static std::mutex _mtx;
@@ -42,6 +49,7 @@ namespace axon
 				long long put(std::string, std::string, bool = false);
 
 				bool set(char, std::string);
+				bool set(char, int);
 			};
 		}
 	}

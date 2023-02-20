@@ -1,5 +1,7 @@
 #include <fstream>
+#include <memory>
 #include <mutex>
+#include <atomic>
 
 #include <fcntl.h>
 

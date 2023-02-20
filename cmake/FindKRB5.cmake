@@ -118,10 +118,12 @@ IF(KRB5_FOUND)
 
     # add gssapi_krb5 (MIT)
     # SET(KRB5_LIBRARY_NAMES ${KRB5_LIBRARY_NAMES} "gssapi_krb5")
+    SET(KRB5_LIBRARY_NAMES ${KRB5_LIBRARY_NAMES} "krb5support")
 
     # Search for each library needed using the directories given.
     FOREACH(name ${KRB5_LIBRARY_NAMES})
       # Look for this library.
+      MESSAGE(STATUS "NAMES ${name}")
       FIND_LIBRARY(KRB5_${name}_LIBRARY
         NAMES ${name}
         PATHS ${KRB5_LIBRARY_DIRS}

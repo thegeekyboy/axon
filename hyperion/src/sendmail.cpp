@@ -146,84 +146,84 @@ namespace hyperion {
 
 		if ((curl = curl_easy_init()))
 		{
-			struct curl_slist *headers = NULL;
-			struct curl_slist *recipients = NULL;
-			struct curl_slist *slist = NULL;
+			// struct curl_slist *headers = NULL;
+			// struct curl_slist *recipients = NULL;
+			// struct curl_slist *slist = NULL;
 
-			curl_mime *mime;
-			curl_mime *alt;
-			curl_mimepart *part;
+			// curl_mime *mime;
+			// curl_mime *alt;
+			// curl_mimepart *part;
 
-			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-			curl_easy_setopt(curl, CURLOPT_URL, _server.c_str());
+			// curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+			// curl_easy_setopt(curl, CURLOPT_URL, _server.c_str());
 
-			curl_easy_setopt(curl, CURLOPT_MAIL_FROM, _from.c_str());
-			recipients = curl_slist_append(recipients, _to.c_str());
-			if (_cc.size() > 3) recipients = curl_slist_append(recipients, _cc.c_str());
-			curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+			// curl_easy_setopt(curl, CURLOPT_MAIL_FROM, _from.c_str());
+			// recipients = curl_slist_append(recipients, _to.c_str());
+			// if (_cc.size() > 3) recipients = curl_slist_append(recipients, _cc.c_str());
+			// curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
-			/* Build and set the message header list. */
-			while (std::getline(ss, token, '\n'))
-				headers = curl_slist_append(headers, token.data());
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			// /* Build and set the message header list. */
+			// while (std::getline(ss, token, '\n'))
+			// 	headers = curl_slist_append(headers, token.data());
+			// curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-			mime = curl_mime_init(curl);
+			// mime = curl_mime_init(curl);
 
-			/* The inline part is an alternative proposing the html and the text
-			versions of the email. */
-			alt = curl_mime_init(curl);
+			// /* The inline part is an alternative proposing the html and the text
+			// versions of the email. */
+			// alt = curl_mime_init(curl);
 
-			/* add image */
-			part = curl_mime_addpart(alt);
-			curl_mime_filedata(part, _logo.c_str());
-			curl_mime_type(part, "image/png");
-			curl_mime_name(part, "bkash-orange.png");
+			// /* add image */
+			// part = curl_mime_addpart(alt);
+			// curl_mime_filedata(part, _logo.c_str());
+			// curl_mime_type(part, "image/png");
+			// curl_mime_name(part, "bkash-orange.png");
 
-			/* HTML message. */
-			part = curl_mime_addpart(alt);
-			curl_mime_data(part, htmlbody.c_str(), CURL_ZERO_TERMINATED);
-			curl_mime_type(part, "text/html");
+			// /* HTML message. */
+			// part = curl_mime_addpart(alt);
+			// curl_mime_data(part, htmlbody.c_str(), CURL_ZERO_TERMINATED);
+			// curl_mime_type(part, "text/html");
 
-			/* Text message. */
-			part = curl_mime_addpart(alt);
-			curl_mime_data(part, inline_text, CURL_ZERO_TERMINATED);
+			// /* Text message. */
+			// part = curl_mime_addpart(alt);
+			// curl_mime_data(part, inline_text, CURL_ZERO_TERMINATED);
 
-			// /* Create the inline part. */
-			part = curl_mime_addpart(mime);
-			curl_mime_subparts(part, alt);
-			curl_mime_type(part, "multipart/alternative");
-			slist = curl_slist_append(NULL, "Content-Disposition: inline");
-			curl_mime_headers(part, slist, 1);
+			// // /* Create the inline part. */
+			// part = curl_mime_addpart(mime);
+			// curl_mime_subparts(part, alt);
+			// curl_mime_type(part, "multipart/alternative");
+			// slist = curl_slist_append(NULL, "Content-Disposition: inline");
+			// curl_mime_headers(part, slist, 1);
 
 
-			// /* Add the current source program as an attachment. */
-			curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+			// // /* Add the current source program as an attachment. */
+			// curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
 
-			// curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+			// // curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 
-			/* Send the message */
-			res = curl_easy_perform(curl);
+			// /* Send the message */
+			// res = curl_easy_perform(curl);
 
-			/* Check for errors */
-			if(res != CURLE_OK)
-				fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+			// /* Check for errors */
+			// if(res != CURLE_OK)
+			// 	fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
-			/* Free lists. */
-			curl_slist_free_all(recipients);
-			curl_slist_free_all(headers);
+			// /* Free lists. */
+			// curl_slist_free_all(recipients);
+			// curl_slist_free_all(headers);
 
-			/* curl will not send the QUIT command until you call cleanup, so you
-			* should be able to re-use this connection for additional messages
-			* (setting CURLOPT_MAIL_FROM and CURLOPT_MAIL_RCPT as required, and
-			* calling curl_easy_perform() again. It may not be a good idea to keep
-			* the connection open for a very long time though (more than a few
-			* minutes may result in the server timing out the connection), and you do
-			* want to clean up in the end.
-			*/
-			curl_easy_cleanup(curl);
+			// /* curl will not send the QUIT command until you call cleanup, so you
+			// * should be able to re-use this connection for additional messages
+			// * (setting CURLOPT_MAIL_FROM and CURLOPT_MAIL_RCPT as required, and
+			// * calling curl_easy_perform() again. It may not be a good idea to keep
+			// * the connection open for a very long time though (more than a few
+			// * minutes may result in the server timing out the connection), and you do
+			// * want to clean up in the end.
+			// */
+			// curl_easy_cleanup(curl);
 
-			/* Free multipart message. */
-			curl_mime_free(mime);
+			// /* Free multipart message. */
+			// curl_mime_free(mime);
 		}
 
 		return true;

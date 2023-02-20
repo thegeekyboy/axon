@@ -4,13 +4,22 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 project(medutils VERSION 1.0.0 DESCRIPTION "mediation toolchain" LANGUAGES C CXX)
 
+IF(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+    MESSAGE(FATAL_ERROR "cannot build the project in the source directory! Out-of-source build is enforced!")
+ENDIF()
+
 #set(CMAKE_C_COMPILER "gcc")
 #set(CMAKE_CXX_COMPILER "g++")
-# set(CMAKE_CXX_STANDARD 11)
+# set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" ${CMAKE_CXX_FLAGS})
+set(GCC_COVERAGE_COMPILE_FLAGS "-D_GLIBCXX_USE_NANOSLEEP -Wall")
+
+#add_compile_options("-std=c++14") and add_compile_definitions("NO_DEBUG")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} " ${CMAKE_CXX_FLAGS})
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
@@ -38,6 +47,11 @@ if (${LIB64} STREQUAL "TRUE")
 else()
 	set(LIB_SUFFIX "")
 endif()
+
+##############################################################################
+## feature testing															 #
+##############################################################################
+try_compile(HAS_STD_VARIANT ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/try_compile_variant.cpp)
 
 ##############################################################################
 ## Finding the libraries and packages										 #
@@ -77,7 +91,7 @@ else()
 	set(WITH_SYSTEMD "OFF")
 endif (SYSTEMD_FOUND)
 
-#Crypt
+# crypt
 find_package(Crypt REQUIRED)
 
 if (CRYPT_FOUND)
@@ -88,14 +102,14 @@ else (NOT CRYPT_FOUND)
 endif ()
 
 # OpenSSL
-# find_package (OpenSSL REQUIRED)
+find_package (OpenSSL REQUIRED)
 
-# if (OPENSSL_FOUND)
-# 	list(APPEND INCLUDE_DIRS ${OPENSSL_INCLUDE_DIRS})
-# 	list(APPEND LIBRARIES ${OPENSSL_LIBRARIES})
-# else (NOT OPENSSL_FOUND)
-# 	message(FATAL_ERROR "OpenSSL Library missing!")
-# endif ()
+if (OPENSSL_FOUND)
+	list(APPEND INCLUDE_DIRS ${OPENSSL_INCLUDE_DIRS})
+	list(APPEND LIBRARIES ${OPENSSL_LIBRARIES})
+else (NOT OPENSSL_FOUND)
+	message(FATAL_ERROR "OpenSSL Library missing!")
+endif ()
 
 # GSSAPI
 find_package (GSSAPI REQUIRED)
@@ -202,16 +216,6 @@ else (NOT BLKID_FOUND)
 	message(FATAL_ERROR "BLKID library not found!")
 endif ()
 
-# AWS CPP SDK
-find_package(AWSSDK REQUIRED COMPONENTS s3)
-
-if (AWSSDK_FOUND)
-	list(APPEND INCLUDE_DIRS ${AWSSDK_INCLUDE_DIRS})
-	list(APPEND LIBRARIES ${AWSSDK_LINK_LIBRARIES})
-else (NOT AWSSDK_FOUND)
-	message(FATAL_ERROR "AWS CPP library not found!")
-endif ()
-
 # Samba share
 find_package(SMB2 REQUIRED)
 
@@ -279,6 +283,16 @@ if (HDFS_FOUND)
 else (NOT KRB5_FOUND)
 	message(FATAL_ERROR "LibHDFS Not Found!")
 endif()
+
+# AWS CPP SDK
+find_package(AWSSDK REQUIRED COMPONENTS s3)
+
+if (AWSSDK_FOUND)
+	list(APPEND INCLUDE_DIRS ${AWSSDK_INCLUDE_DIRS})
+	list(APPEND LIBRARIES ${AWSSDK_LINK_LIBRARIES})
+else (NOT AWSSDK_FOUND)
+	message(FATAL_ERROR "AWS CPP library not found!")
+endif ()
 
 ##############################################################################
 ##############################################################################

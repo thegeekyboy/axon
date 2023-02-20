@@ -1,5 +1,8 @@
 #include <atomic>
 #include <mutex>
+#include <thread>
+
+#include <hdfs.h>
 
 #include <axon.h>
 #include <axon/connection.h>
@@ -13,16 +16,42 @@ namespace axon
 		{
 			hdfs::~hdfs()
 			{
+				disconnect();
 
+				if (_builder)
+				// 	hdfsFreeBuilder(_builder);
+				free(_builder);
+			}
+
+			bool hdfs::init()
+			{
+				_builder = hdfsNewBuilder();
+
+				return true;
 			}
 
 			bool hdfs::connect()
 			{
+				init();
+
+				hdfsBuilderSetForceNewInstance(_builder);
+
+				hdfsBuilderSetNameNode(_builder, _hostname.c_str());
+				hdfsBuilderSetNameNodePort(_builder, _port);
+				
+				hdfsBuilderSetKerbTicketCachePath(_builder, _cache.c_str());
+				hdfsBuilderSetUserName(_builder, _username.c_str()); // I believe this is optional for kerberos authentication
+
+				_filesystem = hdfsBuilderConnect(_builder);
+
 				return true;
 			}
 
 			bool hdfs::disconnect()
 			{
+				//if (_filesystem)
+					hdfsDisconnect(_filesystem);
+				
 				return true;
 			}
 
@@ -87,6 +116,20 @@ namespace axon
 				{
 					case AXON_TRANSFER_HDFS_DOMAIN:
 						_domain = value;
+						return true;
+					case AXON_TRANSFER_HDFS_CACHE:
+						_cache = value;
+						return true;
+				}
+				return false;
+			}
+
+			bool hdfs::set(char key, int value)
+			{
+				switch (key)
+				{
+					case AXON_TRANSFER_HDFS_PORT:
+						_port = value;
 						return true;
 				}
 				return false;

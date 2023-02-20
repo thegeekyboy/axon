@@ -1,3 +1,5 @@
+#include <memory>
+#include <atomic>
 #include <iomanip>
 
 #include <sys/socket.h>
