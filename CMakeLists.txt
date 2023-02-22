@@ -2,23 +2,21 @@ cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-project(medutils VERSION 1.0.0 DESCRIPTION "mediation toolchain" LANGUAGES C CXX)
+project(axon VERSION 1.2.1 DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
 IF(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     MESSAGE(FATAL_ERROR "cannot build the project in the source directory! Out-of-source build is enforced!")
 ENDIF()
 
-#set(CMAKE_C_COMPILER "gcc")
-#set(CMAKE_CXX_COMPILER "g++")
-# set(CMAKE_CXX_STANDARD 14)
+string(REGEX MATCH "([0-9]*)" _ ${PROJECT_VERSION})
+set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(GCC_COVERAGE_COMPILE_FLAGS "-D_GLIBCXX_USE_NANOSLEEP -Wall")
 
-#add_compile_options("-std=c++14") and add_compile_definitions("NO_DEBUG")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} " ${CMAKE_CXX_FLAGS})
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
@@ -58,38 +56,6 @@ try_compile(HAS_STD_VARIANT ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test
 ##############################################################################
 
 find_package(PkgConfig REQUIRED)
-
-## application home dir
-execute_process(
-    COMMAND bash "-c" "cat /etc/passwd | grep hyperion | cut -d ':' -f6"
-    OUTPUT_VARIABLE HYPERION_HOME_PATH
-)
-string(REGEX REPLACE "\n$" "" HYPERION_HOME_PATH "${HYPERION_HOME_PATH}")
-if (HYPERION_HOME_PATH)
-    message(STATUS "Application home folder: ${HYPERION_HOME_PATH}")
-endif()
-
-## systemd unit file path
-pkg_check_modules(SYSTEMD "systemd")
-
-if (SYSTEMD_FOUND AND "${SYSTEMD_SERVICES_INSTALL_DIR}" STREQUAL "")
-	execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=systemdsystemunitdir systemd OUTPUT_VARIABLE SYSTEMD_SERVICES_INSTALL_DIR)
-	string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_SERVICES_INSTALL_DIR	"${SYSTEMD_SERVICES_INSTALL_DIR}")
-elseif (NOT SYSTEMD_FOUND AND SYSTEMD_SERVICES_INSTALL_DIR)
-	message (FATAL_ERROR "Variable SYSTEMD_SERVICES_INSTALL_DIR is defined, but we can't find systemd using pkg-config")
-endif()
-
-if (SYSTEMD_FOUND)
-	set(WITH_SYSTEMD "ON")
-	message(STATUS "systemd services install dir: ${SYSTEMD_SERVICES_INSTALL_DIR}")
-	configure_file(hyperion/extras/hyperion.service.cmake ${CMAKE_CURRENT_BINARY_DIR}/hyperion/extras/hyperion.service)
-	install (
-		 FILES ${CMAKE_CURRENT_BINARY_DIR}/hyperion/extras/hyperion.service 
-		 DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
-	)
-else()
-	set(WITH_SYSTEMD "OFF")
-endif (SYSTEMD_FOUND)
 
 # crypt
 find_package(Crypt REQUIRED)
@@ -297,5 +263,15 @@ endif ()
 ##############################################################################
 ##############################################################################
 
-add_subdirectory(axon)
-add_subdirectory(hyperion)
+add_library(axon STATIC "")
+
+include_directories(include)
+add_subdirectory(src)
+add_subdirectory(test)
+
+include_directories(${INCLUDE_DIRS})
+link_libraries(${LIBRARIES})
+target_link_libraries(axon PRIVATE ${LIBRARIES})
+
+install(TARGETS axon LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/axon)
+install(FILES ${CMAKE_BINARY_DIR}/axon.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)

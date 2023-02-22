@@ -1,9 +1,0 @@
-#
-target_sources(hyperion
-    PRIVATE
-        drone.cpp
-        sendmail.cpp
-        node.cpp
-        cluster.cpp
-        main.cpp
-)
