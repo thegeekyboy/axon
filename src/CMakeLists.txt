@@ -1,5 +1,5 @@
 #
-target_sources(axon
+target_sources(${PROJECT_NAME}
 	PRIVATE
 	util.cpp
 	aes.cpp

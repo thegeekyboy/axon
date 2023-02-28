@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
+set(PROJECT_NAME "axon" CACHE INTERNAL "axon")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-project(axon VERSION 1.2.1 DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 1.2.1 DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
 IF(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     MESSAGE(FATAL_ERROR "cannot build the project in the source directory! Out-of-source build is enforced!")
@@ -54,7 +55,7 @@ try_compile(HAS_STD_VARIANT ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test
 ##############################################################################
 ## Finding the libraries and packages										 #
 ##############################################################################
-
+# pkgconfig
 find_package(PkgConfig REQUIRED)
 
 # crypt
@@ -263,7 +264,7 @@ endif ()
 ##############################################################################
 ##############################################################################
 
-add_library(axon STATIC "")
+add_library(${PROJECT_NAME} SHARED "")
 
 include_directories(include)
 add_subdirectory(src)
@@ -271,7 +272,8 @@ add_subdirectory(test)
 
 include_directories(${INCLUDE_DIRS})
 link_libraries(${LIBRARIES})
-target_link_libraries(axon PRIVATE ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
-install(TARGETS axon LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/axon)
-install(FILES ${CMAKE_BINARY_DIR}/axon.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+configure_file(extras/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
+install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)

@@ -21,6 +21,7 @@ build
 !CMakeLists.txt
 !*.cmake
 !*.cmake.in
+!*.pc.in
 
 # source files
 !*.h.in
