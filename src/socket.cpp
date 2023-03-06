@@ -194,9 +194,7 @@ namespace axon
 
 			bool socks::purge()
 			{
-				_buffer.empty();
-
-				return true;
+				return _buffer.empty();
 			}
 
 			bool socks::linewaiting()

@@ -22,6 +22,7 @@ build
 !*.cmake
 !*.cmake.in
 !*.pc.in
+!*.spec.in
 
 # source files
 !*.h.in
@@ -35,5 +36,6 @@ test.cfg
 
 # git files
 !.gitignore
+
 
 defines.h

@@ -342,7 +342,7 @@ namespace axon
 
 			if (settingstype == CONFIG_TYPE_ARRAY)
 			{
-				if ((retval = config_setting_get_int_elem(setting, index)) == NULL)
+				if ((retval = config_setting_get_int_elem(setting, index)) == 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
 			}
 			else
