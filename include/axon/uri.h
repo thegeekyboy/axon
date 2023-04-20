@@ -4,6 +4,22 @@
 #include <string>
 #include <algorithm>
 
+#include <boost/algorithm/string.hpp>
+
+/*
+	repurposed from https://stackoverflow.com/questions/2616011/easy-way-to-parse-a-url-in-c-cross-platform
+
+	limitations: cannot parse uri with username & password
+
+	axon::helper::uri u0 = axon::helper::uri::parse("http://localhost:80/foo.html?&q=1:2:3");
+	axon::helper::uri u1 = axon::helper::uri::parse("https://localhost:80/foo.html?&q=1");
+	axon::helper::uri u2 = axon::helper::uri::parse("localhost/foo");
+	axon::helper::uri u3 = axon::helper::uri::parse("https://localhost/foo");
+	axon::helper::uri u4 = axon::helper::uri::parse("localhost:8080");
+	axon::helper::uri u5 = axon::helper::uri::parse("localhost?&foo=1");
+	axon::helper::uri u6 = axon::helper::uri::parse("localhost?&foo=1:2:3");
+*/
+
 namespace axon {
 
 	namespace helper {
@@ -11,24 +27,24 @@ namespace axon {
 		struct uri
 		{
 			public:
-			std::string QueryString, Path, Filename, Protocol, Host, Port;
+			std::string QueryString, path, filename, protocol, host, port;
 
-			static Uri Parse(const std::string &uri)
+			static uri parse(const std::string &uri_)
 			{
-				Uri result;
+				uri result;
 
 				typedef std::string::const_iterator iterator_t;
 
-				if (uri.length() == 0)
+				if (uri_.length() == 0)
 					return result;
 
-				iterator_t uriEnd = uri.end();
+				iterator_t uriEnd = uri_.end();
 
 				// get query start
-				iterator_t queryStart = std::find(uri.begin(), uriEnd, '?');
+				iterator_t queryStart = std::find(uri_.begin(), uriEnd, '?');
 
 				// protocol
-				iterator_t protocolStart = uri.begin();
+				iterator_t protocolStart = uri_.begin();
 				iterator_t protocolEnd = std::find(protocolStart, uriEnd, ':');			//"://");
 
 				if (protocolEnd != uriEnd)
@@ -36,43 +52,47 @@ namespace axon {
 					std::string prot = &*(protocolEnd);
 					if ((prot.length() > 3) && (prot.substr(0, 3) == "://"))
 					{
-						result.Protocol = std::string(protocolStart, protocolEnd);
+						result.protocol = std::string(protocolStart, protocolEnd);
+						boost::algorithm::to_lower(result.protocol);
 						protocolEnd += 3;   //	  ://
 					}
 					else
-						protocolEnd = uri.begin();  // no protocol
+						protocolEnd = uri_.begin();  // no protocol
 				}
 				else
-					protocolEnd = uri.begin();  // no protocol
+					protocolEnd = uri_.begin();  // no protocol
 
 				// host
 				iterator_t hostStart = protocolEnd;
 				iterator_t pathStart = std::find(hostStart, uriEnd, '/');  // get pathStart
 
 				iterator_t hostEnd = std::find(protocolEnd, 
-					(pathStart != uriEnd) ? pathStart : queryStart,
-					L':');  // check for port
+					(pathStart != uriEnd) ? pathStart : queryStart,	L':');  // check for port
 
-				result.Host = std::string(hostStart, hostEnd);
+				result.host = std::string(hostStart, hostEnd);
+				boost::trim(result.host);
 
 				// port
 				if ((hostEnd != uriEnd) && ((&*(hostEnd))[0] == ':'))  // we have a port
 				{
 					hostEnd++;
 					iterator_t portEnd = (pathStart != uriEnd) ? pathStart : queryStart;
-					result.Port = std::string(hostEnd, portEnd);
+					result.port = std::string(hostEnd, portEnd);
+					boost::trim(result.port);
 				}
 
 				// path
 				if (pathStart != uriEnd)
 				{
-					result.Path = std::string(pathStart, queryStart);
-					result.Filename = result.Path.substr(result.Path.find_last_of("/\\") + 1);
+					result.path = std::string(pathStart, queryStart);
+					boost::trim(result.path);
+					result.filename = result.path.substr(result.path.find_last_of("/\\") + 1);
+					boost::trim(result.filename);
 				}
 
 				// query
 				if (queryStart != uriEnd)
-					result.QueryString = std::string(queryStart, uri.end());
+					result.QueryString = std::string(queryStart, uri_.end());
 
 				return result;
 

@@ -347,12 +347,17 @@ namespace axon
 
 			bool sftp::connect()
 			{
+				if (_connected)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected!");
+
 				open(_hostname, 22);
 				if (_mode == AXON_TRANSFER_SSH_PRIVATEKEY)
 					login(_username, _privkey+".pub", _privkey);
 				else
 					login(_username, _password);
 				init();
+
+				_connected = true;
 
 				return true;
 			}

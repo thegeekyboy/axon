@@ -17,9 +17,11 @@ namespace axon
 
 			protected:
 				std::string _hostname, _username, _password, _path, _id;
+				uint16_t _port;
+				axon::proto_t _proto;
+
 				bool _connected;
 				std::vector<boost::regex> _filter;
-				axon::proto_t _proto;
 
 			public:
 

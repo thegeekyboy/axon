@@ -2,6 +2,7 @@
 #define AXON_CONFIG_H_
 
 #include <stack>
+#include <queue>
 
 #include <string.h>
 #include <unistd.h>
@@ -32,6 +33,7 @@ namespace axon
 		bool _open;
 
 		std::stack<std::string> _path;
+		std::queue<std::string> _crumb;
 
 		void deepcopy(const config &);
 

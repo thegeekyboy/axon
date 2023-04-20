@@ -1,6 +1,9 @@
 #ifndef AXON_S3_H_
 #define AXON_S3_H_
 
+#define AXON_TRANSFER_S3_PROXY    'A'
+#define AXON_TRANSFER_S3_ENDPOINT 'B'
+
 namespace axon
 {
 	namespace transport
@@ -11,6 +14,8 @@ namespace axon
 
 				Aws::SDKOptions *_options;
 				Aws::S3::S3Client *_client;
+				std::string _endpoint;
+				std::string _proxy;
 
 				std::string _path;
 
@@ -23,6 +28,8 @@ namespace axon
 				s3(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { };
 				s3(const s3& rhs) : connection(rhs) {  };
 				~s3();
+
+				bool set(char, std::string);
 
 				bool connect();
 				bool disconnect();

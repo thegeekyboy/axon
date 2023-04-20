@@ -62,23 +62,58 @@ namespace axon
 				return true;
 			}
 
+			bool s3::set(char c, std::string value)
+			{
+				switch (c)
+				{
+					case AXON_TRANSFER_S3_PROXY:
+						_proxy = value;
+						break;
+
+					case AXON_TRANSFER_S3_ENDPOINT:
+						_endpoint = value;
+						break;
+				}
+
+				return true;
+			}
+
 			bool s3::connect()
 			{
 				init();
 
 				Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 				Aws::Client::ClientConfiguration cfg;
+				bool useVirtualAdressing = true;
 
-				cfg.region = Aws::Region::AP_SOUTHEAST_1;
-				cfg.proxyHost = "10.96.66.246"; // need to do something about proxy
-				cfg.proxyPort = 4951;
+				// TODO:
+				// need to figure out how to disable IMDS query, specially when non-AWS service
+				// provider like minio. for the time export AWS_EC2_METADATA_DISABLED="true" for
+				// environment variable as workaround.
+				// https://github.com/aws/aws-sdk-ruby/issues/2174
 
-				_client = new Aws::S3::S3Client(auth, cfg);
+				if (_endpoint.size() > 2)
+				{
+					cfg.endpointOverride = Aws::String(_endpoint);
+					cfg.region = Aws::Region::AWS_GLOBAL;
+					useVirtualAdressing = false;
+				}
+				else
+					cfg.region = Aws::Region::AP_SOUTHEAST_1;
+
+				if (_proxy.size() > 3)
+				{
+					std::vector<std::string> proxy = axon::helper::split(_proxy, ':');
+					cfg.proxyHost = proxy[0];
+					if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
+				}
+
+				_client = new Aws::S3::S3Client(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
 
 				auto outcome = _client->ListBuckets();
 
 				if (!outcome.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "]" + std::string("there was an error connecting to S3 - ") + outcome.GetError().GetExceptionName().c_str());
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] " + std::string("there was an error connecting to S3 - ") + outcome.GetError().GetExceptionName().c_str());
 
 				_connected = true;
 
@@ -114,7 +149,7 @@ namespace axon
 				std::vector<std::string> parts = axon::helper::split(path, '/');
 
 				std::string bucket = parts[0];
-
+				
 				Aws::S3::Model::HeadBucketRequest request;
 				request.SetBucket(bucket);
 				auto result = _client->HeadBucket(request);
@@ -122,7 +157,7 @@ namespace axon
 				if (!result.IsSuccess())
 				{
 					auto err = result.GetError();
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " + err.GetMessage());
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " +bucket+ err.GetMessage());
 				}
 
 				_path = (path[path.size()] = '/')?path:path+"/";
@@ -361,6 +396,7 @@ namespace axon
 
 			long long s3::put(std::string src, std::string dest, bool compress)
 			{
+				// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
 				std::string destx;
 				Aws::S3::Model::PutObjectRequest request;
 				

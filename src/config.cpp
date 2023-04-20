@@ -46,18 +46,25 @@ namespace axon
 			_root = config_root_setting(&_cfg);
 			_open = true;
 
-			std::vector<std::string> tq;
+			std::queue<std::string> crumb = source._crumb;
+			while(!crumb.empty())
+			{
+				open(crumb.front());
+				crumb.pop();
+			}
+			/*
 			std::stack<std::string> ts = source._path;
-
 			while (!ts.empty())
 			{
 				std::string tstr = ts.top();
+				std::cout<<i++<<") tstr = "<<tstr<<std::endl;
 				tq.push_back(tstr);
 				ts.pop();
 			}
 
 			for (int i = tq.size()-1; i >= 0; --i)
 				open(tq[i]);
+			*/
 		}
 	}
 
@@ -96,6 +103,7 @@ namespace axon
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error opening root config parameter '" + path + "'");
 		}
 
+		_crumb.push(path);
 		_path.push(path);
 
 		return true;
@@ -194,7 +202,6 @@ namespace axon
 			if (settingstype == CONFIG_TYPE_INT)
 			{
 				_setting = setting;
-
 				return INTEGER;
 			}
 			else if (settingstype == CONFIG_TYPE_STRING)
@@ -206,6 +213,11 @@ namespace axon
 			{
 				_setting = setting;				
 				return GROUP;
+			}
+			else if (settingstype == CONFIG_TYPE_ARRAY)
+			{
+				_setting = setting;				
+				return ARRAY;
 			}
 			else
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter index '" + std::to_string(index) + "' is of unsupported type (" + std::to_string(settingstype) + ")");

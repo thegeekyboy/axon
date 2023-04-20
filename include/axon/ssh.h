@@ -91,12 +91,14 @@ namespace axon
 				LIBSSH2_SFTP *_sftp;
 				std::mutex _lock;
 
+				bool _connected;
+
 				bool init();
 				long long _scp_get(std::string, std::string, bool = false);
 				long long _sftp_get(std::string, std::string, bool = false);
 
 			public:
-				sftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { _sftp = NULL; };
+				sftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { _sftp = NULL; _connected = false; };
 				sftp(const sftp& rhs) : connection(rhs) { _sftp = NULL; };
 				~sftp();
 

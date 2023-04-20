@@ -40,23 +40,18 @@ namespace axon
 				size_t filesize = 0, szr, szw;
 				unsigned char FILEBUF[MAXBUF];
 
-				std::string srcx;
-
 				FILE *fps, *fpd;
 				BZFILE *bfp = NULL;
 
-				if (src[0] == '/')
-					srcx = src;
-				else
-					srcx = _path + "/" + src;
+				DBGPRN("[%s] requested file::copy() src = %s, dest = %s", _id.c_str(), src.c_str(), dest.c_str());
 
 				if (!(fpd = fopen(dest.c_str(), "wb")))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing " + dest);
 				
-				if (!(fps = fopen(srcx.c_str(), "rb")))
+				if (!(fps = fopen(src.c_str(), "rb")))
 				{
 					fclose(fpd);
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for reading " + srcx);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for reading " + src);
 				}
 
 				if (compress)
@@ -307,16 +302,40 @@ namespace axon
 
 			long long file::get(std::string src, std::string dest, bool compress)
 			{
-				return copy(src, dest, compress); // return size
+				std::string srcx, destx;
+
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+				
+				if (dest[0] == '/')
+					destx = dest;
+				else
+					destx = _path + "/" + dest;
+
+				DBGPRN("[%s] requested file::get() = %s", _id.c_str(), destx.c_str());
+				return copy(srcx, destx, compress); // return size
 			}
 
 			long long file::put(std::string src, std::string dest, bool compress)
 			{
-				//ren(temp, dest);
+				std::string srcx, destx;
 
-				return copy(src, dest, compress); // return size
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+				
+				if (dest[0] == '/')
+					destx = dest;
+				else
+					destx = _path + "/" + dest;
+
+				//ren(temp, dest);
+				DBGPRN("[%s] requested file::put() src = %s, dest = %s", _id.c_str(), srcx.c_str(), dest.c_str());
+				return copy(srcx, destx, compress); // return size
 			}
 		}
 	}
 }
-
