@@ -4,6 +4,8 @@
 #include <boost/format.hpp>
 #include <boost/regex.hpp>
 
+#define AXON_TRANSFER_CONNECTION_PORT 0x01
+
 namespace axon
 {
 	namespace transport {
@@ -16,7 +18,9 @@ namespace axon
 			class connection {
 
 			protected:
-				std::string _hostname, _username, _password, _path, _id;
+				std::string _id;
+				std::string _hostname, _username, _password;
+				std::string _path;
 				uint16_t _port;
 				axon::proto_t _proto;
 
@@ -25,7 +29,7 @@ namespace axon
 
 			public:
 
-				connection(std::string, std::string, std::string);
+				connection(std::string, std::string, std::string, uint16_t);
 				connection(const connection&);
 				~connection();
 
@@ -39,7 +43,7 @@ namespace axon
 				virtual bool mkdir(std::string) = 0;
 				virtual int list(const cb &) = 0;
 				virtual int list(std::vector<axon::entry> &) = 0;
-				virtual long long copy(std::string&, std::string&, bool = false) = 0;
+				virtual long long copy(std::string, std::string, bool = false) = 0;
 				virtual bool ren(std::string, std::string) = 0;
 				virtual bool del(std::string) = 0;
 

@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #include <libssh2.h>
 #include <libssh2_sftp.h>
@@ -13,6 +14,7 @@
 #include <axon.h>
 #include <axon/connection.h>
 #include <axon/ssh.h>
+#include <axon/util.h>
 
 namespace axon
 {
@@ -75,6 +77,12 @@ namespace axon
 				return nullptr; // Dont know if this is the right thing to do! Might cause unknown behavior?
 			}
 
+			channel::channel(LIBSSH2_SESSION* session)
+			{
+				if (!(_channel = libssh2_channel_open_session(session)))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not open channel");
+			}
+
 			void channel::request_pty()
 			{
 				request_pty("vanilla");
@@ -82,15 +90,14 @@ namespace axon
 
 			void channel::request_pty(std::string term)
 			{
-				if (libssh2_channel_request_pty(_channel, term.c_str()) )
-				{
+				if (libssh2_channel_request_pty(_channel, term.c_str()))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not request a pty.");
-				}
 			}
 
 			channel::~channel()
 			{
-				libssh2_channel_free(_channel);
+				if (_channel)
+					libssh2_channel_free(_channel);
 			}
 
 			fingerprint::fingerprint(LIBSSH2_SESSION* s)
@@ -202,14 +209,15 @@ namespace axon
 			void session::open(std::string host, unsigned short port)
 			{
 				struct sockaddr_in sin;
+				hostent *record = gethostbyname(host.c_str());
+
 				sin.sin_family = AF_INET;
 				sin.sin_port = htons(port);
-				sin.sin_addr.s_addr = inet_addr(host.c_str());
+				sin.sin_addr = *((struct in_addr *) record->h_addr);
+				// sin.sin_addr.s_addr = inet_addr(host.c_str());
 				
 				if (connect(_sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0)
-				{
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Socket Exception!");
-				}
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "socket exception at " + host + ":"+ std::to_string(port) + " - " + std::strerror(errno));
 				
 				libssh2_session_set_blocking(this->_session, 1);
 				
@@ -305,7 +313,6 @@ namespace axon
 					
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "libssh2_userauth_publickey_fromfile_ex() - " + _errstr);
 				}
-
 			}
 
 			channel* session::open_channel()
@@ -328,8 +335,22 @@ namespace axon
 				}
 			}
 
+			void session::set(int prop, bool value)
+			{
+				if (prop == AXON_TRANSFER_SSH_USE_SCP)
+				{
+					_use_scp = value;
+				}
+			}
+
 			void session::set(int prop, int value)
 			{
+				// switch (prop)
+				// {
+				// 	case AXON_TRANSFER_SSH_PORT:
+				// 		*this->connection::_port = value;
+				// 		return true;
+				// }
 			}
 
 			void session::set(int prop, std::string value)
@@ -350,7 +371,7 @@ namespace axon
 				if (_connected)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected!");
 
-				open(_hostname, 22);
+				open(_hostname, _port);
 				if (_mode == AXON_TRANSFER_SSH_PRIVATEKEY)
 					login(_username, _privkey+".pub", _privkey);
 				else
@@ -393,10 +414,10 @@ namespace axon
 
 			bool sftp::chwd(std::string path)
 			{
+				DBGPRN("[%s] requested sftp::chwd to %s", _id.c_str(), path.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
-				DBGPRN("[%s] requested chwd to %s", _id.c_str(), path.c_str());
 
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, path.c_str())))
 				{
@@ -430,16 +451,33 @@ namespace axon
 
 			bool sftp::mkdir(std::string dir)
 			{
+				DBGPRN("[%s] requested sftp::mkdir = %s", _id.c_str(), dir.c_str());
+				std::lock_guard<std::mutex> lock(_lock);
+				int rc = 0;
+				std::string dirx, cmd;
+				channel c(_session);
+
+				if (dir[0] == '/')
+					dirx = dir;
+				else
+					dirx = _path + "/" + dir;
+
+				cmd = "mkdir " + dirx;
+
+				if ((rc = libssh2_channel_exec(c.get(), cmd.c_str())) != 0)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not execute command mkdir");
+
+				// TODO: capture mkdir response and parse for error
 
 				return true;
 			}
 
 			int sftp::list(const axon::transport::transfer::cb &cbfn)
 			{
+				DBGPRN("[%s] requested sftp::list to %s", _id.c_str(), _path.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
-				DBGPRN("[%s] requested kist to %s", _id.c_str(), _path.c_str());
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str() )))
 				{
 					int i = libssh2_session_last_errno(_session);
@@ -536,10 +574,10 @@ namespace axon
 
 			int sftp::list(std::vector<entry> &vec)
 			{
+				DBGPRN("[%s] requested sftp::list(vector) to %s", _id.c_str(), _path.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 
-				DBGPRN("[%s] requested list(vector) to %s", _id.c_str(), _path.c_str());
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str())))
 				{
 					int i = libssh2_session_last_errno(_session);
@@ -631,21 +669,44 @@ namespace axon
 				return true;
 			}
 
-			long long sftp::copy(std::string &src, std::string &dest, bool compress)
+			long long sftp::copy(std::string src, std::string dest, bool compress)
 			{
 				// TODO:     implement remote system copy function
 				// ISSUE:    there is no sftp or scp copy API
 				// SOLUTION: https://www.libssh2.org/examples/ssh2_exec.html
+				DBGPRN("[%s] requested sftp::cp = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
+				std::lock_guard<std::mutex> lock(_lock);
+				int rc = 0;
+				std::string srcx, cmd;
+				channel c(_session);
+
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+				
+				auto [path, filename] = axon::helper::splitpath(srcx);
+
+				if (src == dest || srcx == dest || path == dest || filename == dest)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
+
+				cmd = "cp " + srcx + " " + dest;
+
+				if ((rc = libssh2_channel_exec(c.get(), cmd.c_str())) != 0)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not execute command cp");
+
+				// TODO: capture cp response and parse for error
+
 				return 0L;
 			}
 
 			bool sftp::ren(std::string src, std::string dest)
 			{
-				std::lock_guard<std::mutex> lock(_lock);
+				DBGPRN("[%s] requested sftp::ren() %s to %s", _id.c_str(), src.c_str(), dest.c_str());
+				//std::lock_guard<std::mutex> lock(_lock); <- deadlock here
 				int i;
 				std::string srcx, destx;
 
-				DBGPRN("[%s] requested ren() %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -676,11 +737,11 @@ namespace axon
 
 			bool sftp::del(std::string src)
 			{
+				DBGPRN("[%s] requested sftp::del() of %s", _id.c_str(), src.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				int i;
 				std::string srcx;
 
-				DBGPRN("[%s] requested del() of %s", _id.c_str(), src.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -706,6 +767,7 @@ namespace axon
 
 			long long sftp::_scp_get(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested sftp::_scp_get() = %s", _id.c_str(), src.c_str());
 				LIBSSH2_CHANNEL *channel;
 				char FILEBUF[MAXBUF];
 				int bzerr;
@@ -718,7 +780,6 @@ namespace axon
 				FILE *fp;
 				BZFILE *bfp = NULL;
 
-				DBGPRN("[%s] requested _scp_get() = %s", _id.c_str(), src.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -798,6 +859,7 @@ namespace axon
 
 			long long sftp::_sftp_get(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested sftp::_sftp_get() of %s", _id.c_str(), src.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				char FILEBUF[MAXBUF];
@@ -810,7 +872,6 @@ namespace axon
 				FILE *fp;
 				BZFILE *bfp = NULL;
 
-				DBGPRN("[%s] requested _sftp_get() of %s", _id.c_str(), src.c_str());
 				if (src[0] == '/')
 					srcx = src;
 				else
@@ -889,11 +950,15 @@ namespace axon
 
 			long long sftp::get(std::string src, std::string dest, bool compress)
 			{
+				if (_use_scp)
+					return this->_scp_get(src, dest, compress);
+
 				return this->_sftp_get(src, dest, compress);
 			}
 
 			long long sftp::put(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested sftp::put() = %s", _id.c_str(), src.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				std::string destx, temp;
@@ -903,7 +968,6 @@ namespace axon
 				size_t sb;
 				FILE *fp;
 
-				DBGPRN("[%s] requested put() = %s", _id.c_str(), src.c_str());
 				if (dest[0] == '/')
 				{
 					temp = dest + ".tmp";

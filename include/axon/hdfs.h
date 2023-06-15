@@ -15,8 +15,7 @@ namespace axon
 		{
 			class hdfs : public connection {
 
-				int _port;
-				std::string _path, _domain, _cache;
+				std::string _domain, _cache;
 
 				struct hdfsBuilder *_builder = NULL;
 				hdfsFS _filesystem = NULL;
@@ -27,7 +26,7 @@ namespace axon
 				bool init();
 
 			public:
-				hdfs(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { };
+				hdfs(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
 				hdfs(const hdfs& rhs) : connection(rhs) {  };
 				~hdfs();
 
@@ -39,7 +38,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
-				long long copy(std::string&, std::string&, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

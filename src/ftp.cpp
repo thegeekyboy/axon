@@ -225,9 +225,23 @@ namespace axon
 				return true;
 			}
 
-			long long ftp::copy(std::string &src, std::string &dest, bool compress)
+			long long ftp::copy(std::string src, std::string dest, bool compress)
 			{
 				// TODO: implement remote system copy function
+				std::string srcx;
+				
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+
+				auto [path, filename] = axon::helper::splitpath(srcx);
+
+				if (src == dest || srcx == dest || path == dest || filename == dest)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
+
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] server-side copy operation currently not supported");
+
 				return 0L;
 			}
 

@@ -179,7 +179,7 @@ namespace axon
 				return true;
 			}
 
-			long long s3::copy(std::string &src, std::string &dest, bool compress)
+			long long s3::copy(std::string src, std::string dest, bool compress)
 			{
 				std::string srcx, destx;
 				long long filesize;
@@ -189,12 +189,10 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 				
-				if (dest[0] != '/')
-					destx = _path + "/" + dest;
+				auto [path, filename] = axon::helper::splitpath(srcx);
 
-				if (srcx == destx)
+				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
-
 
 				{
 					Aws::S3::Model::HeadObjectRequest request;

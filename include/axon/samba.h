@@ -12,7 +12,7 @@ namespace axon
 		{
 			class samba : public connection {
 
-				std::string _path, _domain, _share;
+				std::string _domain, _share;
 
 				struct smb2_context *_smb2;
 				struct smb2dir *_dir;
@@ -23,7 +23,7 @@ namespace axon
 				bool init();
 
 			public:
-				samba(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { };
+				samba(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
 				samba(const samba& rhs) : connection(rhs) {  };
 				~samba();
 
@@ -37,7 +37,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
-				long long copy(std::string&, std::string&, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

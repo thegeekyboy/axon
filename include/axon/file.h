@@ -17,12 +17,11 @@ namespace axon
 			class file : public connection {
 
 				int _fd = -1;
-				std::string _path;
 
 				bool init();
 
 			public:
-				file(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };
+				file(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) {  };
 				file(const file& rhs) : connection(rhs) {  };
 				~file();
 
@@ -34,7 +33,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
-				long long copy(std::string&, std::string&, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

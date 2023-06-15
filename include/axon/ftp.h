@@ -18,7 +18,7 @@ namespace axon
 				bool login();
 
 			public:
-				ftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) {  };
+				ftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) {  };
 				ftp(const ftp& rhs) : connection(rhs) {  };
 				~ftp();
 
@@ -30,7 +30,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<axon::entry> &);
-				long long copy(std::string &, std::string &, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

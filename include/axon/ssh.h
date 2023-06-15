@@ -8,6 +8,8 @@
 
 #define AXON_TRANSFER_SSH_MODE       0x0001
 #define AXON_TRANSFER_SSH_PRIVATEKEY 0x0002
+#define AXON_TRANSFER_SSH_USE_SCP    0x0004
+#define AXON_TRANSFER_SSH_PORT       0x0004
 
 namespace axon
 {
@@ -32,10 +34,12 @@ namespace axon
 				channel(LIBSSH2_CHANNEL* c)	{ _channel = c; }
 
 			public:
+				channel(LIBSSH2_SESSION*);
 				~channel();
 
 				void request_pty();
 				void request_pty(std::string term);
+				LIBSSH2_CHANNEL* get() { return _channel; };
 			};
 
 			class fingerprint
@@ -67,12 +71,15 @@ namespace axon
 
 				std::string _privkey;
 				auth_methods_t _mode;
+				bool _use_scp;
+
 				LIBSSH2_SESSION * _session;
 
 			public:
-				void set(int, auth_methods_t);
 				void set(int, int);
+				void set(int, bool);
 				void set(int, std::string);
+				void set(int, auth_methods_t);
 				
 				session();
 				virtual ~session();
@@ -98,7 +105,7 @@ namespace axon
 				long long _sftp_get(std::string, std::string, bool = false);
 
 			public:
-				sftp(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { _sftp = NULL; _connected = false; };
+				sftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { _sftp = NULL; _connected = false; };
 				sftp(const sftp& rhs) : connection(rhs) { _sftp = NULL; };
 				~sftp();
 
@@ -110,7 +117,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
-				long long copy(std::string &, std::string &, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

@@ -23,6 +23,8 @@ namespace axon
 			krb5_keytab _keytab;
 			krb5_ccache _cache;
 
+			std::string _id;
+
 			std::string _errstr(long int);
 
 		public:

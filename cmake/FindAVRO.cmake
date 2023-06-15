@@ -4,11 +4,12 @@ FIND_PATH(AVRO_INCLUDE_DIR avro.h
 )
 
 SET(AVRO_NAMES avro)
+MESSAGE(STATUS "looking for ${AVRO_NAMES}")
 FIND_LIBRARY(AVRO_LIBRARY
     NAMES ${AVRO_NAMES}
-    PATHS /usr/lib /usr/local/lib
+    PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64
 )
-
+MESSAGE(STATUS "looking for ${AVRO_LIBRARY}")
 IF(AVRO_INCLUDE_DIR AND AVRO_LIBRARY)
     SET(AVRO_FOUND TRUE)
     SET(AVRO_LIBRARIES ${AVRO_LIBRARY})

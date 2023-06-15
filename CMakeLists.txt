@@ -239,18 +239,18 @@ else (NOT KRB5_FOUND)
 endif()
 
 # Java Native Interface
-find_package(JNI REQUIRED)
-if (JNI_FOUND)
-    list(APPEND INCLUDE_DIRS ${JAVA_INCLUDE_PATH})
-    list(APPEND LIBRARIES ${JAVA_JVM_LIBRARY})
-endif()
+#find_package(JNI REQUIRED)
+#if (JNI_FOUND)
+#    list(APPEND INCLUDE_DIRS ${JAVA_INCLUDE_PATH})
+#    list(APPEND LIBRARIES ${JAVA_JVM_LIBRARY})
+#endif()
 
 # HDFS
-find_package(HDFS REQUIRED)
-if (HDFS_FOUND)
-    list(APPEND INCLUDE_DIRS ${HDFS_INCLUDE_DIR})
-    list(APPEND LIBRARIES ${HDFS_SHARED_LIB})
-else (NOT KRB5_FOUND)
+find_package(HDFS3 REQUIRED)
+if (HDFS3_FOUND)
+    list(APPEND INCLUDE_DIRS ${HDFS3_INCLUDE_DIR})
+    list(APPEND LIBRARIES ${HDFS3_LIBRARY})
+else (NOT HDFS3_FOUND)
 	message(FATAL_ERROR "LibHDFS Not Found!")
 endif()
 
@@ -307,7 +307,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
 configure_file(extras/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
 configure_file(extras/${PROJECT_NAME}.spec.in ${PROJECT_NAME}.spec @ONLY IMMEDIATE)
+
 # install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/)
 install(FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+
+# make uninstall
+add_custom_target("uninstall" COMMENT "Uninstall installed files")
+add_custom_command(
+    TARGET "uninstall"
+    POST_BUILD
+    COMMENT "Uninstall files with install_manifest.txt"
+    COMMAND xargs rm -vf < install_manifest.txt || echo Nothing in install_manifest.txt to be uninstalled!
+)

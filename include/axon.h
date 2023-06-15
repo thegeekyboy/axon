@@ -27,7 +27,7 @@
 // #include <sys/types.h>
 // #include <unistd.h>
 
-#define MAXBUF 1048576
+#define MAXBUF 2097152 //1048576
 
 #ifndef PATH_MAX
 #define PATH_MAX 260
@@ -46,39 +46,42 @@
 // AXON Namespace
 namespace axon
 {
-	typedef unsigned int flags_t;
-	typedef unsigned int proto_t;
-	typedef unsigned int auth_t;
-	typedef unsigned int trans_t;
+	typedef int flags_t;
+	typedef int proto_t;
+	typedef int auth_t;
+	typedef int trans_t;
 
 	struct flags {
 
-		static const flags_t DIR = 1;
-		static const flags_t FILE = 2;
-		static const flags_t LINK = 4;
-		static const flags_t CHAR = 8;
-		static const flags_t BLOCK = 16;
-		static const flags_t FIFO = 32;
-		static const flags_t SOCKET = 64;
-		static const flags_t UNKNOWN = 64;
+		static const flags_t UNKNOWN = -1;
+		static const flags_t DIR = 0;
+		static const flags_t FILE = 1;
+		static const flags_t LINK = 2;
+		static const flags_t CHAR = 3;
+		static const flags_t BLOCK = 4;
+		static const flags_t FIFO = 5;
+		static const flags_t SOCKET = 6;
 	};
 
 	struct protocol {
 
+		static const proto_t UNKNOWN = -1;
 		static const proto_t FILE = 0; // done
 		static const proto_t SFTP = 1; // done
 		static const proto_t FTP = 2; // done
 		static const proto_t S3 = 3; // done
 		static const proto_t SAMBA = 4;
-		static const proto_t HDFS = 5;
-		static const proto_t AWS = 6;
-		static const proto_t SCP = 7;
+		static const proto_t HDFS = 5; // done
+		static const proto_t AWS = 6; // done
+		static const proto_t SCP = 7; // done
 		static const proto_t DATABASE = 8;
 		static const proto_t KAFKA = 9;
+		static const proto_t HTTP = 10;
 	};
 
 	struct authtypes {
 
+		static const auth_t UNKNOWN = -1;
 		static const auth_t PASSWORD = 0;
 		static const auth_t PRIVATEKEY = 1;
 		static const auth_t KERBEROS = 2;

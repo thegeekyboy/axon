@@ -17,15 +17,13 @@ namespace axon
 				std::string _endpoint;
 				std::string _proxy;
 
-				std::string _path;
-
 				static std::atomic<int> _instance;
 				static std::mutex _mtx;
 
 				bool init();
 
 			public:
-				s3(std::string hostname, std::string username, std::string password) : connection(hostname, username, password) { };
+				s3(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
 				s3(const s3& rhs) : connection(rhs) {  };
 				~s3();
 
@@ -39,7 +37,7 @@ namespace axon
 				bool mkdir(std::string);
 				int list(const axon::transport::transfer::cb &);
 				int list(std::vector<entry> &);
-				long long copy(std::string&, std::string&, bool = false);
+				long long copy(std::string, std::string, bool = false);
 				bool ren(std::string, std::string);
 				bool del(std::string);
 

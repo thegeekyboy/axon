@@ -33,17 +33,28 @@ namespace axon
 				return true;
 			}
 
-			long long file::copy(std::string &src, std::string &dest, bool compress)
+			long long file::copy(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested file::copy() src = %s, dest = %s", _id.c_str(), src.c_str(), dest.c_str());
+
 				int bzerr;
 				unsigned int inbyte, outbyte;
 				size_t filesize = 0, szr, szw;
 				unsigned char FILEBUF[MAXBUF];
+				std::string srcx;
 
 				FILE *fps, *fpd;
 				BZFILE *bfp = NULL;
 
-				DBGPRN("[%s] requested file::copy() src = %s, dest = %s", _id.c_str(), src.c_str(), dest.c_str());
+				if (src[0] == '/')
+					srcx = src;
+				else
+					srcx = _path + "/" + src;
+
+				auto [path, filename] = axon::helper::splitpath(srcx);
+				
+				if (src == dest || srcx == dest || path == dest || filename == dest)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
 
 				if (!(fpd = fopen(dest.c_str(), "wb")))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing " + dest);

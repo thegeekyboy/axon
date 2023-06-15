@@ -25,6 +25,8 @@ namespace axon
 			_cache = NULL;
 			_keytab = NULL;
 			_ctx = NULL;
+
+			_id = axon::helper::uuid();
 		}
 
 		kerberos::~kerberos()
@@ -275,7 +277,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file is not accessible");
 
 			if (!axon::helper::iswritable(_cache_file))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cache file is not accessible");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cache file is not accessible " + _cache_file);
 			
 			if ((retval = krb5_init_context(&_ctx)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize context - " + _errstr(retval));
@@ -387,8 +389,9 @@ namespace axon
 			long int retval;
 			
 			krb5_principal principal;
-			krb5_creds creds;
+			krb5_creds creds = { 0 };
 
+			// memset(&creds, 0, sizeof(creds));
 			if ((retval = krb5_parse_name(_ctx, _principal.c_str(), &principal)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot parse principal string - " + _errstr(retval));
 
@@ -410,7 +413,8 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot store credentials - " + _errstr(retval));
 			}
 
-			krb5_free_creds(_ctx, &creds);
+			// krb5_free_creds(_ctx, &creds); <- donno why this dont work!! throws a double free exception.
+			krb5_free_cred_contents(_ctx, &creds); // so using this instead, dont seem to get any memory leak
 			krb5_free_principal(_ctx, principal);
 		}
 	}
