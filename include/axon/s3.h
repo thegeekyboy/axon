@@ -12,7 +12,7 @@ namespace axon
 		{
 			class s3 : public connection {
 
-				Aws::SDKOptions *_options;
+				Aws::SDKOptions _options;
 				Aws::S3::S3Client *_client;
 				std::string _endpoint;
 				std::string _proxy;

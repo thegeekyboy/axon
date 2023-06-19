@@ -49,31 +49,32 @@ namespace axon
 			bool s3::init()
 			{
 				std::lock_guard<std::mutex> guard(_mtx);
-
+std::cout<<"INIT()"<<std::endl;
 				if (_instance <= 0)
 				{
-					_options = new Aws::SDKOptions;
-					Aws::InitAPI(*_options);
+					//_options = new Aws::SDKOptions;
+					Aws::InitAPI(_options);
 					std::this_thread::sleep_for(std::chrono::milliseconds(200));
 				}
-
 				_instance++;
 
+std::cout<<"INIT(END)"<<std::endl;
 				return true;
 			}
 
 			bool s3::set(char c, std::string value)
 			{
-				switch (c)
-				{
-					case AXON_TRANSFER_S3_PROXY:
-						_proxy = value;
-						break;
+				// switch (c)
+				// {
+				// 	case AXON_TRANSFER_S3_PROXY:
+				// 		// _proxy = value;
+				// 		// _proxy = "10.96.66.246:4951";
+				// 		break;
 
-					case AXON_TRANSFER_S3_ENDPOINT:
-						_endpoint = value;
-						break;
-				}
+				// 	case AXON_TRANSFER_S3_ENDPOINT:
+				// 		_endpoint = value;
+				// 		break;
+				// }
 
 				return true;
 			}
@@ -85,7 +86,7 @@ namespace axon
 				Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 				Aws::Client::ClientConfiguration cfg;
 				bool useVirtualAdressing = true;
-
+std::cout<<"Step 1"<<std::endl;
 				// TODO:
 				// need to figure out how to disable IMDS query, specially when non-AWS service
 				// provider like minio. for the time export AWS_EC2_METADATA_DISABLED="true" for
@@ -106,10 +107,12 @@ namespace axon
 					std::vector<std::string> proxy = axon::helper::split(_proxy, ':');
 					cfg.proxyHost = proxy[0];
 					if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
+					cfg.proxyScheme = Aws::Http::Scheme::HTTPS;
+					std::cout<<"? proxy: "<<proxy[0]<<", port: "<<std::stoi(proxy[1])<<std::endl;
 				}
-
+std::cout<<"Client creating!"<<std::endl;
 				_client = new Aws::S3::S3Client(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
-
+std::cout<<"Client created!"<<std::endl;
 				auto outcome = _client->ListBuckets();
 
 				if (!outcome.IsSuccess())
@@ -129,8 +132,8 @@ namespace axon
 
 				if (_instance <= 0)
 				{
-					Aws::ShutdownAPI(*_options);
-					delete _options;
+					Aws::ShutdownAPI(_options);
+					// delete _options;
 				}
 
 				return true;
