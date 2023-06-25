@@ -23,7 +23,7 @@ namespace axon
 				bool init();
 
 			public:
-				s3(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
+				s3(std::string hostname, std::string username, std::string password, uint16_t port);
 				s3(const s3& rhs) : connection(rhs) {  };
 				~s3();
 

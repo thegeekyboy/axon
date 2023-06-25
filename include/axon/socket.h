@@ -12,13 +12,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define INVALID_SOCKET (SOCKET)(~0)
+
 namespace axon
 {
 	namespace transport
 	{
 		namespace tcpip {
 
-			#define INVALID_SOCKET (SOCKET)(~0)
 
 			typedef unsigned int SOCKET;
 

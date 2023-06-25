@@ -172,7 +172,7 @@ namespace axon
 					if(__libshh2_session_count == 0)
 					{
 						if ((_rc = libssh2_init(0)) != 0)
-							std::cout<<"There was an error in libssh2_init()"<<std::endl;
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error in libssh2_init()");
 
 					}
 

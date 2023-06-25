@@ -139,8 +139,6 @@ namespace axon
 					if (setfsuid(-1) != (int) pw->pw_uid)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change fs uid with 'setfsuid'");
 				}
-				// else
-				// 	std::cout<<"same user id as effective user"<<std::endl;
 
 				return true;
 			}

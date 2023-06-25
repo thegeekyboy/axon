@@ -46,7 +46,7 @@ EOF
 Since centos/redhat 7 do not come with C++17, need to install gcc 11 from scl/devtoolset
 
 ```bash
-$ sudo yum install git cmake3 cmake gcc-c++ devtoolset-11 devtoolset-11-runtime devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-libstdc++-devel devtoolset-11-make
+$ sudo yum install git cmake3 cmake gcc-c++ devtoolset-11 devtoolset-11-runtime devtoolset-12-gcc devtoolset-12-gcc-c++ devtoolset-12-libstdc++-devel devtoolset-12-make
 ```
 
 ## Installing the dependencies
@@ -168,3 +168,4 @@ cd axon && mkdir build && cd build
 cmake3 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
 sudo make install
 ```
+

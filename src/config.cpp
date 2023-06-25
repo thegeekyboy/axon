@@ -52,19 +52,6 @@ namespace axon
 				open(crumb.front());
 				crumb.pop();
 			}
-			/*
-			std::stack<std::string> ts = source._path;
-			while (!ts.empty())
-			{
-				std::string tstr = ts.top();
-				std::cout<<i++<<") tstr = "<<tstr<<std::endl;
-				tq.push_back(tstr);
-				ts.pop();
-			}
-
-			for (int i = tq.size()-1; i >= 0; --i)
-				open(tq[i]);
-			*/
 		}
 	}
 
