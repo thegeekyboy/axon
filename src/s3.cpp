@@ -38,8 +38,13 @@ namespace axon
 	{
 		namespace transfer
 		{
-			std::atomic<int> s3::_instance;
+			std::atomic<int> s3::_instance = 0;
 			std::mutex s3::_mtx;
+
+			s3::s3(std::string hostname, std::string username, std::string password, uint16_t port)
+			: connection(hostname, username, password, port)
+			{
+			}
 
 			s3::~s3()
 			{
@@ -49,7 +54,7 @@ namespace axon
 			bool s3::init()
 			{
 				std::lock_guard<std::mutex> guard(_mtx);
-std::cout<<"INIT()"<<std::endl;
+
 				if (_instance <= 0)
 				{
 					//_options = new Aws::SDKOptions;
@@ -58,23 +63,21 @@ std::cout<<"INIT()"<<std::endl;
 				}
 				_instance++;
 
-std::cout<<"INIT(END)"<<std::endl;
 				return true;
 			}
 
 			bool s3::set(char c, std::string value)
 			{
-				// switch (c)
-				// {
-				// 	case AXON_TRANSFER_S3_PROXY:
-				// 		// _proxy = value;
-				// 		// _proxy = "10.96.66.246:4951";
-				// 		break;
+				switch (c)
+				{
+					case AXON_TRANSFER_S3_PROXY:
+						_proxy = value;
+						break;
 
-				// 	case AXON_TRANSFER_S3_ENDPOINT:
-				// 		_endpoint = value;
-				// 		break;
-				// }
+					case AXON_TRANSFER_S3_ENDPOINT:
+						_endpoint = value;
+						break;
+				}
 
 				return true;
 			}
@@ -86,7 +89,7 @@ std::cout<<"INIT(END)"<<std::endl;
 				Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 				Aws::Client::ClientConfiguration cfg;
 				bool useVirtualAdressing = true;
-std::cout<<"Step 1"<<std::endl;
+
 				// TODO:
 				// need to figure out how to disable IMDS query, specially when non-AWS service
 				// provider like minio. for the time export AWS_EC2_METADATA_DISABLED="true" for
@@ -108,11 +111,10 @@ std::cout<<"Step 1"<<std::endl;
 					cfg.proxyHost = proxy[0];
 					if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
 					cfg.proxyScheme = Aws::Http::Scheme::HTTPS;
-					std::cout<<"? proxy: "<<proxy[0]<<", port: "<<std::stoi(proxy[1])<<std::endl;
 				}
-std::cout<<"Client creating!"<<std::endl;
+
 				_client = new Aws::S3::S3Client(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
-std::cout<<"Client created!"<<std::endl;
+
 				auto outcome = _client->ListBuckets();
 
 				if (!outcome.IsSuccess())
@@ -127,13 +129,18 @@ std::cout<<"Client created!"<<std::endl;
 			{
 				std::lock_guard<std::mutex> guard(_mtx);
 
-				delete _client;
-				_instance--;
-
-				if (_instance <= 0)
+				if (_connected)
 				{
-					Aws::ShutdownAPI(_options);
-					// delete _options;
+					delete _client;
+				
+					_instance--;
+					if (_instance <= 0)
+					{
+						Aws::ShutdownAPI(_options);
+						// delete _options;
+					}
+
+					_connected = false;
 				}
 
 				return true;
@@ -371,7 +378,7 @@ std::cout<<"Client created!"<<std::endl;
 				Aws::S3::Model::GetObjectOutcome result = _client->GetObject(request);
 
 				if (!result.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error downloading object");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error downloading object " + result.GetError().GetMessage());
 
 				Aws::S3::Model::GetObjectResult& details = result.GetResult();
 

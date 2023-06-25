@@ -1211,7 +1211,6 @@ namespace axon {
 				
 				// sb2 *indicator[] = (sb2 *) _col[i].indicator;
 				// memcpy(indicator, _col[i].indicator, _prefetch*sizeof(sb2));
-				// std::cout<<(*indicator)[1]<<std::endl;
 
 				switch (_col[i].type)
 				{

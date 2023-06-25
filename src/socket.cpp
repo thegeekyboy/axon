@@ -222,8 +222,6 @@ namespace axon
 			{
 				data += "\r\n";
 				
-				//std::cout<<"SENT:("<<data.size()<<")>"<<data<<std::endl;
-
 				if (write(data.c_str(), data.size()) <= 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error writing()-ing to socket");
 

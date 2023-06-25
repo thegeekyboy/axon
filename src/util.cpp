@@ -78,7 +78,6 @@ namespace axon
 
 			std::tie(parent, remainder) = axon::helper::splitpath(path);
 			
-			// std::cout<<">> parent: "<<parent<<", remainder: "<<remainder<<std::endl;
 			std::cin.get();
 
 			return _mkdir(parent, mode);
