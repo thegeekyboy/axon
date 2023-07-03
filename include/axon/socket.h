@@ -50,7 +50,8 @@ namespace axon
 				bool purge();
 				
 				bool writeline(std::string);
-				long long write(const char *, size_t);
+				long write(std::string);
+				long write(const char *, size_t);
 			};
 		}
 	}

@@ -22,4 +22,5 @@ target_sources(${PROJECT_NAME}
 	s3.cpp
 	samba.cpp
 	hdfs.cpp
+	mail.cpp
 )

@@ -3,6 +3,7 @@
 #include <random>
 #include <cxxabi.h>
 
+#include <magic.h>
 #include <boost/filesystem.hpp>
 
 #include <axon.h>
@@ -18,6 +19,22 @@ namespace axon
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			"abcdefghijklmnopqrstuvwxyz"
 			"0123456789+/";
+
+		static inline void ltrim(std::string &s)
+		{
+			s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
+		}
+
+		static inline void rtrim(std::string &s)
+		{
+			s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch);	}).base(), s.end());
+		}
+
+		static inline void trim(std::string &s)
+		{
+			rtrim(s);
+			ltrim(s);
+		}
 
 		unsigned int toInt(char c)
 		{
@@ -164,12 +181,23 @@ namespace axon
 
 		bool isdir(const std::string &path)
 		{
-			// for folder
 			struct stat info;
 
 			if(stat(path.c_str(), &info ) != 0)
 				return false;
 			else if(info.st_mode & S_IFDIR)
+				return true;
+			else
+				return false;
+		}
+
+		bool isfile(const std::string &path)
+		{
+			struct stat info;
+
+			if(stat(path.c_str(), &info ) != 0)
+				return false;
+			else if(info.st_mode & S_IFREG)
 				return true;
 			else
 				return false;
@@ -237,6 +265,30 @@ namespace axon
 					return false;
 			
 			return true;
+		}
+
+		std::tuple<std::string, std::string> magic(std::string& filename)
+		{
+			struct magic_set *mcookie;
+			std::string mimetype, encoding;
+
+			if ((mcookie = magic_open(MAGIC_MIME|MAGIC_CHECK)) != NULL)
+			{
+				if (magic_load(mcookie, NULL) == 0)
+				{
+					mimetype = magic_file(mcookie, filename.c_str());
+					std::vector<std::string> bits = axon::helper::split(mimetype, ';');
+					if (bits.size()>1)
+					{
+						trim(bits[0]);
+						trim(bits[1]);
+					}
+					mimetype = bits[0];
+					encoding = bits[1];
+				}
+				magic_close(mcookie);
+			}
+			return { mimetype, encoding };
 		}
 
 		int license(struct licensekey *master)
@@ -384,7 +436,8 @@ namespace axon
 		}
 
 
-		static inline bool is_base64(BYTE c) {
+		static inline bool is_base64(BYTE c)
+		{
 			return (isalnum(c) || (c == '+') || (c == '/'));
 		}
 
@@ -431,6 +484,31 @@ namespace axon
 			}
 
 			return ret;
+		}
+
+		std::string base64_encode(const std::string &in)
+		{
+			std::string out;
+
+			int val = 0, valb = -6;
+			
+			for (u_char c : in)
+			{
+				val = (val << 8) + c;
+				valb += 8;
+				while (valb >= 0) {
+					out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val>>valb)&0x3F]);
+					valb -= 6;
+				}
+			}
+
+			if (valb>-6)
+				out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val<<8)>>(valb+8))&0x3F]);
+			
+			while (out.size()%4)
+				out.push_back('=');
+
+			return out;
 		}
 
 		std::vector<BYTE> base64_decode(std::string const& encoded_string)

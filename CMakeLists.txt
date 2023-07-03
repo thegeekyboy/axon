@@ -71,6 +71,16 @@ else (NOT CRYPT_FOUND)
 	message(FATAL_ERROR "crypt library not found!")
 endif ()
 
+# file-magic
+find_package(LibMagic REQUIRED)
+
+if (LIBMAGIC_FOUND)
+	list(APPEND INCLUDE_DIRS ${LIBMAGIC_INCLUDE_DIR})
+	list(APPEND LIBRARIES ${LIBMAGIC_LIBRARY})
+else (NOT LIBMAGIC_FOUND)
+	message(FATAL_ERROR "libmagic library not found!")
+endif ()
+
 # OpenSSL
 find_package (OpenSSL REQUIRED)
 

@@ -68,7 +68,7 @@ there are bunch of dependencies for axon to run correctly.
 - [libserdes](https://github.com/confluentinc/libserdes)
 
 ```bash
-$ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzstd-devel boost-devel boost-regex boost-iostreams boost-system boost-thread boost-filesystem sqlite-devel libssh2-devel libconfig-devel libblkid-devel librdkafka-devel krb5-devel krb5-libs krb5-workstation libntlm-devel gssntlmssp-devel jansson-devel librdkafka-devel confluent-libserdes-devel avro-c-devel avro-cpp-devel
+$ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzstd-devel boost-devel boost-regex boost-iostreams boost-system boost-thread boost-filesystem sqlite-devel libssh2-devel libconfig-devel libblkid-devel librdkafka-devel krb5-devel krb5-libs krb5-workstation libntlm-devel gssntlmssp-devel jansson-devel librdkafka-devel confluent-libserdes-devel avro-c-devel avro-cpp-devel file-devel
 ```
 
 #### ✔️ oracle
