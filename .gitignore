@@ -5,6 +5,7 @@
 # folders
 !*/
 build
+test
 experiment
 *.del
 
