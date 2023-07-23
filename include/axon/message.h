@@ -11,13 +11,13 @@
 #define QUEUE_NAME "/axonmsg"
 
 #define CHECK(x) \
-    do { \
-        if (!(x)) { \
-            fprintf(stderr, "%s:%d: ", __PRETTY_FUNCTION__, __LINE__); \
-            perror(#x); \
-            exit(-1); \
-        } \
-    } while (0) \
+	do { \
+		if (!(x)) { \
+			fprintf(stderr, "%s:%d: ", __PRETTY_FUNCTION__, __LINE__); \
+			perror(#x); \
+			exit(-1); \
+		} \
+	} while (0) \
 
 namespace axon {
 

@@ -15,6 +15,7 @@ extern "C" {
 
 #include <axon.h>
 #include <axon/kafka.h>
+#include <axon/util.h>
 
 namespace axon
 {
@@ -22,183 +23,154 @@ namespace axon
 	{
 		namespace transfer
 		{
-            kafka::kafka(std::string ke, std::string sr): kafkaEndpoint(ke), schemaRegistry(sr)
-            {
-                if (gethostname(hostname, sizeof(hostname)))
-                {
-                    throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Failed to lookup hostname");
-                }
+			kafka::kafka(std::string bootstrap, std::string schema, std::string consumer): 
+				_bootstrap_hosts(bootstrap),
+				_schema_hosts(schema),
+				_consumer(consumer)
+			{
+				if (gethostname(_hostname, sizeof(_hostname)))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Failed to lookup hostname");
 
-                sconf = serdes_conf_new(NULL, 0, "schema.registry.url", sr.c_str(), NULL);
+				_serdes.set("schema.registry.url", _schema_hosts);
+				_serdes.init();
 
-                if (!(serdes = serdes_new(sconf, strerr, sizeof(strerr))))
-                {
-                    throw strerr;
-                }
+				_config.set("client.id", _hostname);
+				_config.set("group.id", _consumer);
+				_config.set("enable.partition.eof", "false");
+				_config.set("enable.auto.commit", "true");
+				_config.set("auto.offset.reset", "latest");
+				_config.set("bootstrap.servers", _bootstrap_hosts);
 
-                kconf = rd_kafka_conf_new();
+				if (!(_rk = rd_kafka_new(RD_KAFKA_CONSUMER, _config.get(), error, sizeof(error))))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
 
-                if (rd_kafka_conf_set(kconf, "client.id", hostname, strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                {
-                    throw strerr;
-                }
+				rd_kafka_poll_set_consumer(_rk);
 
-                if (rd_kafka_conf_set(kconf, "group.id", "KafkaConsumer", strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                {
-                    rd_kafka_conf_destroy(kconf);
-                    throw strerr;
-                }
+				_runnable = false;
+				_connected = false;
 
-                // if (rd_kafka_conf_set(kconf, "enable.partition.eof", "true", strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                // {
-                // 	rd_kafka_conf_destroy(kconf);
-                // 	throw strerr;
-                // }
+				_counter = 0;
+			}
 
-                if (rd_kafka_conf_set(kconf, "enable.auto.commit", "true", strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                {
-                    rd_kafka_conf_destroy(kconf);
-                    throw strerr;
-                }
+			kafka::~kafka()
+			{
+				if (_runner.joinable())
+					_runner.join();
 
-                if (rd_kafka_conf_set(kconf, "auto.offset.reset", "latest", strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                {
-                    rd_kafka_conf_destroy(kconf);
-                    throw strerr;
-                }
+				if (_connected)
+					rd_kafka_unsubscribe(_rk);
 
-                if (rd_kafka_conf_set(kconf, "bootstrap.servers", ke.c_str(), strerr, sizeof(strerr)) != RD_KAFKA_CONF_OK)
-                {
-                    throw strerr;
-                }
+				if (_rk)
+				{
+					rd_kafka_consumer_close(_rk);
+					rd_kafka_destroy(_rk);
+				}
+			}
 
-                runnable = false;
-                counter = 0;
-            }
+			bool kafka::add(std::string topic)
+			{
+				_topic.push_back(topic);
 
-            kafka::~kafka()
-            {
-                if (runner.joinable())
-                    runner.join();
+				return true;
+			}
 
-                rd_kafka_consumer_close(rk);
-                rd_kafka_destroy(rk);
+			void kafka::connect()
+			{
+				_subscription = rd_kafka_topic_partition_list_new(_topic.size());
+				
+				for (std::string &topic : _topic)
+					rd_kafka_topic_partition_list_add(_subscription, topic.c_str(), RD_KAFKA_PARTITION_UA);
+				
+				if ((err = rd_kafka_subscribe(_rk, _subscription)))
+				{
+					DBGPRN("=> Failed to subscribe to %d topics: %s\n", _subscription->cnt, rd_kafka_err2str(err));
 
-                serdes_destroy(serdes);
-            }
+					rd_kafka_topic_partition_list_destroy(_subscription);
+					rd_kafka_destroy(_rk);
 
-            bool kafka::connect(std::string table)
-            {
-                if (!(rk = rd_kafka_new(RD_KAFKA_CONSUMER, kconf, strerr, sizeof(strerr))))
-                    throw strerr;
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to subscribe to topic");
+				}
 
-                kconf = NULL;
-                rd_kafka_poll_set_consumer(rk);
+				DBGPRN("=> Subscribed to %d topic(s), waiting for rebalance and messages...\n", _subscription->cnt);
+				rd_kafka_topic_partition_list_destroy(_subscription);
 
-                subscription = rd_kafka_topic_partition_list_new(1);
-                rd_kafka_topic_partition_list_add(subscription, table.c_str(), RD_KAFKA_PARTITION_UA);
-                
-                if ((err = rd_kafka_subscribe(rk, subscription)))
-                {
-                    // fprintf(stderr, "=> Failed to subscribe to %d topics: %s\n", subscription->cnt, rd_kafka_err2str(err));
-                    rd_kafka_topic_partition_list_destroy(subscription);
-                    rd_kafka_destroy(rk);
+				_connected = true;
+			}
 
-                    throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to subscribe to topic");
-                }
+			bool kafka::start(std::function<void(avro_value_t *)> fn)
+			{
+				if (!_connected)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "not connected yet!");
 
-                // fprintf(stderr, "=> Subscribed to %d topic(s), waiting for rebalance and messages...\n", subscription->cnt);
-                rd_kafka_topic_partition_list_destroy(subscription);
+				f = fn;
+				_runnable = true;
 
-                return true;
-            }
+				_runner = std::thread([this] () {
 
-            bool kafka::start(std::function<void(rd_kafka_message_t *rkm, serdes_t *s)> fn)
-            {
-                if (runnable == true)
-                    return false;
+					unsigned long long counter = 0;
 
-                f = fn;
-                runnable = true;
+					while (_runnable)
+					{
+						axon::timer(__PRETTY_FUNCTION__);
+						rd_kafka_message_t *rkm;
 
-                runner = std::thread([this] () {
+						if (!(rkm = rd_kafka_consumer_poll(_rk, 300)))
+						{
+							counter = 0;
+							continue;
+						}
 
-                    while (runnable)
-                    {
-                        rd_kafka_message_t *rkm;
+						if (rkm->err)
+						{
+							DBGPRN("=> Consumer error: %d->%s\n", rkm->err, rd_kafka_message_errstr(rkm));
+							rd_kafka_message_destroy(rkm);
 
-                        if (!(rkm = rd_kafka_consumer_poll(rk, 300)))
-                        {
-                            counter = 0;
-                            continue;
-                        }
+							continue;
+						}
 
-                        if (rkm->err)
-                        {
-                            fprintf(stderr, "=> Consumer error: %s\n", rd_kafka_message_errstr(rkm));
-                            rd_kafka_message_destroy(rkm);
+						try {
+							avro_value_t avro;
+							char error[1024];
 
-                            continue;
-                        }
+							if (serdes_deserialize_avro(_serdes.get(), &avro, NULL, rkm->payload, rkm->len, error, 1024))
+								throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
 
-                        try {
-                            f(rkm, serdes);
-                        } catch(const std::bad_function_call& e) {
-                            std::cout<<e.what()<<std::endl;
-                        }
-                        rd_kafka_message_destroy(rkm);
+							f(&avro);
+							avro_value_decref(&avro);
 
-                        if ((counter % MIN_COMMIT_COUNT) == 0)
-                        {
-                            err = rd_kafka_commit(rk, NULL, 0);
-                            if (err) {
-                                fprintf(stderr, "=> Consumer error: %s\n", rd_kafka_err2str(err));
-                            }
-                        }
+						} catch(const std::bad_function_call& e) {
+							std::cout<<e.what()<<std::endl;
+						}
 
-                        counter++;
-                    }
-                });
+						rd_kafka_message_destroy(rkm);
 
-                return true;
-            }
+						if ((counter % MIN_COMMIT_COUNT) == 0)
+						{
+							err = rd_kafka_commit(_rk, NULL, 0);
+							if (err)
+							{
+								DBGPRN("=> Consumer error: %s\n", rd_kafka_err2str(err));
+							}
+						}
 
-            void kafka::stop()
-            {
-                if (runnable)
-                {
-                    runnable = false;
-                }
-            }
+						counter++;
+						_counter++;
+					}
+				});
 
-            void kafka::eventloop(rd_kafka_message_t *rkm, serdes_t *serdes)
-            {
-                while (runnable)
-                {
-                    rd_kafka_message_t *rkm;
+				return true;
+			}
 
-                    if (!(rkm = rd_kafka_consumer_poll(rk, 1000)))
-                    {
-                        counter = 0;
-                        continue;
-                    }
+			void kafka::stop()
+			{
+				if (_runnable)
+					_runnable = false;
+			}
 
-                    if (rkm->err)
-                    {
-                        // fprintf(stderr, "=> Consumer error: %s\n", rd_kafka_message_errstr(rkm));
-                        rd_kafka_message_destroy(rkm);
-
-                        continue;
-                    }
-
-                    f(rkm, serdes);
-                    rd_kafka_message_destroy(rkm);
-
-                    counter++;
-                }
-
-                return;
-            }
-        }
-    }
+			unsigned long long kafka::counter()
+			{
+				return _counter;
+			}
+		}
+	}
 }

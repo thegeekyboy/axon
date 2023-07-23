@@ -118,13 +118,13 @@ namespace axon
 
 			bool file::connect()
 			{
-				// char   *pw_name;       /* username */
-				// char   *pw_passwd;     /* user password */
-				// uid_t   pw_uid;        /* user ID */
-				// gid_t   pw_gid;        /* group ID */
-				// char   *pw_gecos;      /* user information */
-				// char   *pw_dir;        /* home directory */
-				// char   *pw_shell;      /* shell program */
+				// char   *pw_name;		/* username */
+				// char   *pw_passwd;	/* user password */
+				// uid_t   pw_uid;		/* user ID */
+				// gid_t   pw_gid;		/* group ID */
+				// char   *pw_gecos;	/* user information */
+				// char   *pw_dir;		/* home directory */
+				// char   *pw_shell;	/* shell program */
 
 				struct passwd *pw = getpwnam(_username.c_str());
 

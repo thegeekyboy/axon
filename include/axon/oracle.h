@@ -49,13 +49,13 @@ namespace axon {
 		typedef context context;
 
 		struct _colinfo {
-			text *name;      // column name
-			ub4 position;    // in the select statement the position
-			ub4 type;        // data type
-			ub4 size;        // size/length of the field
-			ub4 memsize;     // how much memory (bytes) was allocated
+			text *name;	  // column name
+			ub4 position;	// in the select statement the position
+			ub4 type;		// data type
+			ub4 size;		// size/length of the field
+			ub4 memsize;	 // how much memory (bytes) was allocated
 			void *indicator; // indicator of null value in field
-			void *data;      // pointer to the data
+			void *data;	  // pointer to the data
 		};
 
 		class oracle:public interface {

@@ -51,7 +51,7 @@ $ sudo yum install git cmake3 cmake gcc-c++ devtoolset-11 devtoolset-11-runtime 
 
 ## Installing the dependencies
 
-#### ✔️ precompiled
+#### ✔️ from repo
 there are bunch of dependencies for axon to run correctly.
 
 - [boost](https://www.boost.org/) (iostreams, system, thread, regex)
@@ -66,6 +66,7 @@ there are bunch of dependencies for axon to run correctly.
 - [avro](https://avro.apache.org/)
 - [rdkafka](https://github.com/confluentinc/librdkafka)
 - [libserdes](https://github.com/confluentinc/libserdes)
+- [libmagic](https://www.darwinsys.com/file/)
 
 ```bash
 $ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzstd-devel boost-devel boost-regex boost-iostreams boost-system boost-thread boost-filesystem sqlite-devel libssh2-devel libconfig-devel libblkid-devel librdkafka-devel krb5-devel krb5-libs krb5-workstation libntlm-devel gssntlmssp-devel jansson-devel librdkafka-devel confluent-libserdes-devel avro-c-devel avro-cpp-devel file-devel

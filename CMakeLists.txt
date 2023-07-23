@@ -53,7 +53,7 @@ endif()
 ##############################################################################
 ## feature testing															 #
 ##############################################################################
-try_compile(HAS_STD_VARIANT ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/try_compile_variant.cpp)
+#try_compile(HAS_STD_VARIANT ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test/try_compile_variant.cpp)
 
 ##############################################################################
 ## Finding the libraries and packages										 #
@@ -314,6 +314,7 @@ add_subdirectory(test)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
+target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
 
 configure_file(extras/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
 configure_file(extras/${PROJECT_NAME}.spec.in ${PROJECT_NAME}.spec @ONLY IMMEDIATE)

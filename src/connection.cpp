@@ -22,16 +22,10 @@ namespace axon
 				boost::regex regex_username(r_username_p);
 				
 				if (!boost::regex_match(hostname, regex_ipaddr) && !boost::regex_match(hostname, regex_fqdn))
-				{
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname/ip address format");
-					return;
-				}
 
 				if (username.size() <= 0 || !boost::regex_match(username, regex_username))
-				{
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username is empty or format is wrong");
-					return;
-				}
 
 				_hostname = hostname;
 				_username = username;

@@ -392,8 +392,8 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 	}
 
 	/* MultiNet (some spaces removed from examples) */
-	/* "00README.TXT;1      2 30-DEC-1996 17:44 [SYSTEM] (RWED,RWED,RE,RE)" */
-	/* "CORE.DIR;1          1  8-SEP-1996 16:09 [SYSTEM] (RWE,RWE,RE,RE)" */
+	/* "00README.TXT;1	  2 30-DEC-1996 17:44 [SYSTEM] (RWED,RWED,RE,RE)" */
+	/* "CORE.DIR;1		  1  8-SEP-1996 16:09 [SYSTEM] (RWE,RWE,RE,RE)" */
 	/* and non-MutliNet VMS: */
 	/* "CII-MANUAL.TEX;1  213/216  29-JAN-1996 03:33:12  [ANONYMOU,ANONYMOUS]   (RWED,RWED,,)" */
 	for (i = 0;i < len;++i)
@@ -500,9 +500,9 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 	}
 
 	/* MSDOS format */
-	/* 04-27-00  09:09PM       <DIR>          licensed */
-	/* 07-18-00  10:16AM       <DIR>          pub */
-	/* 04-14-00  03:47PM                  589 readme.htm */
+	/* 04-27-00  09:09PM	   <DIR>		  licensed */
+	/* 07-18-00  10:16AM	   <DIR>		  pub */
+	/* 04-14-00  03:47PM				  589 readme.htm */
 	if ((*buf >= '0') && (*buf <= '9'))
 	{
 		i = 0;
