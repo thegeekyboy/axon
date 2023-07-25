@@ -1,6 +1,10 @@
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <chrono>
 #include <tuple>
 #include <random>
+
 #include <cxxabi.h>
 
 #include <magic.h>
@@ -144,6 +148,24 @@ namespace axon
 			password = crypt(word.c_str(), salt);
 
 			return password;
+		}
+
+		std::string md5(std::string& word)
+		{
+			md5_state_t state;
+			md5_byte_t digest[16];
+
+			std::stringstream ss;
+			ss<<std::hex;
+
+			md5_init(&state);
+			md5_append(&state, (const md5_byte_t *) word.c_str(), word.size());
+			md5_finish(&state, digest);
+
+			for( int i(0); i < 16; ++i )
+				ss<<std::setw(2)<<std::setfill('0')<<(int)digest[i];
+
+			return ss.str();
 		}
 
 		bool iswritable(const std::string &path)

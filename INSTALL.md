@@ -46,7 +46,7 @@ EOF
 Since centos/redhat 7 do not come with C++17, need to install gcc 11 from scl/devtoolset
 
 ```bash
-$ sudo yum install git cmake3 cmake gcc-c++ devtoolset-11 devtoolset-11-runtime devtoolset-12-gcc devtoolset-12-gcc-c++ devtoolset-12-libstdc++-devel devtoolset-12-make
+$ sudo yum install git cmake3 cmake gcc-c++ devtoolset-12 devtoolset-12-runtime devtoolset-12-gcc devtoolset-12-gcc-c++ devtoolset-12-libstdc++-devel devtoolset-12-make
 ```
 
 ## Installing the dependencies
@@ -98,6 +98,8 @@ EOF
 
 #### ✔️ aws-c-sdk
 
+if you face any issue compiling then, download a known [working release](https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.10.57.tar.gz)
+
 ```bash
 git clone https://github.com/aws/aws-sdk-cpp
 cd aws-sdk-cpp
@@ -110,7 +112,6 @@ sudo make install
 #### ✔️ libsmb2
 
 [libsmb2](https://www.snia.org/sites/default/files/SDC/2019/presentations/SMB/Sahlberg_Ronnie_Libsmb2_a_Userspace_SMB2_Client_for_all_Platforms.pdf) is a portable small footprint SMB2/3 C/C++ interface library developed by [Ronnie Sahlberg](https://www.samba.org/~sahlberg/)
-
 
 ```bash
 git clone https://github.com/sahlberg/libsmb2
@@ -125,7 +126,7 @@ the following libraries needs to be compiled from the provided source as officia
 ✨ a locked version of [libgsasl](https://www.gnu.org/software/gsasl/) by [Brett Rosen](https://github.com/bdrosen96)
 
 ```bash
-$ sudo yum install autoconf gettext-devel libtool gtk-doc gengetopt texlive-epstopdf ghostscript texinfo help2man http://mirror.centos.org/centos/7/os/x86_64/Packages/gperf-3.0.4-8.el7.x86_64.rpm
+$ sudo yum install autoconf gettext-devel libtool gtk-doc gengetopt gperf texlive-epstopdf ghostscript texinfo help2man http://mirror.centos.org/centos/7/os/x86_64/Packages/gperf-3.0.4-8.el7.x86_64.rpm
 ```
 
 ```bash
@@ -161,7 +162,7 @@ to compile and install a Release version of axon, with the `CMAKE_BUILD_TYPE=Rel
 
 
 ```bash
-scl enable devtoolset-11 bash
+scl enable devtoolset-12 bash
 export LD_LIBRARY_PATH=/usr/lib:/usr/lib64:/usr/local/lib64:$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 
 git clone https://github.com/thegeekyboy/axon

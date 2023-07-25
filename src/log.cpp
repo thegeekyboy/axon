@@ -139,4 +139,11 @@ namespace axon
 
 		return *this;
 	}
+
+	log& log::operator<<(std::ostream& (*fun)(std::ostream&))
+	{
+		std::cout<<std::endl;
+
+		return *this;
+	}
 }

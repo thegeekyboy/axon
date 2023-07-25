@@ -43,6 +43,7 @@ namespace axon
 		log& operator<<(int);
 		log& operator<<(std::string&);
 		log& operator<<(const char *);
+		log& operator<<(std::ostream& (*fun)(std::ostream&));
 
 		template<typename... Arguments>
 		void print(std::string level, std::string const& fmt, Arguments&&... args)

@@ -18,6 +18,7 @@ namespace axon
 		std::tuple<std::string, std::string> splitpath(std::string);
 		std::vector<std::string> split(const std::string&, const char);
 		std::string hash(const std::string&);
+		std::string md5(std::string&);
 		bool makedir(const char *);
 		bool isdir(const std::string&);
 		bool isfile(const std::string&);

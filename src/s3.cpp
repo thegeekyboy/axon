@@ -167,7 +167,7 @@ namespace axon
 				if (!result.IsSuccess())
 				{
 					auto err = result.GetError();
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " +bucket+ err.GetMessage());
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " +bucket + " " + err.GetMessage());
 				}
 
 				_path = (path[path.size()] = '/')?path:path+"/";
