@@ -7,6 +7,8 @@
 
 #include <curl/curl.h>
 
+#include <axon.h>
+
 namespace axon
 {
 	namespace helper
@@ -32,6 +34,11 @@ namespace axon
 		std::vector<BYTE> base64_decode(std::string const&);
 		std::string uuid();
 		std::string demangle(const char*);
+
+		std::string protoname(axon::proto_t);
+		axon::proto_t protoid(std::string&);
+		std::string authname(axon::auth_t);
+		axon::auth_t authid(std::string&);
 
 		template <typename T>
 		uint16_t count(std::vector<T> value)

@@ -72,6 +72,8 @@ there are bunch of dependencies for axon to run correctly.
 $ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzstd-devel boost-devel boost-regex boost-iostreams boost-system boost-thread boost-filesystem sqlite-devel libssh2-devel libconfig-devel libblkid-devel librdkafka-devel krb5-devel krb5-libs krb5-workstation libntlm-devel gssntlmssp-devel jansson-devel librdkafka-devel confluent-libserdes-devel avro-c-devel avro-cpp-devel file-devel
 ```
 
+&#9888;	_often it was noticed that when `confluent-libserdes-devel` package installs header files, the folder permission is incorrect. best check the permission after installing the package._
+
 #### ✔️ oracle
 
 Oralce provide OCI library to interface with oracle database engine. OCI is needed to read/write to database and DCN. Download RPMs instal client from [Oralce](https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html) website. you will need the following
@@ -158,7 +160,7 @@ sudo make install
 
 ## Compiling the library
 
-to compile and install a Release version of axon, with the `CMAKE_BUILD_TYPE=Release` a debug version will be built by default.
+to compile and install a Release version of axon, with the `CMAKE_BUILD_TYPE=Release`. A debug version will be built by default.
 
 
 ```bash

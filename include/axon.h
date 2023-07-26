@@ -7,18 +7,6 @@
 #include <vector>
 #include <functional>
 #include <chrono>
-// #include <fstream>
-// #include <string>
-// #include <cstring>
-// #include <thread>
-// #include <mutex>
-// #include <cstdarg>
-// #include <exception>
-// #include <typeinfo>
-// #include <iomanip>
-// #include <atomic>
-// #include <stack>
-// #include <queue>
 
 #include <string.h>
 #include <linux/limits.h>
@@ -66,20 +54,21 @@ namespace axon
 	struct protocol {
 
 		static const proto_t UNKNOWN = -1;
-		static const proto_t FILE = 0; // done
-		static const proto_t SFTP = 1; // done
-		static const proto_t FTP = 2; // done
-		static const proto_t S3 = 3; // done
-		static const proto_t SAMBA = 4;
-		static const proto_t HDFS = 5; // done
-		static const proto_t AWS = 6; // done
-		static const proto_t SCP = 7; // done
-		static const proto_t DATABASE = 8;
-		static const proto_t KAFKA = 9;
-		static const proto_t HTTP = 10;
+		static const proto_t NOTHING = 0; // wip
+		static const proto_t FILE = 1; // done
+		static const proto_t SFTP = 2; // done
+		static const proto_t FTP = 3; // done
+		static const proto_t S3 = 4; // done
+		static const proto_t SAMBA = 5;
+		static const proto_t HDFS = 6; // done
+		static const proto_t AWS = 7; // done
+		static const proto_t SCP = 8; // done
+		static const proto_t DATABASE = 9;
+		static const proto_t KAFKA = 10;
+		static const proto_t HTTP = 11;
 	};
 
-	struct authtypes {
+	struct authtype {
 
 		static const auth_t UNKNOWN = -1;
 		static const auth_t PASSWORD = 0;

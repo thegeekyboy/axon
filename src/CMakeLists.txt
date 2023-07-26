@@ -5,6 +5,7 @@ target_sources(${PROJECT_NAME}
 	aes.cpp
 	config.cpp
 	connection.cpp
+	nothing.cpp
 	sqlite.cpp
 	oracle.cpp
 	dmi.cpp

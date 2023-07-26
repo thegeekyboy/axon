@@ -298,7 +298,9 @@ namespace axon
 
 			int s3::list(const axon::transport::transfer::cb &cbfn)
 			{
+				axon::timer(__PRETTY_FUNCTION__);
 				long count = 0;
+				bool done = false;
 
 				if (_path.size() <= 2)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
@@ -311,29 +313,39 @@ namespace axon
 				for (unsigned int i = 1; i < parts.size(); i++)
 					prefix += parts[i] + "/";
 
+				DBGPRN("S3: listing %s %s", bucket.c_str(), prefix.c_str());
+
 				Aws::S3::Model::ListObjectsRequest request;
 				request.WithBucket(bucket).WithPrefix(prefix);
-				auto response = _client->ListObjects(request);
 
-				if (!response.IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error generating list");
-
-				Aws::Vector<Aws::S3::Model::Object> objects = response.GetResult().GetContents();
-
-				for (auto const &object : objects)
+				while (!done)
 				{
-					struct entry file;
+					auto response = _client->ListObjects(request);
 
-					file.et = axon::protocol::S3;
-					file.flag = axon::flags::FILE;
-					file.size = object.GetSize();
+					if (!response.IsSuccess())
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error generating list");
 
-					std::vector<std::string> parts = axon::helper::split(object.GetKey(), '/');
-					file.name = parts[parts.size()-1];
+					Aws::Vector<Aws::S3::Model::Object> objects = response.GetResult().GetContents();
 
-					cbfn(file);
+					for (auto const &object : objects)
+					{
+						struct entry file;
 
-					count++;
+						file.et = axon::protocol::S3;
+						file.flag = axon::flags::FILE;
+						file.size = object.GetSize();
+
+						std::vector<std::string> parts = axon::helper::split(object.GetKey(), '/');
+						file.name = parts[parts.size()-1];
+
+						cbfn(file);
+
+						count++;
+					}
+
+					done = !response.GetResult().GetIsTruncated();
+					if (!done)
+						request.SetMarker(response.GetResult().GetContents().back().GetKey());
 				}
 
 				return count;

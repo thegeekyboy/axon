@@ -599,5 +599,133 @@ namespace axon
 
 			return res;
 		}
+
+		std::string protoname(axon::proto_t i)
+		{
+			switch (i)
+			{
+				case axon::protocol::UNKNOWN:
+					return "axon::protocol::UNKNOWN";
+					break;
+
+				case axon::protocol::NOTHING:
+					return "axon::protocol::NOTHING";
+					break;
+
+				case axon::protocol::FILE:
+					return "axon::protocol::FILE";
+					break;
+				
+				case axon::protocol::SFTP:
+					return "axon::protocol::SFTP";
+					break;
+				
+				case axon::protocol::FTP:
+					return "axon::protocol::FTP";
+					break;
+				
+				case axon::protocol::S3:
+					return "axon::protocol::S3";
+					break;
+				
+				case axon::protocol::SAMBA:
+					return "axon::protocol::SAMBA";
+					break;
+				
+				case axon::protocol::SCP:
+					return "axon::protocol::SCP";
+					break;
+				
+				case axon::protocol::HDFS:
+					return "axon::protocol::HDFS";
+					break;
+				
+				case axon::protocol::DATABASE:
+					return "axon::protocol::DATABASE";
+					break;
+
+				case axon::protocol::KAFKA:
+					return "axon::protocol::KAFKA";
+					break;
+
+				default:
+					return "axon::protocol::UNKNOWN";
+					break;
+			}
+
+			return "axon::protocol::UNKNOWN";
+		}
+
+		axon::proto_t protoid(std::string& name)
+		{
+			if (name == "NOTHING" || name == "AXON::PROTOCOL::NOTHING")
+				return axon::protocol::NOTHING;
+			else if (name == "FILE" || name == "AXON::PROTOCOL::FILE")
+				return axon::protocol::FILE;
+			else if (name == "SFTP" || name == "AXON::PROTOCOL::SFTP")
+				return axon::protocol::SFTP;
+			else if (name == "FTP" || name == "AXON::PROTOCOL::FTP")
+				return axon::protocol::FTP;
+			else if (name == "S3" || name == "AXON::PROTOCOL::S3")
+				return axon::protocol::S3;
+			else if (name == "SAMBA" || name == "AXON::PROTOCOL::SAMBA")
+				return axon::protocol::SAMBA;
+			else if (name == "SCP" || name == "AXON::PROTOCOL::SCP")
+				return axon::protocol::SCP;
+			else if (name == "HDFS" || name == "AXON::PROTOCOL::HDFS")
+				return axon::protocol::HDFS;
+			else if (name == "DATABASE" || name == "AXON::PROTOCOL::DATABASE")
+				return axon::protocol::DATABASE;
+			else if (name == "KAFKA" || name == "AXON::PROTOCOL::KAFKA")
+				return axon::protocol::KAFKA;
+
+			return axon::protocol::UNKNOWN;
+		}
+
+		std::string authname(axon::auth_t i)
+		{
+			switch (i)
+			{
+				case axon::authtype::UNKNOWN:
+					return "axon::authtype::UNKNOWN";
+					break;
+
+				case axon::authtype::PASSWORD:
+					return "axon::authtype::PASSWORD";
+					break;
+
+				case axon::authtype::PRIVATEKEY:
+					return "axon::authtype::PRIVATEKEY";
+					break;
+				
+				case axon::authtype::KERBEROS:
+					return "axon::authtype::KERBEROS";
+					break;
+				
+				case axon::authtype::NTLM:
+					return "axon::authtype::NTLM";
+					break;
+				
+				default:
+					return "axon::authtype::UNKNOWN";
+					break;
+			}
+
+			return "axon::protocol::UNKNOWN";
+		}
+
+		axon::auth_t authid(std::string& name)
+		{
+			if (name == "PASSWORD" || name == "AXON::AUTHTYPE::PASSWORD")
+				return axon::authtype::PASSWORD;
+			else if (name == "PRIVATEKEY" || name == "AXON::AUTHTYPE::PRIVATEKEY")
+				return axon::authtype::PRIVATEKEY;
+			else if (name == "KERBEROS" || name == "AXON::AUTHTYPE::KERBEROS")
+				return axon::authtype::KERBEROS;
+			else if (name == "NTLM" || name == "AXON::AUTHTYPE::NTLM")
+				return axon::authtype::NTLM;
+
+			return axon::protocol::UNKNOWN;
+		}
 	}
 }
