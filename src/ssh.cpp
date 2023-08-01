@@ -208,6 +208,7 @@ namespace axon
 
 			void session::open(std::string host, unsigned short port)
 			{
+				DBGPRN("requested open() to %s :: %d", host.c_str(), port);
 				struct sockaddr_in sin;
 				hostent *record = gethostbyname(host.c_str());
 
@@ -364,6 +365,7 @@ namespace axon
 			sftp::~sftp()
 			{
 				disconnect();
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool sftp::connect()

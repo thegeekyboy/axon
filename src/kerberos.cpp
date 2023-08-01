@@ -39,6 +39,8 @@ namespace axon
 
 			if (_ctx)
 				krb5_free_context(_ctx);
+
+			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 		}
 
 		std::string kerberos::_errstr(long int i)

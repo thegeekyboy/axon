@@ -13,7 +13,7 @@
 
 #include <sys/stat.h>
 // #include <sys/types.h>
-// #include <unistd.h>
+#include <unistd.h>
 
 #define MAXBUF 2097152 //1048576
 
@@ -26,7 +26,7 @@
 #define DEBUG 0
 #endif
 #if DEBUG == 1
-#define DBGPRN(...) fprintf(stderr, __VA_ARGS__); puts("")
+#define DBGPRN(...) fprintf(stderr, __VA_ARGS__); fwrite("\n", 1, 1, stderr)
 #else
 #define DBGPRN(...)
 #endif
@@ -202,7 +202,7 @@ namespace axon
 		{
 			_end = std::chrono::high_resolution_clock::now();
 			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
-			DBGPRN("%s ran for %ldμs\n", _name.c_str(), microseconds.count());
+			DBGPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
 		}
 
 		long now()

@@ -49,6 +49,7 @@ namespace axon
 			s3::~s3()
 			{
 				disconnect();
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool s3::init()
@@ -148,6 +149,7 @@ namespace axon
 
 			bool s3::chwd(std::string path)
 			{
+				DBGPRN("[%s] requested s3::chwd() = %s", _id.c_str(), path.c_str());
 				if (path.size() <= 2)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path");
 
@@ -178,6 +180,7 @@ namespace axon
 
 			std::string s3::pwd()
 			{
+				DBGPRN("[%s] requested s3::pwd()", _id.c_str());
 				if (_path.size() <= 2)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 				
@@ -186,11 +189,13 @@ namespace axon
 
 			bool s3::mkdir(std::string dir)
 			{
+				DBGPRN("[%s] requested s3::mkdir() = %s", _id.c_str(), dir.c_str());
 				return true;
 			}
 
 			long long s3::copy(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested s3::copy() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::string srcx, destx;
 				long long filesize;
 
@@ -240,6 +245,7 @@ namespace axon
 
 			bool s3::ren(std::string src, std::string dest)
 			{
+				DBGPRN("[%s] requested s3::chwd() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::string srcx, destx;
 				std::string parent, remainder;
 
@@ -264,6 +270,7 @@ namespace axon
 
 			bool s3::del(std::string target)
 			{
+				DBGPRN("[%s] requested s3::del() = %s", _id.c_str(), target.c_str());
 				std::string targetx;
 
 				if (_path.size() <= 2)
@@ -361,6 +368,7 @@ namespace axon
 
 			long long s3::get(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested s3::get() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::string srcx;
 				Aws::S3::Model::GetObjectRequest request;
 
@@ -416,6 +424,7 @@ namespace axon
 
 			long long s3::put(std::string src, std::string dest, bool compress)
 			{
+				DBGPRN("[%s] requested s3::put() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
 				std::string destx;
 				Aws::S3::Model::PutObjectRequest request;

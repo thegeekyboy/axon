@@ -46,6 +46,7 @@ namespace axon
 			samba::~samba()
 			{
 				disconnect();
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool samba::init()

@@ -45,7 +45,7 @@ namespace axon
 
 			connection::~connection()
 			{
-				DBGPRN("[%s] connection parent class dying.", _id.c_str());
+				// DBGPRN("[%s] connection parent class dying.", _id.c_str());
 			}
 
 			bool connection::filter(std::string flt)

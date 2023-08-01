@@ -19,9 +19,9 @@ namespace axon
 				disconnect();
 
 				while (_sock.alive())
-				{
 					usleep(500000);
-				}
+
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool ftp::init()
