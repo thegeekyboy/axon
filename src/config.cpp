@@ -80,6 +80,15 @@ namespace axon
 		return true;
 	}
 
+	bool config::reload()
+	{
+		config_destroy(&_cfg);
+		config_init(&_cfg);
+		load();
+
+		return true;
+	}
+
 	bool config::open(std::string path)
 	{
 		config_setting_t *oldroot = _root;
@@ -107,15 +116,6 @@ namespace axon
 		}
 
 		_path.pop();
-
-		return true;
-	}
-
-	bool config::reload()
-	{
-		config_destroy(&_cfg);
-		config_init(&_cfg);
-		load();
 
 		return true;
 	}

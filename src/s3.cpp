@@ -6,27 +6,6 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
 
-#include <aws/core/Aws.h>
-
-#include <aws/core/auth/AWSCredentialsProvider.h>
-#include <aws/s3/S3Client.h>
-
-#include <aws/s3/model/Bucket.h>
-#include <aws/s3/model/GetBucketPolicyRequest.h>
-
-#include <aws/s3/model/Object.h>
-#include <aws/s3/model/ListObjectsRequest.h>
-
-#include <aws/s3/model/GetObjectRequest.h>
-#include <aws/s3/model/GetObjectResult.h>
-#include <aws/s3/model/HeadBucketRequest.h>
-#include <aws/s3/model/HeadObjectRequest.h>
-#include <aws/s3/model/DeleteObjectRequest.h>
-#include <aws/s3/model/CopyObjectRequest.h>
-#include <aws/clouddirectory/model/GetObjectAttributesResult.h>
-
-#include <aws/s3/model/PutObjectRequest.h>
-
 #include <axon.h>
 #include <axon/connection.h>
 #include <axon/s3.h>

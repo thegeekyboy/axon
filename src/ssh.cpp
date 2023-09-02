@@ -357,19 +357,19 @@ namespace axon
 			void session::set(int prop, std::string value)
 			{
 				if (prop == AXON_TRANSFER_SSH_PRIVATEKEY)
-				{
 					_privkey = value;
-				}
 			}
 
 			sftp::~sftp()
 			{
 				disconnect();
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool sftp::connect()
 			{
+				DBGPRN("[%s] requested sftp::connect() to %s", _id.c_str(), _hostname.c_str());
+				axon::timer t1(__PRETTY_FUNCTION__);
+
 				if (_connected)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected!");
 
@@ -892,7 +892,7 @@ namespace axon
 					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
 					{
 						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr));
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr) + " - " + src);
 					}
 				}
 

@@ -31,6 +31,8 @@ namespace axon
 		log();
 		~log();
 
+		log(const log&);
+
 		void open();
 		void open(std::string);
 		void open(std::string, std::string);

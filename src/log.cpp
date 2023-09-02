@@ -33,14 +33,23 @@ namespace axon
 			_ofs.close();
 	}
 
+	log::log(const log& src)
+	{
+		_level = src._level;
+		_filename = src._filename;
+		_path = src._path;
+
+		open();
+	}
+
 	bool log::reset()
 	{
 		if (_ofs.is_open())
 			_ofs.close();
 
 		_level = 0;
-		// _filename = nullptr;
-		// _path = nullptr;
+		_filename = "";
+		_path = "";
 
 		return true;
 	}
@@ -87,12 +96,16 @@ namespace axon
 		found = filename.find_last_of("/\\");
 		_path = filename.substr(0, found);
 		_filename = filename.substr(found + 1);
+
+		open();
 	}
 
 	void log::open(std::string path, std::string filename)
 	{
 		_path = path;
 		_filename = filename;
+	
+		open();
 	}
 
 	void log::close()

@@ -600,6 +600,15 @@ namespace axon
 			return res;
 		}
 
+		double random(double lower, double upper)
+		{
+			std::random_device rd;
+			std::mt19937 mt(rd());
+			std::uniform_real_distribution<double> dist(lower, upper);
+
+			return dist(mt);
+		}
+
 		std::string protoname(axon::proto_t i)
 		{
 			switch (i)

@@ -122,6 +122,11 @@ namespace axon
 		exception(const std::string& message): exception("none", 0, "axon:error", std::move(message)) { };
 		exception(const std::string& source, const std::string& message): exception("none", 0, std::move(source), std::move(message)) { };
 		exception(const char* filename, int linenum, const std::string& source, const std::string& message): message(make_message(filename, linenum, source, message)) { };
+		template<typename... Args> exception(const char* filename, int linenum, const std::string& source, const std::string& format, Args... args) {
+			char output[4096];
+			snprintf(output, 4096, format.c_str(), args...);
+			message = make_message(filename, linenum, source, output);
+		};
 
 		~exception() throw() {};
 

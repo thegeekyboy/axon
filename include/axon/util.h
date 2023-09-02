@@ -33,6 +33,7 @@ namespace axon
 		std::string base64_encode(const std::string &);
 		std::vector<BYTE> base64_decode(std::string const&);
 		std::string uuid();
+		double random(double, double);
 		std::string demangle(const char*);
 
 		std::string protoname(axon::proto_t);

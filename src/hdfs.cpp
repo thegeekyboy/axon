@@ -3,7 +3,6 @@
 #include <thread>
 
 #include <bzlib.h>
-#include <hdfs/hdfs.h>
 
 #include <axon.h>
 #include <axon/connection.h>

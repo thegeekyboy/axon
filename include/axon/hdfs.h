@@ -7,6 +7,8 @@
 
 #define AXON_TRANSFER_HDFS_PORT         0x01
 
+#include <hdfs/hdfs.h>
+
 namespace axon
 {
 	namespace transport
