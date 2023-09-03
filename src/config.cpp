@@ -1,6 +1,8 @@
 #include <axon.h>
 #include <axon/config.h>
 
+#include <boost/filesystem.hpp>
+
 namespace axon
 {
 	config::config()
@@ -64,8 +66,13 @@ namespace axon
 
 	bool config::load()
 	{
+		DBGPRN("axon::config::load(): %s %s", _filename.c_str(), boost::filesystem::current_path().generic_string().c_str());
+
 		if (_filename.size() <= 1)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Invalid configuration filename");
+
+		if (_filename[0] != '/')
+			_filename = boost::filesystem::current_path().generic_string() + "/" + _filename;
 
 		if (access(_filename.c_str(), F_OK) == -1)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot find configuration file (" + _filename + ")");
@@ -82,6 +89,8 @@ namespace axon
 
 	bool config::reload()
 	{
+		_path = std::stack<std::string>();
+		_crumb = std::queue<std::string>();
 		config_destroy(&_cfg);
 		config_init(&_cfg);
 		load();
