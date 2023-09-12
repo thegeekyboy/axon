@@ -252,10 +252,7 @@ namespace axon
 					rc = hdfsRead(_filesystem, file, &FILEBUF, MAXBUF);
 
 					if (rc == -1)
-					{
-						std::cout<<"read issue - "<<hdfsGetLastError()<<std::endl;
-						break;
-					}
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] read error from remote");
 
 					if (rc > 0)
 					{

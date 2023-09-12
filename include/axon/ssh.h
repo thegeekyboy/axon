@@ -73,7 +73,7 @@ namespace axon
 				auth_methods_t _mode;
 				bool _use_scp;
 
-				LIBSSH2_SESSION * _session;
+				LIBSSH2_SESSION *_session;
 
 			public:
 				void set(int, int);

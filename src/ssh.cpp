@@ -215,7 +215,6 @@ namespace axon
 				sin.sin_family = AF_INET;
 				sin.sin_port = htons(port);
 				sin.sin_addr = *((struct in_addr *) record->h_addr);
-				// sin.sin_addr.s_addr = inet_addr(host.c_str());
 				
 				if (connect(_sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "socket exception at " + host + ":"+ std::to_string(port) + " - " + std::strerror(errno));
@@ -272,7 +271,8 @@ namespace axon
 			{
 				int code;
 
-				if ((code = libssh2_userauth_password(this->_session, username.c_str(), password.c_str())) != 0)
+				// if ((code = libssh2_userauth_password(this->_session, username.c_str(), password.c_str())) != 0)
+				if ((code = libssh2_userauth_password_ex(this->_session, username.c_str(), username.size(), password.c_str(), password.size(), NULL)) != 0)
 				{
 					std::string _errstr;
 
@@ -400,14 +400,18 @@ namespace axon
 				char path[PATH_MAX];
 				int len;
 
-				if (!(_sftp = libssh2_sftp_init(_session)))
+
+				// this can fail when accounts has expired but password or private key authentication is ok
+				if ((_sftp = libssh2_sftp_init(_session)) == NULL)
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot initialize SFTP Session");
+					char *errorMessage;
+					libssh2_session_last_error(_session, &errorMessage, NULL, 0);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot initialize SFTP Session - " + errorMessage);
 				}
 
 				if ((len = libssh2_sftp_realpath(_sftp, ".", path, PATH_MAX-1)) <= 0)
 				{
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot retrive home/landing folder path");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot retrieve home/landing folder path");
 				}
 				_path = path;
 
@@ -424,7 +428,6 @@ namespace axon
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, path.c_str())))
 				{
 					int i = libssh2_session_last_errno(_session);
-
 
 					if (i == LIBSSH2_ERROR_ALLOC)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
@@ -673,9 +676,6 @@ namespace axon
 
 			long long sftp::copy(std::string src, std::string dest, bool compress)
 			{
-				// TODO:     implement remote system copy function
-				// ISSUE:    there is no sftp or scp copy API
-				// SOLUTION: https://www.libssh2.org/examples/ssh2_exec.html
 				DBGPRN("[%s] requested sftp::cp = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				int rc = 0;
@@ -697,7 +697,7 @@ namespace axon
 				if ((rc = libssh2_channel_exec(c.get(), cmd.c_str())) != 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not execute command cp");
 
-				// TODO: capture cp response and parse for error
+				// TODO:     capture cp response and parse for error
 
 				return 0L;
 			}
