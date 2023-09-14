@@ -324,9 +324,11 @@ namespace axon
 						std::vector<std::string> parts = axon::helper::split(object.GetKey(), '/');
 						file.name = parts[parts.size()-1];
 
-						cbfn(file);
-
-						count++;
+						if (match(file.name))
+						{
+							cbfn(file);
+							count++;
+						}
 					}
 
 					done = !response.GetResult().GetIsTruncated();

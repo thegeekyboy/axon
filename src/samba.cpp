@@ -270,32 +270,35 @@ namespace axon
 				struct smb2dirent *ent;
 				while ((ent = smb2_readdir(_smb2, _dir)))
 				{
-					struct entry file;
-
-					file.name = ent->name;
-					file.size = ent->st.smb2_size;
-					file.et = axon::protocol::SAMBA;
-					
-					switch (ent->st.smb2_type)
+					if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(ent->name, _filter[0])))
 					{
-						case SMB2_TYPE_FILE:
-							file.flag = axon::flags::FILE;
-							break;
-						
-						case SMB2_TYPE_DIRECTORY:
-							file.flag = axon::flags::DIR;
-							break;
-						
-						case SMB2_TYPE_LINK:
-							file.flag = axon::flags::LINK;
-							break;
-						
-						default:
-							break;
-					}
+						struct entry file;
 
-					count++;
-					cbfn(file);
+						file.name = ent->name;
+						file.size = ent->st.smb2_size;
+						file.et = axon::protocol::SAMBA;
+						
+						switch (ent->st.smb2_type)
+						{
+							case SMB2_TYPE_FILE:
+								file.flag = axon::flags::FILE;
+								break;
+							
+							case SMB2_TYPE_DIRECTORY:
+								file.flag = axon::flags::DIR;
+								break;
+							
+							case SMB2_TYPE_LINK:
+								file.flag = axon::flags::LINK;
+								break;
+							
+							default:
+								break;
+						}
+
+						count++;
+						cbfn(file);
+					}
 				}
 
 				return count;

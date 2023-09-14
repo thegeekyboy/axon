@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
 set(PROJECT_NAME "axon" CACHE INTERNAL "axon")
-set(VERSION "1.2.0")
+set(VERSION "2.0.0")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
@@ -11,6 +11,22 @@ IF(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ENDIF()
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
+
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+        unset(flag_supported CACHE)
+    endif()
+endfunction()
+
+enable_cxx_compiler_flag_if_supported("-Wall")
+enable_cxx_compiler_flag_if_supported("-Wextra")
+enable_cxx_compiler_flag_if_supported("-pedantic")
 
 string(REGEX MATCH "([0-9]*)" _ ${PROJECT_VERSION})
 set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
@@ -307,6 +323,7 @@ include(CPack)
 # install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 add_library(${PROJECT_NAME} SHARED "")
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 add_subdirectory(src)
 add_subdirectory(test)

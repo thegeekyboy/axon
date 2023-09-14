@@ -124,17 +124,20 @@ namespace axon
 						struct entry file;
 						auto [path, filename] = axon::helper::splitpath(hdfsList[i].mName);
 
-						file.et = axon::protocol::HDFS;
-						file.name = filename;
+						if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(file.name, _filter[0])))
+						{
+							file.et = axon::protocol::HDFS;
+							file.name = filename;
 
-						if (hdfsList[i].mKind == kObjectKindFile)
-							file.flag = axon::flags::FILE;
-						else if (hdfsList[i].mKind == kObjectKindDirectory)
-							file.flag = axon::flags::DIR;
-						else
-							file.flag = axon::flags::UNKNOWN;
+							if (hdfsList[i].mKind == kObjectKindFile)
+								file.flag = axon::flags::FILE;
+							else if (hdfsList[i].mKind == kObjectKindDirectory)
+								file.flag = axon::flags::DIR;
+							else
+								file.flag = axon::flags::UNKNOWN;
 
-						cbfn(file);
+							cbfn(file);
+						}
 					}
 
 					hdfsFreeFileInfo(hdfsList, fileCount);

@@ -46,7 +46,7 @@ namespace axon
 		{
 			uint16_t cnt = 0;
 
-			for (T &elem : value)
+			for ([[maybe_unused]] T &elem : value)
 				cnt++;
 
 			return cnt;

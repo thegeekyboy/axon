@@ -2,9 +2,22 @@
 
 this installation notes are tested in centos 7 and redhat 7. this should work until 9.
 
-## Preparing the Envioronment
+1. [Preparing the Environment](#toc1)
+	1. [Extra repos](#toc11)
+	2. [Confluent](#toc12)
+	3. [Build system](#toc13)
+2. [Installing the dependencies](#toc2)
+	1. [from repo](#toc21)
+	2. [oracle](#toc22)
+	3. [aws-c-sdk](#toc23)
+	3. [libsmb2](#toc24)
+	3. [libhdfs3 & libgsasl](#toc25)
+1. [Compiling the library](#toc3)
 
-### ⭐Extra repos
+
+## Preparing the Environment <a name="toc1"></a>
+
+### ⭐Extra repos <a name="toc11"></a>
 
 Some non-standard repos are needed to get the build system ready
 
@@ -12,7 +25,7 @@ Some non-standard repos are needed to get the build system ready
 $ sudo yum install epel-release centos-release-scl dnf-plugins-core wget nano
 ```
 
-### ⭐Confluent
+### ⭐Confluent <a name="toc12"></a>
 
 [confluent](https://www.confluent.io/) manages a repo of rpm packages to support their products. conveniently they have made it public domain and we can use them to avoid compiling from source.
 
@@ -41,7 +54,7 @@ sslverify=0
 EOF
 ```
 
-### ⭐Build system
+### ⭐Build system <a name="toc13"></a>
 
 Since centos/redhat 7 do not come with C++17, need to install gcc 11 from scl/devtoolset
 
@@ -49,9 +62,9 @@ Since centos/redhat 7 do not come with C++17, need to install gcc 11 from scl/de
 $ sudo yum install git cmake3 cmake gcc-c++ devtoolset-12 devtoolset-12-runtime devtoolset-12-gcc devtoolset-12-gcc-c++ devtoolset-12-libstdc++-devel devtoolset-12-make
 ```
 
-## Installing the dependencies
+## Installing the dependencies <a name="toc2"></a>
 
-#### ✔️ from repo
+#### ✔️ from repo <a name="toc21"></a>
 there are bunch of dependencies for axon to run correctly.
 
 - [boost](https://www.boost.org/) (iostreams, system, thread, regex)
@@ -74,7 +87,7 @@ $ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzs
 
 &#9888;	_often it was noticed that when `confluent-libserdes-devel` package installs header files, the folder permission is incorrect. best check the permission after installing the package._
 
-#### ✔️ oracle
+#### ✔️ oracle <a name="toc22"></a>
 
 Oralce provide OCI library to interface with oracle database engine. OCI is needed to read/write to database and DCN. Download RPMs instal client from [Oralce](https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html) website. you will need the following
 
@@ -98,7 +111,7 @@ export ORACLE_HOME=/usr/lib/oracle/19.19/client64
 EOF
 ```
 
-#### ✔️ aws-c-sdk
+#### ✔️ aws-c-sdk <a name="toc23"></a>
 
 if you face any issue compiling then, download a known [working release](https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.10.57.tar.gz)
 
@@ -111,7 +124,7 @@ cmake3 -DCMAKE_INSTALL_PREFIX:PATH=/usr -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="s3;
 sudo make install
 ```
 
-#### ✔️ libsmb2
+#### ✔️ libsmb2 <a name="toc24"></a>
 
 [libsmb2](https://www.snia.org/sites/default/files/SDC/2019/presentations/SMB/Sahlberg_Ronnie_Libsmb2_a_Userspace_SMB2_Client_for_all_Platforms.pdf) is a portable small footprint SMB2/3 C/C++ interface library developed by [Ronnie Sahlberg](https://www.samba.org/~sahlberg/)
 
@@ -122,7 +135,7 @@ cmake3 -DCMAKE_INSTALL_PREFIX=/usr ..
 sudo make install
 ```
 
-#### ✔️ libhdfs3 & libgsasl
+#### ✔️ libhdfs3 & libgsasl <a name="toc25"></a>
 the following libraries needs to be compiled from the provided source as official source does not support kerberos connection with hdfs3 library for some reason!
 
 ✨ a locked version of [libgsasl](https://www.gnu.org/software/gsasl/) by [Brett Rosen](https://github.com/bdrosen96)
@@ -158,7 +171,7 @@ cmake3 -Wno-dev -DCMAKE_INSTALL_PREFIX=/usr ..
 sudo make install
 ```
 
-## Compiling the library
+## Compiling the library <a name="toc3"></a>
 
 to compile and install a Release version of axon, with the `CMAKE_BUILD_TYPE=Release`. A debug version will be built by default.
 

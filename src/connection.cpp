@@ -64,6 +64,24 @@ namespace axon
 
 				return true;
 			}
+
+			bool connection::match(std::string filename)
+			{
+				bool retval = false;
+
+				if (_filter.size() > 0)
+				{
+					for (auto &flt : _filter)
+					{
+						if (boost::regex_match(filename, flt))
+							retval = true;
+					}
+				}
+				else
+					retval = true;
+
+				return retval;
+			}
 		}
 	}
 }

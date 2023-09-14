@@ -481,6 +481,7 @@ namespace axon
 			{
 				DBGPRN("[%s] requested sftp::list to %s", _id.c_str(), _path.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
+				int count = 0;
 				LIBSSH2_SFTP_HANDLE *hsftp;
 				
 				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str() )))
@@ -502,48 +503,19 @@ namespace axon
 
 				do
 				{
-					char mem[511];
+					char filename[511];
 					char longentry[512];
 					LIBSSH2_SFTP_ATTRIBUTES attrs;
 
-					if (libssh2_sftp_readdir_ex(hsftp, mem, sizeof(mem), longentry, sizeof(longentry), &attrs))
+					if (libssh2_sftp_readdir_ex(hsftp, filename, sizeof(filename), longentry, sizeof(longentry), &attrs))
 					{
-						// if (!LIBSSH2_SFTP_S_ISDIR(attrs.permissions) && mem[0] != '.')
+						// if (!LIBSSH2_SFTP_S_ISDIR(attrs.permissions) && filename[0] != '.')
 						// {
-							if (_filter.size())
-							{
-								if (regex_match(mem, _filter[0]))
-								{
-									struct entry file;
-
-									file.name = mem;
-									file.size = attrs.filesize;
-									
-									if (LIBSSH2_SFTP_S_ISDIR(attrs.permissions))
-										file.flag = axon::flags::DIR;
-									else if (LIBSSH2_SFTP_S_ISLNK(attrs.permissions))
-										file.flag = axon::flags::LINK;
-									else if (LIBSSH2_SFTP_S_ISREG(attrs.permissions))
-										file.flag = axon::flags::FILE;
-									else if (LIBSSH2_SFTP_S_ISCHR(attrs.permissions))
-										file.flag = axon::flags::CHAR;
-									else if (LIBSSH2_SFTP_S_ISBLK(attrs.permissions))
-										file.flag = axon::flags::BLOCK;
-									else if (LIBSSH2_SFTP_S_ISFIFO(attrs.permissions))
-										file.flag = axon::flags::FIFO;
-									else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
-										file.flag = axon::flags::SOCKET;
-
-									file.et = axon::protocol::SFTP;
-
-									cbfn(file);
-								}
-							}
-							else
+							if (match(filename))
 							{
 								struct entry file;
 
-								file.name = mem;
+								file.name = filename;
 								file.size = attrs.filesize;
 								
 								if (LIBSSH2_SFTP_S_ISDIR(attrs.permissions))
@@ -562,6 +534,7 @@ namespace axon
 									file.flag = axon::flags::SOCKET;
 
 								file.et = axon::protocol::SFTP;
+								count++;
 
 								cbfn(file);
 							}
@@ -574,104 +547,12 @@ namespace axon
 
 				libssh2_sftp_closedir(hsftp);
 
-				return 0; // this should return the count of files?
+				return count;
 			}
 
 			int sftp::list(std::vector<entry> &vec)
 			{
-				DBGPRN("[%s] requested sftp::list(vector) to %s", _id.c_str(), _path.c_str());
-				std::lock_guard<std::mutex> lock(_lock);
-				LIBSSH2_SFTP_HANDLE *hsftp;
-
-				if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str())))
-				{
-					int i = libssh2_session_last_errno(_session);
-
-					if (i == LIBSSH2_ERROR_ALLOC)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] An internal memory allocation call failed");
-					else if (i == LIBSSH2_ERROR_SOCKET_SEND)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Unable to send data on socket");
-					else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Timeout while waiting on socket");
-					else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
-					{
-						unsigned long sftperr = libssh2_sftp_last_error(_sftp);
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr));
-					}
-				}
-
-				do
-				{
-					char mem[511];
-					char longentry[512];
-					LIBSSH2_SFTP_ATTRIBUTES attrs;
-
-					if (libssh2_sftp_readdir_ex(hsftp, mem, sizeof(mem), longentry, sizeof(longentry), &attrs))
-					{
-						if (_filter.size() > 0)
-						{
-							if (regex_match(mem, _filter[0]))
-							{
-								struct entry file;
-							
-								file.name = mem;
-								file.size = attrs.filesize;
-
-								if (LIBSSH2_SFTP_S_ISDIR(attrs.permissions))
-									file.flag = axon::flags::DIR;
-								else if (LIBSSH2_SFTP_S_ISLNK(attrs.permissions))
-									file.flag = axon::flags::LINK;
-								else if (LIBSSH2_SFTP_S_ISREG(attrs.permissions))
-									file.flag = axon::flags::FILE;
-								else if (LIBSSH2_SFTP_S_ISCHR(attrs.permissions))
-									file.flag = axon::flags::CHAR;
-								else if (LIBSSH2_SFTP_S_ISBLK(attrs.permissions))
-									file.flag = axon::flags::BLOCK;
-								else if (LIBSSH2_SFTP_S_ISFIFO(attrs.permissions))
-									file.flag = axon::flags::FIFO;
-								else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
-									file.flag = axon::flags::SOCKET;
-
-								file.et = axon::protocol::SFTP;
-
-								vec.push_back(file);						
-							}
-						}
-						else
-						{
-							struct entry file;
-						
-							file.name = mem;
-							file.size = attrs.filesize;
-
-							if (LIBSSH2_SFTP_S_ISDIR(attrs.permissions))
-								file.flag = axon::flags::DIR;
-							else if (LIBSSH2_SFTP_S_ISLNK(attrs.permissions))
-								file.flag = axon::flags::LINK;
-							else if (LIBSSH2_SFTP_S_ISREG(attrs.permissions))
-								file.flag = axon::flags::FILE;
-							else if (LIBSSH2_SFTP_S_ISCHR(attrs.permissions))
-								file.flag = axon::flags::CHAR;
-							else if (LIBSSH2_SFTP_S_ISBLK(attrs.permissions))
-								file.flag = axon::flags::BLOCK;
-							else if (LIBSSH2_SFTP_S_ISFIFO(attrs.permissions))
-								file.flag = axon::flags::FIFO;
-							else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
-								file.flag = axon::flags::SOCKET;
-
-							file.et = axon::protocol::SFTP;
-								
-							vec.push_back(file);
-						}
-					}
-					else
-						break;
-
-				} while (true);
-
-				libssh2_sftp_closedir(hsftp);
-
-				return true;
+				return list([&vec](const axon::entry &e) mutable { vec.push_back(e); });
 			}
 
 			long long sftp::copy(std::string src, std::string dest, bool compress)

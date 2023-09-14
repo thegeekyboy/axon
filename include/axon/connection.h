@@ -37,6 +37,7 @@ namespace axon
 				virtual bool disconnect() = 0;
 
 				virtual bool filter(std::string);
+				virtual bool match(std::string);
 
 				virtual bool chwd(std::string) = 0;
 				virtual std::string pwd() = 0;

@@ -126,7 +126,7 @@ namespace axon
 			char output[4096];
 			snprintf(output, 4096, format.c_str(), args...);
 			message = make_message(filename, linenum, source, output);
-		};
+		}
 
 		~exception() throw() {};
 
