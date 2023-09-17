@@ -153,7 +153,7 @@ namespace axon
 		return *this;
 	}
 
-	log& log::operator<<(std::ostream& (*fun)(std::ostream&))
+	log& log::operator<<([[maybe_unused]] std::ostream& (*fun)(std::ostream&))
 	{
 		std::cout<<std::endl;
 

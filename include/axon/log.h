@@ -59,7 +59,6 @@ namespace axon
 			struct tm *st_time = localtime(&cur_time);
 
 			sprintf(text, "[%02d-%02d-%d %2.2d:%2.2d:%2.2d %6d %6s %8s] ", st_time->tm_mday, st_time->tm_mon+1, st_time->tm_year+1900, st_time->tm_hour, st_time->tm_min, st_time->tm_sec, getpid(), oss.str().c_str(), level.c_str());
-			// sprintf(text, "[%02d-%02d-%d %2.2d:%2.2d:%2.2d %6d %10lu %8s] ", st_time->tm_mday, st_time->tm_mon+1, st_time->tm_year+1900, st_time->tm_hour, st_time->tm_min, st_time->tm_sec, getpid(), std::hash<std::thread::id>{}(std::this_thread::get_id()), level.c_str());
 
 			boost::format f(fmt);
 			int unroll[] {0, (f % std::forward<Arguments>(args), 0)...};
@@ -71,7 +70,7 @@ namespace axon
 				_ofs<<text<<boost::str(f)<<std::endl;
 			else
 				std::cout<<text<<boost::str(f)<<std::endl;
-		};
+		}
 	};
 
 }

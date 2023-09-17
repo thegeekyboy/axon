@@ -5,10 +5,11 @@ namespace axon {
 
 	namespace database {
 
+
 		oracle::oracle()
 		{
 			_port = 7776;
-			_prefetch = 100;
+			_prefetch = AXON_ORACLE_PREFETCH;
 
 			_connected = false;
 			_subscribing = false;
@@ -353,7 +354,7 @@ namespace axon {
 			return !_subscribing;
 		}
 
-		bool oracle::transaction(axon::trans_t ttype)
+		bool oracle::transaction([[maybe_unused]] axon::trans_t ttype)
 		{
 
 			return true;
@@ -421,8 +422,6 @@ namespace axon {
 				{
 					if (x == nullptr)
 						break;
-
-					DBGPRN("Index: %lu, Pointer: %p", x->index(), x);
 
 					if (x->index() == 0)
 					{
@@ -1042,7 +1041,7 @@ namespace axon {
 			return *this;
 		}
 
-		void oracle::driver(dvoid *ctx, OCISubscription *subscrhp, dvoid *payload, ub4 *payl, dvoid *descriptor, ub4 mode)
+		void oracle::driver(dvoid *ctx, [[maybe_unused]] OCISubscription *subscrhp, [[maybe_unused]] dvoid *payload, [[maybe_unused]] ub4 *payl, dvoid *descriptor, [[maybe_unused]] ub4 mode)
 		{
 			OCIEnv *_h_env;
 			OCIError *_h_err;
@@ -1234,7 +1233,7 @@ namespace axon {
 						if (indicator != -1)
 						{
 							double value = 0;
-							OCINumber data[_prefetch];
+							OCINumber data[AXON_ORACLE_PREFETCH];
 
 							memcpy(data, _col[i].data, _col[i].memsize);
 							OCINumber temp = data[_rownum];

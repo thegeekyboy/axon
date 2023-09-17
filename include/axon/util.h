@@ -11,7 +11,7 @@
 
 namespace axon
 {
-	namespace helper
+	namespace util
 	{
 		typedef unsigned char BYTE;
 		
@@ -28,7 +28,7 @@ namespace axon
 		bool exists(const std::string&, const std::string&);
 		bool iswritable(const std::string&);
 		std::tuple<std::string, std::string> magic(std::string&);
-		bool execmd(const char *cmd, const char *name);
+		bool execmd(const char *cmd);
 		std::string base64_encode(BYTE const* buf, unsigned int bufLen);
 		std::string base64_encode(const std::string &);
 		std::vector<BYTE> base64_decode(std::string const&);

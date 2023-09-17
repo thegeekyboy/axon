@@ -11,18 +11,18 @@
 
 	limitations: cannot parse uri with username & password
 
-	axon::helper::uri u0 = axon::helper::uri::parse("http://localhost:80/foo.html?&q=1:2:3");
-	axon::helper::uri u1 = axon::helper::uri::parse("https://localhost:80/foo.html?&q=1");
-	axon::helper::uri u2 = axon::helper::uri::parse("localhost/foo");
-	axon::helper::uri u3 = axon::helper::uri::parse("https://localhost/foo");
-	axon::helper::uri u4 = axon::helper::uri::parse("localhost:8080");
-	axon::helper::uri u5 = axon::helper::uri::parse("localhost?&foo=1");
-	axon::helper::uri u6 = axon::helper::uri::parse("localhost?&foo=1:2:3");
+	axon::util::uri u0 = axon::util::uri::parse("http://localhost:80/foo.html?&q=1:2:3");
+	axon::util::uri u1 = axon::util::uri::parse("https://localhost:80/foo.html?&q=1");
+	axon::util::uri u2 = axon::util::uri::parse("localhost/foo");
+	axon::util::uri u3 = axon::util::uri::parse("https://localhost/foo");
+	axon::util::uri u4 = axon::util::uri::parse("localhost:8080");
+	axon::util::uri u5 = axon::util::uri::parse("localhost?&foo=1");
+	axon::util::uri u6 = axon::util::uri::parse("localhost?&foo=1:2:3");
 */
 
 namespace axon {
 
-	namespace helper {
+	namespace util {
 
 		struct uri
 		{

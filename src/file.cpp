@@ -26,7 +26,7 @@ namespace axon
 			file::~file()
 			{
 				disconnect();
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool file::init()
@@ -52,7 +52,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 				
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -173,7 +173,7 @@ namespace axon
 				return _path;
 			}
 
-			bool file::mkdir(std::string dir)
+			bool file::mkdir([[maybe_unused]] std::string dir)
 			{
 				return true;
 			}
@@ -196,7 +196,7 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::tie(parent, remainder) = axon::helper::splitpath(destx);
+				std::tie(parent, remainder) = axon::util::splitpath(destx);
 				boost::filesystem::create_directories(parent);
 
 				if (std::rename(srcx.c_str(), destx.c_str()))
@@ -304,10 +304,7 @@ namespace axon
 
 			int file::list(std::vector<axon::entry> &vec)
 			{
-				return list([&](const axon::entry &e) mutable {
-					
-					vec.push_back(e);
-				});
+				return list([&](const axon::entry &e) mutable { vec.push_back(e); });
 			}
 
 			long long file::get(std::string src, std::string dest, bool compress)

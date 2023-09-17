@@ -50,7 +50,7 @@ namespace axon
 				strcpy(strval, strv.c_str());
 			};
 			operator int() const { return intval; }
-			operator char *const() { return const_cast<char *>(strval); }
+			operator char *() const { return const_cast<char *>(strval); }
 		};
 
 		config();
