@@ -1,11 +1,13 @@
 #ifndef AXON_FILE_H_
 #define AXON_FILE_H_
 
+#include <limits.h>
+
 struct linux_dirent {
 	unsigned long  d_ino;
 	off_t          d_off;
 	unsigned short d_reclen;
-	char           d_name[];
+	char           d_name[PATH_MAX];
 };
 
 namespace axon

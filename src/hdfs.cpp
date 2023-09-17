@@ -22,7 +22,7 @@ namespace axon
 				if (_builder)
 					hdfsFreeBuilder(_builder);
 
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool hdfs::init()
@@ -122,7 +122,7 @@ namespace axon
 					for (int i = 0; i < fileCount; i++)
 					{
 						struct entry file;
-						auto [path, filename] = axon::helper::splitpath(hdfsList[i].mName);
+						auto [path, filename] = axon::util::splitpath(hdfsList[i].mName);
 
 						if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(file.name, _filter[0])))
 						{
@@ -151,8 +151,9 @@ namespace axon
 				return list([&vec](const axon::entry &e) mutable { vec.push_back(e); });
 			}
 
-			long long hdfs::copy(std::string src, std::string dest, bool compress)
+			long long hdfs::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested hdfs::copy() = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::string srcx, destx;
 
@@ -166,7 +167,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -204,7 +205,7 @@ namespace axon
 				return true;
 			}
 
-			int hdfs::cb(const struct entry *e)
+			int hdfs::cb(const struct entry *)
 			{
 				return 0;
 			}
@@ -288,8 +289,9 @@ namespace axon
 				return filesize;
 			}
 
-			long long hdfs::put(std::string src, std::string dest, bool compress)
+			long long hdfs::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested put() = %s", _id.c_str(), src.c_str());
 				std::string destx, temp;
 				char FILEBUF[MAXBUF];
@@ -351,7 +353,7 @@ namespace axon
 				return false;
 			}
 
-			bool hdfs::set(char key, int value)
+			bool hdfs::set(char, int)
 			{
 				return false;
 			}

@@ -13,7 +13,7 @@ namespace axon
 			class nothing : public connection {
 
 			public:
-				nothing(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };;
+				nothing(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
 				nothing(const nothing& rhs) : connection(rhs) {  };
 				~nothing();
 

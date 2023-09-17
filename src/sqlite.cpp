@@ -65,7 +65,7 @@ namespace axon
 			return _open;
 		}
 
-		bool sqlite::connect(std::string filename, std::string username, std::string password)
+		bool sqlite::connect(std::string filename, std::string, [[maybe_unused]] std::string)
 		{
 			_path = filename;
 			connect();
@@ -153,7 +153,7 @@ namespace axon
 			return true;
 		}
 
-		bool sqlite::execute(const std::string &sqltext, axon::database::bind *first, ...)
+		bool sqlite::execute(const std::string &, axon::database::bind *, ...)
 		{
 			axon::timer t1(__PRETTY_FUNCTION__);
 			return true;
@@ -343,7 +343,7 @@ namespace axon
 			return *this;
 		}
 
-		sqlite& sqlite::operator>>(std::time_t &value)
+		sqlite& sqlite::operator>>(std::time_t &)
 		{
 
 			return *this;

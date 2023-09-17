@@ -8,12 +8,14 @@
 
 #include <axon/database.h>
 
+#define AXON_ORACLE_PREFETCH 100
 //#define DBERR(rc, errhand, funcsig, funcoci) axon::exception(__FILE__, __LINE__, funcsig, getErrorMessage(rc, errhand))
 // #define DBERR(rc, errhand, funcsig, funmsg) axon::exception(__FILE__, __LINE__, funcsig, std::string("nothing"))
 
 namespace axon {
 
 	namespace database {
+
 
 		enum operation {
 			none = 0x0,

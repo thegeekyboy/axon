@@ -87,7 +87,7 @@ namespace axon
 
 				if (resp.size())
 				{
-					std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+					std::vector<std::string> tokens = axon::util::split(resp, ' ');
 					uint16_t code = std::stoi(tokens[0]);
 					
 					if (code == SMTP_OK_CONNECTION_CLOSED || rc == SMTP_ERR_CONNECTION_CLOSED || rc == SMTP_ERR_ABORTED_LOCAL_ISSUE)
@@ -121,7 +121,7 @@ namespace axon
 
 				if (resp.size())
 				{
-					std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+					std::vector<std::string> tokens = axon::util::split(resp, ' ');
 					uint16_t code = std::stoi(tokens[0]);
 					
 					switch (code)
@@ -188,42 +188,42 @@ namespace axon
 
 	void mail::html(std::string value)
 	{
-		_html = axon::helper::base64_encode(value);
+		_html = axon::util::base64_encode(value);
 	}
 
-	void mail::html(std::string value, bool binary)
+	void mail::html(std::string value, [[maybe_unused]] bool binary)
 	{
 		// TODO: what if not binary?
 
 		std::ifstream fin(value, std::ios::binary);
 		std::ostringstream ostr;
 		ostr << fin.rdbuf();;
-		_html = axon::helper::base64_encode(ostr.str());
+		_html = axon::util::base64_encode(ostr.str());
 	}
 
 	void mail::attach(std::string filename)
 	{
-		if (!axon::helper::isfile(filename))
+		if (!axon::util::isfile(filename))
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot attach file, does not exist");
 
-		auto [path, fname] = axon::helper::splitpath(filename);
+		auto [path, fname] = axon::util::splitpath(filename);
 
 		attach(filename, fname);
 	}
 
 	void mail::attach(std::string filename, std::string cid)
 	{
-		if (!axon::helper::isfile(filename))
+		if (!axon::util::isfile(filename))
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot attach file, does not exist");
 
-		auto [magic, encoding] = axon::helper::magic(filename);
+		auto [magic, encoding] = axon::util::magic(filename);
 
 		attach(filename, cid, magic);
 	}
 
 	void mail::attach(std::string filename, std::string cid, std::string magic)
 	{
-		if (!axon::helper::isfile(filename))
+		if (!axon::util::isfile(filename))
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot attach file, does not exist");
 
 		struct attachment atch;
@@ -231,8 +231,8 @@ namespace axon
 		std::ifstream fin(filename, std::ios::binary);
 		std::ostringstream ostr;
 		ostr << fin.rdbuf();
-		// std::string content = axon::helper::base64_encode(ostr.str());
-		atch.buffer = axon::helper::base64_encode(ostr.str());
+		// std::string content = axon::util::base64_encode(ostr.str());
+		atch.buffer = axon::util::base64_encode(ostr.str());
 		atch.cid = cid;
 		atch.magic = magic;
 		_attachment.push_back(atch);
@@ -241,8 +241,8 @@ namespace axon
 	bool mail::send()
 	{
 		std::string final_to, final_cc;
-		std::string boundary = axon::helper::uuid();
-		std::string secondary = axon::helper::uuid();
+		std::string boundary = axon::util::uuid();
+		std::string secondary = axon::util::uuid();
 
 		if (!_connected)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "not connected to mail server");
@@ -250,7 +250,7 @@ namespace axon
 		if (_simple.size() < 2)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "mail body cannot be empty");
 
-		if (axon::helper::count(_to) <= 0 || _from.size() < 2)
+		if (axon::util::count(_to) <= 0 || _from.size() < 2)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "from and/or to cannot be empty");
 
 		_socket.writeline("MAIL FROM: " + _from);
@@ -277,10 +277,10 @@ namespace axon
 
 		_socket.writeline("From: " + _from);
 		
-		if (axon::helper::count(_to) > 0)
+		if (axon::util::count(_to) > 0)
 			_socket.writeline("To: " + final_to);
 
-		if (axon::helper::count(_cc) > 0)
+		if (axon::util::count(_cc) > 0)
 			_socket.writeline("Cc: " + final_cc);
 
 		_socket.writeline("Subject: " + _subject);

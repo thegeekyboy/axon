@@ -21,11 +21,11 @@ namespace axon
 		namespace tcpip {
 
 
-			typedef unsigned int SOCKET;
+			typedef int SOCKET;
 
 			class socks {
 
-				unsigned int _fd;
+				int _fd;
 				std::queue<std::string> _buffer;
 
 				std::string _host;

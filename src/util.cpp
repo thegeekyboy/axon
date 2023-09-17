@@ -17,7 +17,7 @@
 
 namespace axon
 {
-	namespace helper
+	namespace util
 	{
 		static const std::string base64_chars =
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -97,7 +97,7 @@ namespace axon
 				return 0;
 			}
 
-			std::tie(parent, remainder) = axon::helper::splitpath(path);
+			std::tie(parent, remainder) = axon::util::splitpath(path);
 			
 			std::cin.get();
 
@@ -299,7 +299,7 @@ namespace axon
 				if (magic_load(mcookie, NULL) == 0)
 				{
 					mimetype = magic_file(mcookie, filename.c_str());
-					std::vector<std::string> bits = axon::helper::split(mimetype, ';');
+					std::vector<std::string> bits = axon::util::split(mimetype, ';');
 					if (bits.size()>1)
 					{
 						trim(bits[0]);
@@ -417,12 +417,11 @@ namespace axon
 			return true;
 		}
 
-		bool execmd(const char *cmd, const char *name)
+		bool execmd(const char *cmd)
 		{
 			FILE *fp;
 			char final[PATH_MAX], ch;
-			// char output[1024];
-			// unsigned int index = 0;
+			std::stringstream ss;
 
 			sprintf(final, "%s 2>&1", cmd);
 
@@ -430,18 +429,7 @@ namespace axon
 				return false;
 			
 			while((ch = fgetc(fp)) != EOF)
-			{
-				if (ch == '\n')
-				{
-					// printlog("STDO", "%s - %s", name, output);
-					// index = 0;
-				}
-				// else
-				// 	output[index++] = ch;
-			}
-
-			// if (index != 0)
-			// 	printlog("STDO", "%s - %s", name, output);
+				ss<<ch;
 
 			pclose(fp);
 

@@ -21,7 +21,7 @@ namespace axon
 				while (_sock.alive())
 					usleep(500000);
 
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool ftp::init()
@@ -49,7 +49,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "220")
 								break;
 						}
@@ -83,7 +83,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "331")
 								break;
 							else
@@ -103,7 +103,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 
 							if (tokens[0] == "230")
 								break;
@@ -126,7 +126,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 
 							if (tokens[0] == "200")
 								return true;
@@ -153,7 +153,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								pwd();
@@ -185,7 +185,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 
 							if (tokens[0] == "257")
 							{
@@ -219,15 +219,15 @@ namespace axon
 				return _path;
 			}
 
-			bool ftp::mkdir(std::string dir)
+			bool ftp::mkdir([[maybe_unused]] std::string dir)
 			{
-
 				return true;
 			}
 
-			long long ftp::copy(std::string src, std::string dest, bool compress)
+			long long ftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
 				// TODO: implement remote system copy function
+				// TODO: implement compression on remote
 				std::string srcx;
 				
 				if (src[0] == '/')
@@ -235,7 +235,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -256,7 +256,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "350")
 							{
 								break;
@@ -281,7 +281,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								return true;
@@ -311,7 +311,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "250")
 							{
 								return true;
@@ -330,13 +330,12 @@ namespace axon
 				return false;
 			}
 
-			int ftp::list(const axon::transport::transfer::cb &cbfn)
+			int ftp::list(std::vector<axon::entry> &vec)
 			{
-
-				return true;
+				return list([&](const axon::entry &e) mutable { vec.push_back(e); });
 			}
 
-			int ftp::list(std::vector<axon::entry> &vec)
+			int ftp::list(const axon::transport::transfer::cb &cbfn)
 			{
 				char pasvhost[16];
 				unsigned char v[6];
@@ -353,7 +352,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								sscanf(tokens[4].c_str()+1, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &v[0],&v[1],&v[2],&v[3],&v[4],&v[5]);
@@ -391,24 +390,15 @@ namespace axon
 						
 						if (ftpl.flagtrycwd == 0)
 						{
-							if (_filter.size() > 0)
+							if (match(ftpl.name))
 							{
-								if (regex_match(ftpl.name, _filter[0]))
-								{
 									struct entry file;
 								
-									e.name = axon::helper::trim(ftpl.name);
+									e.name = axon::util::trim(ftpl.name);
 									e.size = ftpl.size;
 									e.et = axon::protocol::FTP;
-									vec.push_back(e);					
-								}
-							}
-							else
-							{
-								e.name = axon::helper::trim(ftpl.name);
-								e.size = ftpl.size;
-								e.et = axon::protocol::FTP;
-								vec.push_back(e);
+
+									cbfn(e);
 							}
 						}
 					}
@@ -422,7 +412,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}
@@ -433,8 +423,9 @@ namespace axon
 				return true;
 			}
 
-			long long ftp::get(std::string src, std::string dest, bool compress)
+			long long ftp::get(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compression
 				char pasvhost[16];
 				unsigned char v[6];
 				unsigned int pasvport = 0;
@@ -452,7 +443,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								sscanf(tokens[4].c_str()+1, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &v[0],&v[1],&v[2],&v[3],&v[4],&v[5]);
@@ -496,7 +487,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}
@@ -507,8 +498,9 @@ namespace axon
 				return szx;
 			}
 
-			long long ftp::put(std::string src, std::string dest, bool compress)
+			long long ftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: need to implement compression
 				unsigned char v[6];
 				char pasvhost[18];
 				long pasvport = 0;
@@ -526,7 +518,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "227")
 							{
 								char tok[64];
@@ -578,7 +570,7 @@ namespace axon
 
 						if (resp.size() > 3)
 						{
-							std::vector<std::string> tokens = axon::helper::split(resp, ' ');
+							std::vector<std::string> tokens = axon::util::split(resp, ' ');
 							if (tokens[0] == "226")
 								break;
 						}

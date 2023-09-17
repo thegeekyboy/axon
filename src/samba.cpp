@@ -46,7 +46,7 @@ namespace axon
 			samba::~samba()
 			{
 				disconnect();
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool samba::init()
@@ -111,7 +111,7 @@ namespace axon
 
 				// TODO: implement relative path
 
-				std::vector<std::string> parts = axon::helper::split(path, '/');
+				std::vector<std::string> parts = axon::util::split(path, '/');
 
 				if (parts[0] != _share)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] changing share from " + _share + " to " + parts[0] + " is not supported after connect");
@@ -156,7 +156,7 @@ namespace axon
 				else
 					dirx = _path + "/" + dir;
 
-				std::vector<std::string> parts = axon::helper::split(dirx, '/');
+				std::vector<std::string> parts = axon::util::split(dirx, '/');
 
 				if (parts[0] != _share)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] changing share from " + _share + " to " + parts[0] + " is not supported after connect");
@@ -170,8 +170,9 @@ namespace axon
 				return true;
 			}
 
-			long long samba::copy(std::string src, std::string dest, bool compress)
+			long long samba::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				std::string srcx, destx;
 				long long filesize = 0;
 
@@ -180,7 +181,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 				
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 				
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -208,8 +209,8 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> src_parts = axon::helper::split(srcx, '/');
-				std::vector<std::string> dest_parts = axon::helper::split(destx, '/');
+				std::vector<std::string> src_parts = axon::util::split(srcx, '/');
+				std::vector<std::string> dest_parts = axon::util::split(destx, '/');
 
 				if (src_parts[0] != _share)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] ren:changing share from " + _share + " to " + src_parts[0] + " is not supported after connect");
@@ -245,7 +246,7 @@ namespace axon
 				else
 					targetx = _path + "/" + target;
 
-				std::vector<std::string> parts = axon::helper::split(targetx, '/');
+				std::vector<std::string> parts = axon::util::split(targetx, '/');
 				std::string prefix;
 
 				for (unsigned int i = 1; i < parts.size(); i++)
@@ -326,7 +327,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				std::vector<std::string> parts = axon::helper::split(srcx, '/');
+				std::vector<std::string> parts = axon::util::split(srcx, '/');
 				std::string prefix;
 
 				if (parts[0] != _share)
@@ -363,8 +364,9 @@ namespace axon
 				return filesize;
 			}
 
-			long long samba::put(std::string src, std::string dest, bool compress)
+			long long samba::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				std::string destx;
 				long long filesize = 0, count, rc;
 				struct smb2fh *fh;
@@ -378,7 +380,7 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> parts = axon::helper::split(destx, '/');
+				std::vector<std::string> parts = axon::util::split(destx, '/');
 				std::string prefix;
 
 				if (parts[0] != _share)

@@ -14,7 +14,7 @@ namespace axon
 	{
 		kerberos::kerberos(std::string keytab, std::string cache, std::string realm, std::string principal)
 		{
-			if (!axon::helper::exists(keytab))
+			if (!axon::util::exists(keytab))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file does not exist");
 
 			_keytab_file = keytab;
@@ -26,7 +26,7 @@ namespace axon
 			_keytab = NULL;
 			_ctx = NULL;
 
-			_id = axon::helper::uuid();
+			_id = axon::util::uuid();
 		}
 
 		kerberos::~kerberos()
@@ -40,7 +40,7 @@ namespace axon
 			if (_ctx)
 				krb5_free_context(_ctx);
 
-			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
 		std::string kerberos::_errstr(long int i)
@@ -275,10 +275,10 @@ namespace axon
 		{
 			int retval;
 
-			if (!axon::helper::exists(_keytab_file))
+			if (!axon::util::exists(_keytab_file))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file is not accessible");
 
-			if (!axon::helper::iswritable(_cache_file))
+			if (!axon::util::iswritable(_cache_file))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cache file is not accessible " + _cache_file);
 			
 			if ((retval = krb5_init_context(&_ctx)))
@@ -316,7 +316,7 @@ namespace axon
 		bool kerberos::isCacheValid()
 		{
 			krb5_cc_cursor cursor = NULL;
-			krb5_creds creds = { 0 };
+			krb5_creds creds = { };
 			bool isValid = false;
 			long int retval;
 			time_t now = time(NULL);
@@ -364,7 +364,7 @@ namespace axon
 			std::string sprinc = "krbtgt/" + _realm + "@" + _realm;
 
 			krb5_kt_cursor cursor = NULL;
-			krb5_keytab_entry entry = { 0 };
+			krb5_keytab_entry entry = { };
 
 			if ((retval = krb5_kt_start_seq_get(_ctx, _keytab, &cursor)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot start iterate over keytab cursor - " + _errstr(retval));
@@ -391,7 +391,7 @@ namespace axon
 			long int retval;
 			
 			krb5_principal principal;
-			krb5_creds creds = { 0 };
+			krb5_creds creds = { };
 
 			// memset(&creds, 0, sizeof(creds));
 			if ((retval = krb5_parse_name(_ctx, _principal.c_str(), &principal)))

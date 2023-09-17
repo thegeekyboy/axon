@@ -28,7 +28,7 @@ namespace axon
 			s3::~s3()
 			{
 				disconnect();
-				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::helper::demangle(typeid(*this).name()).c_str());
+				DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 			}
 
 			bool s3::init()
@@ -87,7 +87,7 @@ namespace axon
 
 				if (_proxy.size() > 3)
 				{
-					std::vector<std::string> proxy = axon::helper::split(_proxy, ':');
+					std::vector<std::string> proxy = axon::util::split(_proxy, ':');
 					cfg.proxyHost = proxy[0];
 					if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
 					cfg.proxyScheme = Aws::Http::Scheme::HTTPS;
@@ -137,7 +137,7 @@ namespace axon
 
 				// TODO: implement relative path
 
-				std::vector<std::string> parts = axon::helper::split(path, '/');
+				std::vector<std::string> parts = axon::util::split(path, '/');
 
 				std::string bucket = parts[0];
 				
@@ -169,11 +169,16 @@ namespace axon
 			bool s3::mkdir(std::string dir)
 			{
 				DBGPRN("[%s] requested s3::mkdir() = %s", _id.c_str(), dir.c_str());
+
+				if (dir.size() < 2)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid directory name");
+
 				return true;
 			}
 
-			long long s3::copy(std::string src, std::string dest, bool compress)
+			long long s3::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested s3::copy() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::string srcx, destx;
 				long long filesize;
@@ -183,7 +188,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 				
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -291,7 +296,7 @@ namespace axon
 				if (_path.size() <= 2)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
-				std::vector<std::string> parts = axon::helper::split(_path, '/');
+				std::vector<std::string> parts = axon::util::split(_path, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;
@@ -321,7 +326,7 @@ namespace axon
 						file.flag = axon::flags::FILE;
 						file.size = object.GetSize();
 
-						std::vector<std::string> parts = axon::helper::split(object.GetKey(), '/');
+						std::vector<std::string> parts = axon::util::split(object.GetKey(), '/');
 						file.name = parts[parts.size()-1];
 
 						if (match(file.name))
@@ -361,7 +366,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 
-				std::vector<std::string> parts = axon::helper::split(srcx, '/');
+				std::vector<std::string> parts = axon::util::split(srcx, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;
@@ -403,8 +408,9 @@ namespace axon
 				return filesize;
 			}
 
-			long long s3::put(std::string src, std::string dest, bool compress)
+			long long s3::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested s3::put() = %s to %s", _id.c_str(), src.c_str(), dest.c_str());
 				// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
 				std::string destx;
@@ -418,7 +424,7 @@ namespace axon
 				else
 					destx = _path + "/" + dest;
 
-				std::vector<std::string> parts = axon::helper::split(destx, '/');
+				std::vector<std::string> parts = axon::util::split(destx, '/');
 
 				std::string bucket = parts[0];
 				std::string prefix;

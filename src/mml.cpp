@@ -237,7 +237,7 @@ namespace axon
 				if (_msc.size() <= 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
-				short int retval = exec("ADD CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL, FUNC=NIN;", &response);
+				int retval = exec("ADD CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL, FUNC=NIN;", &response);
 
 				if (retval == 0)
 					return 0;
@@ -254,7 +254,7 @@ namespace axon
 				if (_msc.size() <= 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "MSC: Not registered with any MSC.");
 
-				short int retval = exec("RMV CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL;", &response);
+				int retval = exec("RMV CLRDSG: DSP=" + std::to_string(dsp) + ", CLI=K'" + msisdn + ", DAI=ALL;", &response);
 
 				if (retval == 0)
 					return 0;

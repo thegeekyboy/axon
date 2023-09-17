@@ -344,8 +344,9 @@ namespace axon
 				}
 			}
 
-			void session::set(int prop, int value)
+			void session::set([[maybe_unused]] int prop, [[maybe_unused]] int value)
 			{
+				// not sure how to set this 
 				// switch (prop)
 				// {
 				// 	case AXON_TRANSFER_SSH_PORT:
@@ -555,8 +556,9 @@ namespace axon
 				return list([&vec](const axon::entry &e) mutable { vec.push_back(e); });
 			}
 
-			long long sftp::copy(std::string src, std::string dest, bool compress)
+			long long sftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested sftp::cp = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				int rc = 0;
@@ -568,7 +570,7 @@ namespace axon
 				else
 					srcx = _path + "/" + src;
 				
-				auto [path, filename] = axon::helper::splitpath(srcx);
+				auto [path, filename] = axon::util::splitpath(srcx);
 
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
@@ -839,8 +841,9 @@ namespace axon
 				return this->_sftp_get(src, dest, compress);
 			}
 
-			long long sftp::put(std::string src, std::string dest, bool compress)
+			long long sftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 			{
+				// TODO: Need to implement compress
 				DBGPRN("[%s] requested sftp::put() = %s", _id.c_str(), src.c_str());
 				std::lock_guard<std::mutex> lock(_lock);
 				LIBSSH2_SFTP_HANDLE *hsftp;
