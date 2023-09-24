@@ -90,7 +90,8 @@ namespace axon {
 			int& operator[] (int);
 
 			bool connect();
-			bool noop();
+			void disconnect();
+			void noop();
 
 			void to(std::string);
 			void cc(std::string);

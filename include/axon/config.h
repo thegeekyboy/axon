@@ -14,12 +14,16 @@ namespace axon
 
 	enum conftype
 	{
-		INTEGER = 0,
-		STRING,
-		GROUP,
-		ARRAY,
-		UNKNOWN,
-		MISSING
+		MISSING = -1,
+		UNKNOWN = 0,
+		GROUP = 1,
+		INTEGER = 2,
+		INT64 = 3,
+		FLOAT = 4,
+		STRING = 5,
+		BOOL = 6,
+		ARRAY = 7,
+		LIST = 8,
 	};
 
 	class config
@@ -27,8 +31,7 @@ namespace axon
 		std::string _filename, _error;
 
 		config_t _cfg;
-		config_setting_t *_setting;
-		config_setting_t *_root;
+		config_setting_t *_root, *_master;
 
 		bool _open;
 
@@ -36,6 +39,7 @@ namespace axon
 		std::queue<std::string> _crumb;
 
 		void deepcopy(const config &);
+		std::string _name(const config_setting_t *);
 
 	public:
 		class proxy
@@ -58,29 +62,47 @@ namespace axon
 
 		config(const config &);
 		config &operator=(const config &);
+		const config_setting_t *raw();
 
 		bool load(std::string);
 		bool load();
 		bool reload();
+		bool rewind();
 
+		bool save();
+		bool save(std::string);
+
+		std::string name();
+		std::string name(int);
+		bool exists(std::string path);
 		bool open(std::string path);
 		bool close();
-		std::string name(int);
 		int size();
+		bool add(const config_setting_t *);
+		bool add(const std::string&, axon::conftype);
+		bool remove(std::string&);
 
 		axon::conftype type(std::string);
 		axon::conftype type(int);
 
 		proxy get(std::string);
-		bool get(std::string, std::string &);
-		bool get(std::string, int &);
-
-		bool get(std::string, int, std::string &);
-		bool get(std::string, int, int &);
-
 		proxy get(int);
-		bool get(int, std::string &);
+
+		// via name
+		bool get(std::string, int &);
+		bool get(std::string, long long &);
+		bool get(std::string, double &);
+		bool get(std::string, std::string &);
+
+		bool get(std::string, int, int &); // int array
+		bool get(std::string, int, std::string &); // string array
+
+		// via index
 		bool get(int, int &);
+		bool get(int, std::string &);
+
+		void print(const config_setting_t *, int);
+		void print();
 	};
 
 } // namespace axon

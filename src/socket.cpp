@@ -222,7 +222,7 @@ namespace axon
 			bool socks::writeline(std::string data)
 			{
 				data += "\r\n";
-				//DBGPRN("fd[%d] write()=> %s", _fd, data.c_str());
+				DBGPRN("fd[%d] write()=> %s", _fd, data.c_str());
 				if (write(data.c_str(), data.size()) <= 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error writing()-ing to socket");
 
@@ -231,7 +231,7 @@ namespace axon
 
 			long socks::write(std::string data)
 			{
-				//DBGPRN("fd[%d] write()=> %s", _fd, data.c_str());
+				DBGPRN("fd[%d] write()=> %s", _fd, data.c_str());
 				if (write(data.c_str(), data.size()) <= 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error writing()-ing to socket");
 

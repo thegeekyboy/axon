@@ -21,16 +21,8 @@ namespace axon
 
 	mail::~mail()
 	{
-		if (_connected)
-		{
-			_socket.writeline("QUIT");
-			usleep(100000);
-
-			_socket.stop();
-			_connected = false;
-
+		if (_th.joinable())
 			_th.join();
-		}
 	}
 
 	std::string& mail::operator[] (char x)
@@ -106,6 +98,7 @@ namespace axon
 
 	bool mail::connect()
 	{
+		DBGPRN("%s connecting to %s:%d", __PRETTY_FUNCTION__, _server.c_str(), _port);
 		if (_connected)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected to mail server");
 
@@ -154,6 +147,24 @@ namespace axon
 		_connected = true;
 
 		return true;
+	}
+
+	void mail::disconnect()
+	{
+		if (_connected)
+		{
+			_socket.writeline("QUIT");
+			usleep(100000);
+
+			_socket.stop();
+			_connected = false;
+		}
+	}
+
+	void mail::noop()
+	{
+		_socket.writeline("NOOP\r\n");
+		_wait(SMTP_OK_COMMAND_SUCCESS);
 	}
 
 	void mail::to(std::string value)
