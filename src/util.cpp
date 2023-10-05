@@ -4,6 +4,7 @@
 #include <chrono>
 #include <tuple>
 #include <random>
+#include <filesystem>
 
 #include <cxxabi.h>
 
@@ -82,9 +83,10 @@ namespace axon
 
 		std::tuple<std::string, std::string> splitpath(std::string path)
 		{
-			size_t found = path.find_last_of("/\\");
-			std::string parent = (path.substr(0, found).size() == 0 && path[0] == '/')?"/":path.substr(0, found);
-			return std::make_tuple(parent, path.substr(found + 1));
+			// size_t found = path.find_last_of("/\\");
+			// std::string parent = (path.substr(0, found).size() == 0 && path[0] == '/')?"/":path.substr(0, found);
+			// return std::make_tuple(parent, path.substr(found + 1));
+			return std::make_tuple(std::filesystem::path(path).parent_path(), std::filesystem::path(path).filename());
 		}
 
 		int _mkdir(const std::string& path, mode_t mode = 0700)

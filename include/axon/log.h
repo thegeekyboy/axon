@@ -2,6 +2,7 @@
 #define AXON_LOG_H_
 
 #include <fstream>
+#include <sstream>
 #include <mutex>
 #include <thread>
 
@@ -25,6 +26,8 @@ namespace axon
 		std::ofstream _ofs;
 		std::mutex _safety;
 
+		std::stringstream _ss;
+
 		void fopen();
 
 	public:
@@ -42,10 +45,16 @@ namespace axon
 		std::string& operator[] (char i);
 		int& operator[] (int i);
 
+		log& operator<<(bool);
 		log& operator<<(int);
-		log& operator<<(std::string&);
+		log& operator<<(long);
+		log& operator<<(long long);
+		log& operator<<(float);
+		log& operator<<(double);
+		log& operator<<(char);
 		log& operator<<(const char *);
-		log& operator<<(std::ostream& (*fun)(std::ostream&));
+		log& operator<<(std::string&);
+		log& operator<<(std::ostream& (*fun)(std::ostream&)); // this is for std::endl
 
 		template<typename... Arguments>
 		void print(std::string level, std::string const& fmt, Arguments&&... args)

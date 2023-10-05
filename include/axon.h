@@ -7,6 +7,7 @@
 #include <vector>
 #include <functional>
 #include <chrono>
+#include <iomanip>
 
 #include <string.h>
 #include <linux/limits.h>
@@ -238,6 +239,14 @@ namespace axon
 		auto since(std::chrono::time_point<clock_t, duration_t> const& start)
 		{
 			return std::chrono::duration_cast<result_t>(clock_t::now() - _start);
+		}
+
+		static std::string iso8601()
+		{
+			std::stringstream ss;
+			std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			ss<<std::put_time(std::localtime(&t), "%FT%T%z");
+			return ss.str();
 		}
 
 		//time since epoch = std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count()
