@@ -2,6 +2,7 @@
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	util.cpp
+	log.cpp
 	aes.cpp
 	config.cpp
 	connection.cpp
@@ -14,7 +15,6 @@ target_sources(${PROJECT_NAME}
 	ftplist.cpp
 	kafka.cpp
 	kerberos.cpp
-	log.cpp
 	md5.cpp
 	message.cpp
 	mml.cpp

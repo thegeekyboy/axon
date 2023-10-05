@@ -1,4 +1,5 @@
 #include <axon.h>
+#include <axon/util.h>
 #include <axon/sqlite.h>
 
 namespace axon

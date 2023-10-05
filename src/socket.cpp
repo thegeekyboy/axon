@@ -240,7 +240,6 @@ namespace axon
 
 			long socks::write(const char *buf, size_t len)
 			{
-				std::cout<<buf;
 				size_t sent = 0, remain = len;
 
 				do

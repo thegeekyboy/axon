@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
 set(PROJECT_NAME "axon" CACHE INTERNAL "axon")
-set(VERSION "2.0.0")
+set(VERSION "2.1.7")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)

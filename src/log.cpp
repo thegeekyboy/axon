@@ -1,5 +1,6 @@
 #include <axon.h>
 #include <axon/log.h>
+#include <axon/util.h>
 
 namespace axon
 {
@@ -69,7 +70,7 @@ namespace axon
 		if (stat(_path.c_str(), &s) == 0)
 		{
 			if (!(s.st_mode & S_IFDIR))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _path + " for logging");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _path + " is a not directory");
 		}
 		else
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _path + " for logging");
@@ -89,13 +90,16 @@ namespace axon
 		fopen();
 	}
 
-	void log::open(std::string filename)
+	void log::open(std::string fname)
 	{
-		size_t found;
+		// size_t found;
 
-		found = filename.find_last_of("/\\");
-		_path = filename.substr(0, found);
-		_filename = filename.substr(found + 1);
+		auto [path, filename] = axon::util::splitpath(fname);
+		_path = path;
+		_filename = filename;
+		// found = filename.find_last_of("/\\");
+		// _path = filename.substr(0, found);
+		// _filename = filename.substr(found + 1);
 
 		open();
 	}
@@ -132,30 +136,78 @@ namespace axon
 		return _level;
 	}
 
-	log& log::operator<<(int iv)
+	log& log::operator<<(bool value)
 	{
-		printf(">>int>> %d\n", iv);
+		_ss<<value;
 
 		return *this;
 	}
 
-	log& log::operator<<(std::string& sv)
+	log& log::operator<<(int value)
 	{
-		printf(">>string>> %s\n", sv.c_str());
+		_ss<<value;
 
 		return *this;
 	}
 
-	log& log::operator<<(const char *sv)
+	log& log::operator<<(long value)
 	{
-		printf(">>char>> %s\n", sv);
+		_ss<<value;
 
 		return *this;
 	}
 
-	log& log::operator<<([[maybe_unused]] std::ostream& (*fun)(std::ostream&))
+	log& log::operator<<(long long value)
 	{
-		std::cout<<std::endl;
+		_ss<<value;
+
+		return *this;
+	}
+
+	log& log::operator<<(float value)
+	{
+		_ss<<value;
+
+		return *this;
+	}
+
+	log& log::operator<<(double value)
+	{
+		_ss<<value;
+
+		return *this;
+	}
+
+	log& log::operator<<(const char *value)
+	{
+		_ss<<value;
+
+		return *this;
+	}
+
+	log& log::operator<<(std::string& value)
+	{
+		_ss<<value;
+
+		return *this;
+	}
+
+	log& log::operator<<([[maybe_unused]] std::ostream& (*fun)(std::ostream&)) // this is for std::endl
+	{
+		std::lock_guard<std::mutex> lock(_safety);
+
+		_ss<<std::endl;
+
+		char text[512];
+		time_t cur_time = time(NULL);
+		struct tm *st_time = localtime(&cur_time);
+
+		sprintf(text, "[%02d-%02d-%d %2.2d:%2.2d:%2.2d %6d] ", st_time->tm_mday, st_time->tm_mon+1, st_time->tm_year+1900, st_time->tm_hour, st_time->tm_min, st_time->tm_sec, getpid());
+
+		if (_writable)
+			_ofs<<"["<<axon::timer::iso8601()<<"] "<<_ss.rdbuf();
+		else
+			std::cout<<text<<_ss.rdbuf();
 
 		return *this;
 	}
