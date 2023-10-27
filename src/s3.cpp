@@ -90,7 +90,7 @@ namespace axon
 					std::vector<std::string> proxy = axon::util::split(_proxy, ':');
 					cfg.proxyHost = proxy[0];
 					if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
-					cfg.proxyScheme = Aws::Http::Scheme::HTTPS;
+					cfg.proxyScheme = Aws::Http::Scheme::HTTP;
 				}
 
 				_client = new Aws::S3::S3Client(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
