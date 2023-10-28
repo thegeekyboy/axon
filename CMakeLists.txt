@@ -43,7 +43,7 @@ add_library(${PROJECT_NAME} SHARED "")
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 add_subdirectory(src)
-add_subdirectory(test)
+add_subdirectory(examples)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
