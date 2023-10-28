@@ -1,27 +1,27 @@
 #
 target_sources(${PROJECT_NAME}
 	PRIVATE
-	util.cpp
-	log.cpp
-	aes.cpp
-	config.cpp
-	connection.cpp
-	nothing.cpp
-	sqlite.cpp
-	oracle.cpp
-	dmi.cpp
-	file.cpp
-	ftp.cpp
-	ftplist.cpp
-	kafka.cpp
-	kerberos.cpp
-	md5.cpp
-	message.cpp
-	mml.cpp
-	socket.cpp
-	ssh.cpp
-	s3.cpp
-	samba.cpp
-	hdfs.cpp
-	mail.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/util.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/aes.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/config.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/connection.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/nothing.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/sqlite.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/dmi.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/file.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ftp.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ftplist.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/kafka.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/kerberos.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/md5.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/message.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/mml.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/socket.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ssh.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/s3.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/samba.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/hdfs.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/mail.cpp
 )

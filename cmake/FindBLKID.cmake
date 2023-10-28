@@ -19,15 +19,15 @@
 # - Find libblkid
 # Find the blkid library and includes
 #
-# BLKID_INCLUDE_DIR - where to find blkid.h, etc.
+# BLKID_INCLUDE_DIRS - where to find blkid.h, etc.
 # BLKID_LIBRARIES - List of libraries when using blkid.
 # BLKID_FOUND - True if blkid found.
 
-find_path(BLKID_INCLUDE_DIR blkid/blkid.h)
+find_path(BLKID_INCLUDE_DIRS blkid/blkid.h)
 
 find_library(BLKID_LIBRARIES blkid)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(blkid DEFAULT_MSG BLKID_LIBRARIES BLKID_INCLUDE_DIR)
+find_package_handle_standard_args(BLKID DEFAULT_MSG BLKID_LIBRARIES BLKID_INCLUDE_DIRS)
 
-mark_as_advanced(BLKID_LIBRARIES BLKID_INCLUDE_DIR)
+mark_as_advanced(BLKID_LIBRARIES BLKID_INCLUDE_DIRS)
