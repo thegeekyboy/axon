@@ -4,9 +4,9 @@
 #
 # On success, the macro sets the following variables:
 # ORACLE_FOUND	   = if the library found
-# ORACLE_LIBRARY	 = full path to the library
+# ORACLE_LIBRARIES	 = full path to the library
 # ORACLE_LIBRARIES   = full path to the library
-# ORACLE_INCLUDE_DIR = where to find the library headers also defined,
+# ORACLE_INCLUDE_DIRS = where to find the library headers also defined,
 #					   but not for general use are
 # ORACLE_VERSION	 = version of library which was found, e.g. "1.2.5"
 #
@@ -26,13 +26,22 @@
 if(NOT ORACLE_HOME)
   # If ORACLE_HOME is not defined check for env var and if exists set from env var
   if(EXISTS $ENV{ORACLE_HOME})
-	set(ORACLE_HOME $ENV{ORACLE_HOME})
+	  set(ORACLE_HOME $ENV{ORACLE_HOME})
+  else()
+    find_path(
+      ORACLE_PATH
+      NAMES genezi sqlplus
+      PATHS
+      /usr/lib/oracle
+      /u01
+    )
+    if (ORACLE_PATH)
+      cmake_path(GET ORACLE_PATH PARENT_PATH ORACLE_HOME)
+    endif()
   endif()
 endif()
 
-message(STATUS "ORACLE_HOME=${ORACLE_HOME} SUFFIX=${LIB_SUFFIX}")
-
-find_path(ORACLE_INCLUDE_DIR
+find_path(ORACLE_INCLUDE_DIRS
   NAMES oci.h
   PATHS
   ${ORACLE_HOME}/rdbms/public
@@ -67,24 +76,26 @@ find_library(ORACLE_OCI_LIBRARY
 find_library(ORACLE_NNZ_LIBRARY
   NAMES ${ORACLE_NNZ_NAMES} PATHS ${ORACLE_LIB_DIR})
 
-set(ORACLE_LIBRARY
+set(ORACLE_LIBRARIES
   ${ORACLE_OCI_LIBRARY}
   ${ORACLE_OCCI_LIBRARY}
   ${ORACLE_NNZ_LIBRARY})
 
 if(NOT WIN32)
-  set(ORACLE_LIBRARY ${ORACLE_LIBRARY} ${ORACLE_CLNTSH_LIBRARY})
+  set(ORACLE_LIBRARIES ${ORACLE_LIBRARIES} ${ORACLE_CLNTSH_LIBRARY})
 endif(NOT WIN32)
 
-set(ORACLE_LIBRARIES ${ORACLE_LIBRARY})
+set(ORACLE_LIBRARIES ${ORACLE_LIBRARIES})
 
 # Handle the QUIETLY and REQUIRED arguments and set ORACLE_FOUND to TRUE
 # if all listed variables are TRUE
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ORACLE DEFAULT_MSG ORACLE_LIBRARY ORACLE_INCLUDE_DIR)
+find_package_handle_standard_args(ORACLE DEFAULT_MSG ORACLE_LIBRARIES ORACLE_INCLUDE_DIRS ORACLE_HOME)
 
 if(NOT ORACLE_FOUND)
 	message(STATUS "None of the supported Oracle versions (${ORACLE_VERSIONS}) could be found, consider updating ORACLE_VERSIONS if the version you use is not among them.")
 endif()
 
-mark_as_advanced(ORACLE_INCLUDE_DIR ORACLE_LIBRARY)
+# message(STATUS "ORACLE_HOME=${ORACLE_HOME} SUFFIX=${LIB_SUFFIX} ORACLE_INCLUDE_DIRS=${ORACLE_INCLUDE_DIRS}")
+
+mark_as_advanced(ORACLE_INCLUDE_DIRS ORACLE_LIBRARIES ORACLE_HOME)

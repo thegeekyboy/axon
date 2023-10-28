@@ -10,8 +10,7 @@ set(SMB2_VERSION ${PC_SMB2_VERSION})
 
 include(FindPackageHandleStandardArgs)
 
-find_library(SMB2_LIBRARY NAMES smb2
-													PATHS ${PC_SMB2_LIBDIR})
+find_library(SMB2_LIBRARY NAMES smb2 PATHS ${PC_SMB2_LIBDIR})
 
 find_package_handle_standard_args(SMB2
 	REQUIRED_VARS SMB2_LIBRARY SMB2_INCLUDE_DIR
@@ -23,4 +22,4 @@ if(SMB2_FOUND)
 	set(SMB2_DEFINITIONS -DHAVE_LIBSMB2=1)
 endif()
 
-mark_as_advanced(SMB2_INCLUDE_DIR SMB2_LIBRARY)
+mark_as_advanced(SMB2_INCLUDE_DIRS SMB2_LIBRARIES)
