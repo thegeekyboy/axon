@@ -238,7 +238,7 @@ namespace axon
 		>
 		auto since(std::chrono::time_point<clock_t, duration_t> const& start)
 		{
-			return std::chrono::duration_cast<result_t>(clock_t::now() - _start);
+			return std::chrono::duration_cast<result_t>(clock_t::now() - start);
 		}
 
 		static std::string iso8601()
@@ -249,7 +249,25 @@ namespace axon
 			return ss.str();
 		}
 
-		//time since epoch = std::chrono::duration_cast<std::chrono::seconds>(start.time_since_epoch()).count()
+		static long epoch()
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		}
+
+		static long diff(const long ep)
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - ep;
+		}
+
+		template <
+			class result_t   = std::chrono::milliseconds,
+			class clock_t    = std::chrono::steady_clock,
+			class duration_t = std::chrono::milliseconds
+		>
+		static auto diff(const std::chrono::time_point<std::chrono::high_resolution_clock> ep)
+		{
+			return std::chrono::duration_cast<result_t>(clock_t::now() - ep);
+		}
 	};
 }
 
