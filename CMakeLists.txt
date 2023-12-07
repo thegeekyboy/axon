@@ -7,6 +7,7 @@ ENDIF()
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 set(PROJECT_NAME "axon" CACHE INTERNAL "axon")
+set(PROJECT_NAME_MASTER ${PROJECT_NAME})
 
 # version extraction
 execute_process(
@@ -22,7 +23,7 @@ set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
 set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
 set(PROJECT_VERSION_BUILD ${CMAKE_MATCH_4})
-message(STATUS "Starting build process for ${APP_PROJECT_NAME} ${VERSION}")
+message(STATUS "Starting build process for ${PROJECT_NAME} ${VERSION}")
 
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
@@ -76,7 +77,7 @@ add_custom_target(
 ## make bump
 add_custom_target("bump" COMMENT "bumping minor version")
 add_custom_command(
-	TARGET "bump"
+	TARGET "${PROJECT_NAME}"
 	POST_BUILD
 	COMMENT "bumping minor version"
 	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3+1, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
@@ -85,4 +86,4 @@ add_custom_command(
 
 ## make release
 add_custom_target(release)
-add_dependencies(release ${PROJECT_NAME} bump version)
+add_dependencies(release ${PROJECT_NAME} version)
