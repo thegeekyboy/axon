@@ -78,6 +78,7 @@ namespace axon
 		bool open(std::string path);
 		bool close();
 		int size();
+		int size(std::string);
 		bool add(const config_setting_t *);
 		bool add(const std::string&, axon::conftype);
 		bool remove(std::string&);

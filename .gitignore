@@ -13,6 +13,7 @@ experiment
 !*.md
 !*.png
 !*.html
+!LICENSE
 
 # build files
 !bootstrap.sh

@@ -309,6 +309,25 @@ namespace axon
 		return config_setting_length(_root);
 	}
 
+	int config::size(std::string path)
+	{
+		config_setting_t *setting;
+
+		if ((setting = config_setting_get_member(_root, path.c_str())) != NULL)
+		{
+			int settingstype = config_setting_type(setting);
+
+			if (settingstype == CONFIG_TYPE_ARRAY || settingstype == CONFIG_TYPE_LIST || settingstype == CONFIG_TYPE_GROUP)
+				return config_setting_length(setting);
+			else
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");
+		}
+		else
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error reading config parameter '" + path + "'");
+
+		return 0;
+	}
+
 	bool config::add(const config_setting_t *src)
 	{
 		if(CONFIG_FALSE == config_setting_copy(_root, src))
@@ -608,6 +627,10 @@ namespace axon
 			if (settingstype == CONFIG_TYPE_ARRAY)
 			{
 				const char *strval;
+
+				if (config_setting_length(setting) < (index+1))
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Index out of bound");
+
 				if ((strval = config_setting_get_string_elem(setting, index)) == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
 				retval = strval;

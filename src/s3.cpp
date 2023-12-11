@@ -326,8 +326,10 @@ namespace axon
 						file.flag = axon::flags::FILE;
 						file.size = object.GetSize();
 
-						std::vector<std::string> parts = axon::util::split(object.GetKey(), '/');
-						file.name = parts[parts.size()-1];
+						file.name = object.GetKey();
+						size_t pos = file.name.find(prefix);
+						if (pos != std::string::npos)
+							file.name.erase(pos, prefix.size());
 
 						if (match(file.name))
 						{
