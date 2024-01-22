@@ -5,6 +5,7 @@ target_sources(${PROJECT_NAME}
 	${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/aes.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/config.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/fstream.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/connection.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/nothing.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/sqlite.cpp

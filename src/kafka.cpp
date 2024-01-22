@@ -76,6 +76,9 @@ namespace axon
 
 			void kafka::connect()
 			{
+				if (_topic.size() < 1)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "topic list is empty");
+
 				_subscription = rd_kafka_topic_partition_list_new(_topic.size());
 				
 				for (std::string &topic : _topic)

@@ -12,9 +12,9 @@ add_executable (license EXCLUDE_FROM_ALL license.cpp)
 target_link_libraries (license ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-list(APPEND EXAMPLES_LIST ftp)
-add_executable (ftp EXCLUDE_FROM_ALL sftp.cpp)
-target_link_libraries (ftp ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST ftp)
+# add_executable (ftp EXCLUDE_FROM_ALL ftp.cpp)
+# target_link_libraries (ftp ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 list(APPEND EXAMPLES_LIST cfg)
@@ -25,11 +25,6 @@ target_link_libraries (cfg ${PROJECT_NAME_MASTER} ${LIBRARIES})
 #list(APPEND EXAMPLES_LIST cfg2)
 #add_executable (cfg2 cfg2.cpp)
 #target_link_libraries (cfg2 ${PROJECT_NAME_MASTER})
-
-#
-list(APPEND EXAMPLES_LIST read_topic)
-add_executable (read_topic EXCLUDE_FROM_ALL read_topic.cpp)
-target_link_libraries (read_topic ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 list(APPEND EXAMPLES_LIST smb)
@@ -55,6 +50,18 @@ target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 list(APPEND EXAMPLES_LIST logger)
 add_executable (logger EXCLUDE_FROM_ALL logger.cpp)
 target_link_libraries (logger ${PROJECT_NAME_MASTER} ${LIBRARIES})
+
+
+# streambuf
+list(APPEND EXAMPLES_LIST stream)
+add_executable (stream EXCLUDE_FROM_ALL stream.cpp)
+target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES})
+
+
+# kafka
+list(APPEND EXAMPLES_LIST kafka)
+add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp)
+target_link_libraries (kafka ${PROJECT_NAME_MASTER} ${LIBRARIES} boost_json)
 
 ## make example
 add_custom_target(examples)
