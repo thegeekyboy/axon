@@ -99,13 +99,14 @@ namespace axon
 				std::mutex _lock;
 
 				bool _connected;
+				bool _is_open;
 
 				bool init();
 				long long _scp_get(std::string, std::string, bool = false);
 				long long _sftp_get(std::string, std::string, bool = false);
 
 			public:
-				sftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { _sftp = NULL; _connected = false; };
+				sftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { _sftp = NULL; _connected = false; _is_open = false; };
 				sftp(const sftp& rhs) : connection(rhs) { _sftp = NULL; };
 				~sftp();
 
@@ -123,6 +124,8 @@ namespace axon
 
 				int cb(const struct entry *);
 
+				bool open(std::string, bool = false);
+				bool close();
 				long long get(std::string, std::string, bool = false);
 				long long put(std::string, std::string, bool = false);
 			};

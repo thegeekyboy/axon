@@ -393,19 +393,25 @@ namespace axon
 				const long long filesize = details.GetContentLength();
 				
 				std::ofstream file;
-				file.open(dest, std::ios::out | std::ios::binary);
+				file.exceptions(std::ofstream::badbit);
 
-				if (compress)
-				{
-					boost::iostreams::filtering_ostream out;
+				try {
+					file.open(dest, std::ios::out | std::ios::binary);
 
-					out.push(boost::iostreams::bzip2_compressor());
-					out.push(file);
+					if (compress)
+					{
+						boost::iostreams::filtering_ostream out;
 
-					out<<result.GetResult().GetBody().rdbuf();
+						out.push(boost::iostreams::bzip2_compressor());
+						out.push(file);
+
+						out<<result.GetResult().GetBody().rdbuf();
+					}
+					else 
+						file<<result.GetResult().GetBody().rdbuf();
+				} catch (const std::ofstream::failure& e) {
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file to writing - " + dest);
 				}
-				else 
-					file<<result.GetResult().GetBody().rdbuf();
 
 				return filesize;
 			}

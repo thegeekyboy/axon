@@ -76,11 +76,12 @@ add_custom_target(
 )
 
 ## make bump
-add_custom_target("bump" COMMENT "bumping minor version")
+add_custom_target("bump" COMMENT "bumping build version")
 add_custom_command(
 	TARGET "${PROJECT_NAME}"
-	COMMENT "bumping minor version"
-	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3+1, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+	COMMENT "bumping build version"
+	# COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3+1, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3, $$4+1 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
 )
 ##
 
