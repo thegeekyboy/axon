@@ -9,6 +9,9 @@
 #include <chrono>
 #include <iomanip>
 
+#include <cstdio>
+#include <cstdarg>
+
 #include <string.h>
 #include <linux/limits.h>
 
@@ -23,12 +26,19 @@
 #endif
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
 #ifndef DEBUG
 #define DEBUG 0
 #endif
+
 #if DEBUG == 1
-#define DBGPRN(...) fprintf(stderr, __VA_ARGS__); fwrite("\n", 1, 1, stderr)
+#define INFPRN(...) RAWDBG(32, __VA_ARGS__)
+#define ERRPRN(...) RAWDBG(31, __VA_ARGS__)
+#define DBGPRN(...) RAWDBG(33, __VA_ARGS__)
+extern void RAWDBG(int, const char*, ...);
 #else
+#define INFPRN(...)
+#define ERRPRN(...)
 #define DBGPRN(...)
 #endif
 
@@ -38,7 +48,6 @@ namespace axon
 	typedef int flags_t;
 	typedef int proto_t;
 	typedef int auth_t;
-	typedef int trans_t;
 
 	struct flags {
 
@@ -78,11 +87,7 @@ namespace axon
 		static const auth_t NTLM = 3;
 	};
 
-	struct transaction {
 
-		static const trans_t END = 0;
-		static const trans_t BEGIN = 1;
-	};
 
 	struct entry {
 

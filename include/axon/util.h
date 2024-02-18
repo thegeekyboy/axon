@@ -1,6 +1,9 @@
 #ifndef AXON_UTIL_H_
 #define AXON_UTIL_H_
 
+#include <variant>
+#include <cstdarg>
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -34,6 +37,7 @@ namespace axon
 		std::vector<BYTE> base64_decode(std::string const&);
 		std::string uuid();
 		double random(double, double);
+		void debugprint(const char *, ...);
 		std::string demangle(const char*);
 
 		std::string protoname(axon::proto_t);
@@ -51,6 +55,27 @@ namespace axon
 
 			return cnt;
 		}
+
+		template <typename T>
+		uint16_t count(std::va_list list, const T first)
+		{
+			uint16_t cnt = 0;
+			T bv = first;
+
+			while (bv != nullptr)
+			{
+				cnt++;
+				bv = va_arg(list, T);
+			}
+
+			return cnt;
+		}
+
+		template <typename T, typename... Args> struct concatenator;
+		template <typename... Args0, typename... Args1>
+		struct concatenator<std::variant<Args0...>, Args1...> {
+			using type = std::variant<Args0..., Args1...>;
+		};
 	}
 }
 

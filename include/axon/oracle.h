@@ -164,6 +164,7 @@ namespace axon {
 			using cb_helper = lambda<50, void, dvoid *, OCISubscription *, dvoid *, ub4 *, dvoid *, ub4>;
 
 			bool build();
+			int vbind(OCIStmt*, const std::string&, va_list*, axon::database::bind*);
 
 			protected:
 				std::ostream& printer(std::ostream&);
@@ -185,25 +186,30 @@ namespace axon {
 				bool connect(std::string, std::string, std::string);
 				bool close();
 				bool flush();
-				
+
 				bool ping();
-				void version();
+				std::string version();
 
 				bool watch(std::string);
 				bool watch(std::string, cbfn);
 				bool unwatch();
 
-				bool transaction(axon::trans_t);
-				bool execute(const std::string&);
-				bool execute(const std::string&, axon::database::bind*, ...);
-				
-				bool query(std::string, std::vector<std::string>);
-				bool query(std::string);
+				bool transaction(trans_t);
+
+				bool execute(const std::string);
+				bool execute(const std::string, axon::database::bind&, ...);
+
+				bool query(const std::string);
+				bool query(const std::string, axon::database::bind&, ...);
+				bool query(const std::string, std::vector<std::string>);
 
 				bool next();
 				void done();
 
 				std::string get(unsigned int);
+
+				std::string& operator[] (char);
+				int& operator[] (int);
 
 				oracle& operator<<(int);
 				oracle& operator<<(std::string&);
@@ -211,7 +217,7 @@ namespace axon {
 				oracle& operator>>(int&);
 				oracle& operator>>(double&);
 				oracle& operator>>(std::string&);
-				oracle& operator>>(std::time_t&);
+				oracle& operator>>(long&);
 
 				static void driver(dvoid *, OCISubscription *, dvoid *, ub4 *, dvoid *, ub4);
 		};

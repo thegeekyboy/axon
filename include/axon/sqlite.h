@@ -49,13 +49,16 @@ namespace axon
 			bool flush();
 
 			bool ping();
-			void version();
+			std::string version();
 			
-			bool transaction(axon::trans_t);
-			bool execute(const std::string&);
-			bool execute(const std::string&, axon::database::bind*, ...);
+			bool transaction(trans_t);
 
-			bool query(std::string);
+			bool execute(const std::string);
+			bool execute(const std::string, axon::database::bind&, ...);
+
+			bool query(const std::string, axon::database::bind&, ...);
+			bool query(const std::string);
+
 			bool next();
 			void done();
 
@@ -67,7 +70,7 @@ namespace axon
 			sqlite& operator>>(int&);
 			sqlite& operator>>(double&);
 			sqlite& operator>>(std::string&);
-			sqlite& operator>>(std::time_t&);
+			sqlite& operator>>(long&);
 		};
 	}
 }

@@ -8,14 +8,14 @@ namespace axon
 	{
 		sqlite::sqlite()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
 		}
 
 		sqlite::sqlite(std::string filename)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+				axon::timer(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
 			_path = filename;
@@ -45,7 +45,7 @@ namespace axon
 
 		bool sqlite::connect()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 			char *errmsg = 0;
 
@@ -75,7 +75,7 @@ namespace axon
 
 		bool sqlite::close()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -83,7 +83,8 @@ namespace axon
 
 			if (_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot close while query in progress");
-			// Need to insert a procedure to check if there are any finalization pending on prepared statements
+
+			// TODO: Need to insert a procedure to check if there are any finalization pending on prepared statements
 
 			retcode = sqlite3_close(_dbp);
 
@@ -95,7 +96,7 @@ namespace axon
 
 		bool sqlite::flush()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
@@ -106,29 +107,30 @@ namespace axon
 
 		bool sqlite::ping()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			return true;
 		}
 
-		void sqlite::version()
+		std::string sqlite::version()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 
+			return "0.0.0";
 		}
 
-		bool sqlite::transaction(axon::trans_t ttype)
+		bool sqlite::transaction(trans_t ttype)
 		{
-			if (ttype == axon::transaction::BEGIN)
+			if (ttype == transaction::BEGIN)
 				return execute("BEGIN TRANSACTION;");
-			else if (ttype == axon::transaction::END)
+			else if (ttype == transaction::END)
 				return execute("END TRANSACTION;");
 
 			return false;
 		}
 
-		bool sqlite::execute(const std::string &sqltext)
+		bool sqlite::execute(const std::string sqltext)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 			char *errmsg;
 			std::string errstr;
@@ -154,15 +156,15 @@ namespace axon
 			return true;
 		}
 
-		bool sqlite::execute(const std::string &, axon::database::bind *, ...)
+		bool sqlite::execute(const std::string, axon::database::bind&, ...)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			return true;
 		}
 
 		bool sqlite::query(std::string sqltext)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -187,9 +189,15 @@ namespace axon
 			return true;
 		}
 
+		bool sqlite::query(const std::string, axon::database::bind&, ...)
+		{
+			axon::timer(__PRETTY_FUNCTION__);
+			return true;
+		}
+
 		bool sqlite::next()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -215,7 +223,7 @@ namespace axon
 
 		void sqlite::done()
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -233,7 +241,7 @@ namespace axon
 
 		std::string sqlite::get(unsigned int position)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			char *tmp;
 			std::string value;
 
@@ -253,7 +261,7 @@ namespace axon
 
 		sqlite& sqlite::operator<<(int value)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			retcode = sqlite3_bind_int(_stmt, _index, value);
@@ -268,12 +276,12 @@ namespace axon
 
 		sqlite& sqlite::operator<<(std::string& value)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			int retcode;
 
 			retcode = sqlite3_bind_text(_stmt, _index, value.c_str(), -1, SQLITE_TRANSIENT);
 
-			// Need to find an alternative to this?!
+			// TODO: Need to find an alternative to this?!
 			// if (sqlite3_column_type(_stmt, _index) != SQLITE_TEXT)
 				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Bind variable type is not compatable with row type");
 
@@ -287,13 +295,12 @@ namespace axon
 
 		std::ostream& sqlite::printer(std::ostream &stream)
 		{
-
 			return stream;
 		}
 
 		sqlite& sqlite::operator>>(int &value)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			if (_colidx >= sqlite3_column_count(_stmt))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -309,7 +316,7 @@ namespace axon
 
 		sqlite& sqlite::operator>>(double &value)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			if (_colidx >= sqlite3_column_count(_stmt))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -325,7 +332,7 @@ namespace axon
 
 		sqlite& sqlite::operator>>(std::string &value)
 		{
-			axon::timer t1(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 			char *tmp;
 
 			if (_colidx >= sqlite3_column_count(_stmt))
@@ -344,9 +351,8 @@ namespace axon
 			return *this;
 		}
 
-		sqlite& sqlite::operator>>(std::time_t &)
+		sqlite& sqlite::operator>>(long &value)
 		{
-
 			return *this;
 		}
 	}
