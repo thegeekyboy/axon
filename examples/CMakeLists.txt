@@ -22,9 +22,10 @@ add_executable (cfg EXCLUDE_FROM_ALL cfg.cpp)
 target_link_libraries (cfg ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-#list(APPEND EXAMPLES_LIST cfg2)
-#add_executable (cfg2 cfg2.cpp)
-#target_link_libraries (cfg2 ${PROJECT_NAME_MASTER})
+list(APPEND EXAMPLES_LIST database)
+add_executable (database EXCLUDE_FROM_ALL database.cpp)
+target_include_directories(database PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (database ${PROJECT_NAME_MASTER})
 
 #
 list(APPEND EXAMPLES_LIST smb)

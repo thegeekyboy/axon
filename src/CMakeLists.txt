@@ -9,6 +9,7 @@ target_sources(${PROJECT_NAME}
 	${CMAKE_CURRENT_SOURCE_DIR}/connection.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/nothing.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/sqlite.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/scylladb.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/dmi.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/file.cpp

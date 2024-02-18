@@ -38,7 +38,7 @@ namespace axon
 				_config.set("group.id", _consumer);
 				_config.set("enable.partition.eof", "false");
 				_config.set("enable.auto.commit", "true");
-				_config.set("auto.offset.reset", "latest");
+				_config.set("auto.offset.reset", "earliest");
 				_config.set("bootstrap.servers", _bootstrap_hosts);
 
 				if (!(_rk = rd_kafka_new(RD_KAFKA_CONSUMER, _config.get(), error, sizeof(error))))

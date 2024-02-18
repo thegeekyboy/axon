@@ -16,6 +16,17 @@
 #include <axon/md5.h>
 #include <axon/aes.h>
 
+void RAWDBG(int code, const char *format, ...)
+{
+	va_list argptr;
+	char refmt[2048];
+
+	snprintf(refmt, 2048, "\033[0;%dm%s\033[0m\n", code, format);
+	va_start(argptr, format);
+	vfprintf(stderr, refmt, argptr);
+	va_end(argptr);
+}
+
 namespace axon
 {
 	namespace util
@@ -597,6 +608,17 @@ namespace axon
 			std::uniform_real_distribution<double> dist(lower, upper);
 
 			return dist(mt);
+		}
+
+		void debugprint(const char *format, ...)
+		{
+			va_list argptr;
+			char refmt[2048];
+
+			snprintf(refmt, 2048, "\033[0;33m%s\033[0m\n", format);
+			va_start(argptr, format);
+			vfprintf(stderr, refmt, argptr);
+			va_end(argptr);
 		}
 
 		std::string protoname(axon::proto_t i)

@@ -522,7 +522,7 @@ namespace axon
 			bool sftp::connect()
 			{
 				DBGPRN("[%s] requested sftp::connect() to %s", _id.c_str(), _hostname.c_str());
-				axon::timer t1(__PRETTY_FUNCTION__);
+					axon::timer(__PRETTY_FUNCTION__);
 
 				if (_connected)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected!");
