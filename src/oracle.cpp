@@ -541,7 +541,7 @@ namespace axon {
 			return true;
 		}
 
-		bool oracle::execute(const std::string sql, axon::database::bind &first, ...)
+		bool oracle::execute(const std::string sql, axon::database::bind first, ...)
 		{
 			axon::timer(__PRETTY_FUNCTION__);
 
@@ -604,7 +604,7 @@ namespace axon {
 			return true;
 		}
 
-		bool oracle::query(const std::string sql, axon::database::bind &first, ...)
+		bool oracle::query(const std::string sql, axon::database::bind first, ...)
 		{
 			axon::timer(__PRETTY_FUNCTION__);
 
@@ -876,7 +876,7 @@ namespace axon {
 
 		std::string oracle::get(unsigned int i)
 		{
-				axon::timer(__PRETTY_FUNCTION__);
+			axon::timer(__PRETTY_FUNCTION__);
 
 			std::string value;
 
@@ -940,7 +940,7 @@ namespace axon {
 
 		int& oracle::operator[] (int i)
 		{
-			_throwawayint = -1;
+			_throwawayint = i;
 			return _throwawayint;
 		}
 

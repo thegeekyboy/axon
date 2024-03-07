@@ -302,20 +302,14 @@ namespace axon
 				hdfsFile file;
 
 				if (dest[0] == '/')
-				{
-					temp = dest + ".tmp";
 					destx = dest;
-				}
 				else
-				{
-					temp = _path + "/" + dest + ".tmp";
 					destx = _path + "/" + dest;
-				}
 
 				if (!(fp = fopen(src.c_str(), "rb")))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
 
-				if (!(file = hdfsOpenFile(_filesystem, temp.c_str(), O_WRONLY, 0, 0, 0)))
+				if (!(file = hdfsOpenFile(_filesystem, destx.c_str(), O_WRONLY|O_CREAT, 0, 0, 0)))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot open file - " + hdfsGetLastError());
 
 				do {
@@ -333,8 +327,6 @@ namespace axon
 				fclose(fp);
 				hdfsFlush(_filesystem, file);
 				hdfsCloseFile(_filesystem, file);
-
-				ren(temp, destx);
 
 				return filesize;
 			}

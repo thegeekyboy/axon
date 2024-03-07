@@ -9,6 +9,7 @@
 #define AXON_DATABASE_USERNAME 'b'
 #define AXON_DATABASE_PASSWORD 'c'
 #define AXON_DATABASE_KEYSPACE 'd'
+#define AXON_DATABASE_FILEPATH 'e'
 
 namespace axon {
 
@@ -54,6 +55,12 @@ namespace axon {
 
 			public:
 
+				virtual int _get_int(int) = 0;
+				virtual long _get_long(int) = 0;
+				virtual float _get_float(int) = 0;
+				virtual double _get_double(int) = 0;
+				virtual std::string _get_string(int) = 0;
+
 				virtual bool connect() = 0;
 				virtual bool connect(std::string, std::string, std::string) = 0;
 
@@ -66,16 +73,32 @@ namespace axon {
 				virtual bool transaction(trans_t) = 0;
 
 				virtual bool execute(const std::string) = 0;
-				virtual bool execute(const std::string, axon::database::bind&, ...) = 0;
+				virtual bool execute(const std::string, axon::database::bind, ...) = 0;
 
 				virtual bool query(const std::string) = 0;
-				virtual bool query(const std::string, axon::database::bind&, ...) = 0;
+				virtual bool query(const std::string, axon::database::bind, ...) = 0;
 
 
 				virtual bool next() = 0;
 				virtual void done() = 0;
 
-				virtual std::string get(unsigned int) = 0;
+				template <typename T>
+				bool get(int position, T& p) {
+
+					if constexpr(std::is_same<T, int>::value)
+						p = static_cast<T>(_get_int(position));
+					else if constexpr(std::is_same<T, long>::value)
+						p = static_cast<T>(_get_long(position));
+					else if constexpr(std::is_same<T, float>::value)
+						p = static_cast<T>(_get_float(position));
+					else if constexpr(std::is_same<T, double>::value)
+						p = static_cast<T>(_get_double(position));
+					else if constexpr(std::is_same<T, std::string>::value)
+						p = static_cast<T>(_get_string(position));
+					else return false;
+
+					return true;
+				}
 
 				virtual interface& operator<<(int) = 0;
 				virtual interface& operator<<(std::string&) = 0;

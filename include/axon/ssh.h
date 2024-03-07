@@ -124,8 +124,8 @@ namespace axon
 
 				int cb(const struct entry *);
 
-				bool open(std::string, bool = false);
-				bool close();
+				// bool open(std::string, bool = false);
+				// bool close();
 				long long get(std::string, std::string, bool = false);
 				long long put(std::string, std::string, bool = false);
 			};

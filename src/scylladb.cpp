@@ -219,9 +219,7 @@ namespace axon
 			_username = username;
 			_password = password;
 
-			connect();
-
-			return true;
+			return connect();
 		}
 
 		bool scylladb::close()
@@ -319,7 +317,7 @@ namespace axon
 			return true;
 		}
 
-		bool scylladb::execute(std::string sql, axon::database::bind &first, ...)
+		bool scylladb::execute(std::string sql, axon::database::bind first, ...)
 		{
 			axon::timer(__PRETTY_FUNCTION__);
 
@@ -361,6 +359,7 @@ namespace axon
 					std::lock_guard<std::mutex> lock(_safety);
 					
 					_statement.prepare(_session, sql);
+
 					_prepared = true;
 					_query = false;
 				}
@@ -376,7 +375,7 @@ namespace axon
 			return true;
 		}
 
-		bool scylladb::query(std::string sql, axon::database::bind &first, ...)
+		bool scylladb::query(std::string sql, axon::database::bind first, ...)
 		{
 			axon::timer(__PRETTY_FUNCTION__);
 
@@ -421,7 +420,10 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, fq->what());
 
 				_records = fq->make_recordset();
+
 				_query = true;
+				_rowidx = 0;
+				_colidx = 0;
 			}
 
 			_rowidx++;
@@ -447,29 +449,6 @@ namespace axon
 
 			_rowidx = 0;
 			_colidx = 0;
-		}
-
-		std::string scylladb::get(unsigned int position)
-		{
-			axon::timer(__PRETTY_FUNCTION__);
-			
-			std::string value;
-
-			if ((int) position >= _records->colcount())
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
-
-			const CassRow *row = _records->get();
-			const CassValue *val = cass_row_get_column(row, position);
-
-			if (!cass_value_is_null(val))
-			{
-				const char *tmp;
-				size_t size;
-				cass_value_get_string(val, &tmp, &size);
-				if (size) value = tmp;
-			}
-
-			return value;
 		}
 
 		std::string& scylladb::operator[](char i)

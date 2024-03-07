@@ -8,6 +8,7 @@
 #include <functional>
 #include <chrono>
 #include <iomanip>
+#include <mutex>
 
 #include <cstdio>
 #include <cstdarg>
@@ -36,6 +37,7 @@
 #define ERRPRN(...) RAWDBG(31, __VA_ARGS__)
 #define DBGPRN(...) RAWDBG(33, __VA_ARGS__)
 extern void RAWDBG(int, const char*, ...);
+extern std::mutex printer_safety;
 #else
 #define INFPRN(...)
 #define ERRPRN(...)
@@ -86,8 +88,6 @@ namespace axon
 		static const auth_t KERBEROS = 2;
 		static const auth_t NTLM = 3;
 	};
-
-
 
 	struct entry {
 
@@ -249,8 +249,14 @@ namespace axon
 		static std::string iso8601()
 		{
 			std::stringstream ss;
-			std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-			ss<<std::put_time(std::localtime(&t), "%FT%T%z");
+			
+			const auto current_time_point {std::chrono::system_clock::now()};
+			const auto current_time_since_epoch {current_time_point.time_since_epoch()};
+			const auto current_milliseconds {std::chrono::duration_cast<std::chrono::milliseconds> (current_time_since_epoch).count() % 1000};
+
+			std::time_t t = std::chrono::system_clock::to_time_t(current_time_point);
+			ss<<std::put_time(std::localtime(&t), "%FT%T")<<"."<<std::setw(3)<<std::setfill('0')<<current_milliseconds;
+
 			return ss.str();
 		}
 
