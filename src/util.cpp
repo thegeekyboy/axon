@@ -16,14 +16,18 @@
 #include <axon/md5.h>
 #include <axon/aes.h>
 
+std::mutex printer_safety;
+
 void RAWDBG(int code, const char *format, ...)
 {
+	std::lock_guard<std::mutex> lock(printer_safety);
 	va_list argptr;
 	char refmt[2048];
 
-	snprintf(refmt, 2048, "\033[0;%dm%s\033[0m\n", code, format);
+	snprintf(refmt, 2048, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
 	va_start(argptr, format);
 	vfprintf(stderr, refmt, argptr);
+	fflush(stderr);
 	va_end(argptr);
 }
 

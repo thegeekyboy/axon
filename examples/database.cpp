@@ -3,6 +3,7 @@
 
 #include <axon.h>
 #include <axon/util.h>
+#include <axon/sqlite.h>
 #include <axon/oracle.h>
 #include <axon/scylladb.h>
 
@@ -26,40 +27,35 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 
 	if (argc <= 2) return 0;
 
-	// try {
-	// 	axon::database::scylladb db;
-	// 	axon::database::bind test = 1.5;
-
-	// 	db[AXON_DATABASE_KEYSPACE] = keyspace;
-	// 	db.connect(address, username, password);
-
-	// 	std::cout<<"scylladb version: " <<db.version()<<std::endl;
-	
-	// 	db.execute("SELECT * FROM BLAH WHERE X = ?", &test);
-	// } catch (axon::exception &e) {
-	// 	std::cerr<<"exception: "<<e.what()<<std::endl;
-	// }
-
 	try {
-		axon::database::scylladb db;
+		axon::timer(__PRETTY_FUNCTION__);
+		// axon::database::scylladb db;
+		
+		axon::database::sqlite db;
 
-		db[AXON_DATABASE_KEYSPACE] = keyspace;
+		std::shared_ptr<axon::database::interface> _db;
+		std::shared_ptr<axon::database::sqlite> sqlite(new axon::database::sqlite());
+		_db = std::dynamic_pointer_cast<axon::database::interface>(sqlite);
+		
+		// db[AXON_DATABASE_KEYSPACE] = keyspace;
+		// db.connect(address, username, password);
 
-		db.connect(address, username, password);
-		db.ping();
-		std::cout<<db.version();
+		_db->connect("/tmp/test.db", username, password);
+		_db->ping();
+		std::cout<<_db->version()<<std::endl;
 
 		// std::vector<std::string> slist;
 		// slist.push_back("HV1DGWAI58H385LM9LYACPCX");
 
 		// axon::database::bind l = slist;
+
 		int st = atoi(argv[1]);
-		long blah = st;
-		std::string orderid = (char*) argv[2];
-		axon::database::bind i = st, f = 15.1, s = (text*) "asd", addr = "BB840GPOUO", ld = blah;
-		CassUuid uuid;
-		axon::database::bind x = &uuid;
-		int cnt = 1;
+		std::string argval = argv[2];
+
+		long blah = 1122;
+		axon::database::bind i = 1100, f = 15.1, s = (text*) "asd", addr = "BB840GPOUO", ld = blah;
+		std::string orderid = "BB830GPN0J";
+		int counter = 1;
 
 		// db.execute("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE :x_1 = :y_3 AND ROWNUM < :rn", &f, &f, &i);
 
@@ -67,21 +63,26 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		// db.query("SELECT * FROM CPS_TRANSACTION_NORMALIZED WHERE ROWNUM > :rn", i);
 		// db.query("select * from system.clients where port > :p ALLOW FILTERING", i);
 		// db.execute("select * from system.clients where port > :p ALLOW FILTERING", i);
-		db.query("select orderid, actual_amount, eventcount from hyperion.cps_transaction_normalized limit 10");
+		// db.query("select orderid, actual_amount, eventcount from hyperion.cps_transaction_normalized limit 10");
 		// db.query("select * from hyperion.cps_transaction_normalized where orderid = :oid");
-		// db<<addr;
-		while (db.next())
+		_db->query("select * from users where email = :e", argval);
+		// db<<argval;
+		while (_db->next())
 		{
-			std::string acctype;
+			std::cout<<"=> "<<counter++;
+			std::string name;
 			long amount = 0;
 			int eventcount = 0;
-			db.get<long>(1, amount);
-			db.get<int>(0, eventcount);
-			db.get<std::string>(0, acctype);
-			// db>>acctype>>amount>>eventcount;
-			std::cout<<"Count: "<<cnt++<<", OrderID: "<<acctype<<", Account Type: "<<eventcount<<", Amount: "<<amount<<std::endl;
+		// 	db.get<long>(1, amount);
+		// 	db.get<int>(2, eventcount);
+			_db->get(2, name);
+			// db>>amount>>eventcount>>name;
+			std::cout<<"| long: "<<amount<<", int: "<<eventcount<<", text: "<<name;
+		// 	std::cout<<"Count: "<<cnt++<<", OrderID: "<<acctype<<", Account Type: "<<eventcount<<", Amount: "<<amount<<std::endl;
+
+			std::cout<<std::endl;
 		}
-		db.done();
+		_db->done();
 
 	} catch (axon::exception &e) {
 		std::cerr<<"exception: "<<e.what()<<std::endl;

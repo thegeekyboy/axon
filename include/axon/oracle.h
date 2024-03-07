@@ -9,8 +9,6 @@
 #include <axon/database.h>
 
 #define AXON_ORACLE_PREFETCH 100
-//#define DBERR(rc, errhand, funcsig, funcoci) axon::exception(__FILE__, __LINE__, funcsig, getErrorMessage(rc, errhand))
-// #define DBERR(rc, errhand, funcsig, funmsg) axon::exception(__FILE__, __LINE__, funcsig, std::string("nothing"))
 
 namespace axon {
 
@@ -170,6 +168,12 @@ namespace axon {
 				std::ostream& printer(std::ostream&);
 
 			public:
+				int _get_int(int) {};
+				long _get_long(int) {};
+				float _get_float(int) {};
+				double _get_double(int) {};
+				std::string _get_string(int) {};
+
 				oracle();
 				~oracle();
 
@@ -197,10 +201,10 @@ namespace axon {
 				bool transaction(trans_t);
 
 				bool execute(const std::string);
-				bool execute(const std::string, axon::database::bind&, ...);
+				bool execute(const std::string, axon::database::bind, ...);
 
 				bool query(const std::string);
-				bool query(const std::string, axon::database::bind&, ...);
+				bool query(const std::string, axon::database::bind, ...);
 				bool query(const std::string, std::vector<std::string>);
 
 				bool next();

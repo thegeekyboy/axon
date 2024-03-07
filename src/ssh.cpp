@@ -515,7 +515,7 @@ namespace axon
 
 			sftp::~sftp()
 			{
-				close();
+				// close();
 				disconnect();
 			}
 
@@ -728,7 +728,7 @@ namespace axon
 				if (src == dest || srcx == dest || path == dest || filename == dest)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
 
-				cmd = "cp " + srcx + " " + dest;
+				cmd = "cp -f " + srcx + " " + dest;
 
 				if ((rc = libssh2_channel_exec(c.get(), cmd.c_str())) != 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not execute command cp");
@@ -802,7 +802,7 @@ namespace axon
 
 				return true;
 			}
-
+/*
 			bool sftp::open(std::string src, bool compress)
 			{
 				if (_is_open)
@@ -822,7 +822,7 @@ namespace axon
 				
 				return _is_open;
 			}
-
+*/
 			long long sftp::get(std::string src, std::string dest, bool compress)
 			{
 				if (_is_open)
@@ -848,20 +848,14 @@ namespace axon
 				FILE *fp;
 
 				if (dest[0] == '/')
-				{
-					temp = dest + ".tmp";
 					destx = dest;
-				}
 				else
-				{
-					temp = _path + "/" + dest + ".tmp";
 					destx = _path + "/" + dest;
-				}
 
 				if (!(fp = fopen(src.c_str(), "rb")))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
 
-				if (!(hsftp = libssh2_sftp_open(_sftp, temp.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH)))
+				if (!(hsftp = libssh2_sftp_open(_sftp, destx.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH)))
 				{
 					int i = libssh2_session_last_errno(_session);
 
@@ -903,8 +897,6 @@ namespace axon
 
 				fclose(fp);
 				libssh2_sftp_close(hsftp);
-
-				ren(temp, destx);
 
 				return filesize;
 			}
