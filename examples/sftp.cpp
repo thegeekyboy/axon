@@ -26,7 +26,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 
 		std::vector<axon::entry> v;
 
-		axon::transport::transfer::sftp conn(address, username, password, 22);
+		axon::transfer::sftp conn(address, username, password, 22);
 
 		conn.connect();
 		conn.set(AXON_TRANSFER_SSH_USE_SCP, true);

@@ -16,93 +16,91 @@ extern "C" {
 
 namespace axon
 {
-	namespace transport
+	namespace stream
 	{
-		namespace transfer
-		{
-			typedef void (*cbfn)(avro_value_t *);
-			typedef void *(*cbfnptr)(void *);
+		typedef void (*cbfn)(avro_value_t *);
+		typedef void *(*cbfnptr)(void *);
 
-			const int MIN_COMMIT_COUNT = 500;
+		const int MIN_COMMIT_COUNT = 500;
 
-			class kconf {
+		class kconf {
 
-				rd_kafka_conf_t *_kc;
+			rd_kafka_conf_t *_kc;
 
-				public:
-					kconf() { _kc = rd_kafka_conf_new(); }
-					~kconf() { /*rd_kafka_conf_destroy(_kc);*/ };
-					void set(std::string name, std::string value) {
+			public:
+				kconf() { _kc = rd_kafka_conf_new(); }
+				~kconf() { if (_kc) rd_kafka_conf_destroy(_kc); };
+				void set(std::string name, std::string value) {
 
-						char error[1024];
+					char error[1024];
 
-						if (rd_kafka_conf_set(_kc, name.c_str(), value.c_str(), error, sizeof(error)) != RD_KAFKA_CONF_OK)
-							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-					};
-					rd_kafka_conf_t *get() const { return _kc; };
-			};
+					if (rd_kafka_conf_set(_kc, name.c_str(), value.c_str(), error, sizeof(error)) != RD_KAFKA_CONF_OK)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+				};
+				rd_kafka_conf_t *get() const { return _kc; };
+				void reset() { _kc = NULL; }
+		};
 
-			class serdes {
+		class serdes {
 
-				bool _init = false;
-				serdes_conf_t *_config;
-				serdes_t *_serdes;
+			bool _init = false;
+			serdes_conf_t *_config;
+			serdes_t *_serdes;
 
-				public:
-					serdes() {
-						if (!(_config = serdes_conf_new(NULL, 0, NULL)))
-							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize serdes config object");
-					};
-					~serdes() { if (_init) serdes_destroy(_serdes); };
-					void init() {
-						char error[1024];
+			public:
+				serdes() {
+					if (!(_config = serdes_conf_new(NULL, 0, NULL)))
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize serdes config object");
+					_init = true;
+				};
+				~serdes() { if (_init) serdes_destroy(_serdes); };
+				void init() {
+					char error[1024];
 
-						if (!(_serdes = serdes_new(_config, error, sizeof(error))))
-							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-					}
-					void set(std::string name, std::string value) {
+					if (!(_serdes = serdes_new(_config, error, sizeof(error))))
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+				}
+				void set(std::string name, std::string value) {
 
-						char error[1024];
+					char error[1024];
 
-						if (serdes_conf_set(_config, name.c_str(), value.c_str(), error, sizeof(error)) != SERDES_ERR_OK)
-							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-					};
-					serdes_t *get() const { return _serdes; };
-			};
+					if (serdes_conf_set(_config, name.c_str(), value.c_str(), error, sizeof(error)) != SERDES_ERR_OK)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+				};
+				serdes_t *get() const { return _serdes; };
+		};
 
-			class kafka {
+		class kafka {
 
-				std::string _bootstrap_hosts, _schema_hosts, _consumer;
-				std::vector<std::string> _topic;
+			std::string _bootstrap_hosts, _schema_hosts, _consumer;
+			std::vector<std::string> _topic;
 
-				kconf _config;
-				serdes _serdes;
+			serdes _serdes;
 
-				rd_kafka_t *_rk;
-				rd_kafka_topic_partition_list_t *_subscription;
-				rd_kafka_resp_err_t err;
+			rd_kafka_t *_rk;
+			rd_kafka_topic_partition_list_t *_subscription;
+			rd_kafka_resp_err_t err;
 
-				char _hostname[HOST_NAME_MAX], error[512];
+			char _hostname[HOST_NAME_MAX], error[512];
 
-				bool _runnable, _connected;
-				unsigned long long _counter;
+			bool _runnable, _connected;
+			unsigned long long _counter;
 
-				std::thread _runner;
-				std::function<void(avro_value_t *)> f;
+			std::thread _runner;
+			std::function<void(avro_value_t *)> f;
 
-				public:
-					kafka(std::string, std::string, std::string);
-					~kafka();
+			public:
+				kafka(std::string, std::string, std::string);
+				~kafka();
 
-					bool add(std::string);
+				bool add(std::string);
 
-					void connect();
-					bool start(std::function<void(avro_value_t *)>);
-					void stop();
-					
-					unsigned long long counter();
-			};
-		}
+				void connect();
+				bool start(std::function<void(avro_value_t *)>);
+				void stop();
+				
+				unsigned long long counter();
+		};
 	}
 }
 

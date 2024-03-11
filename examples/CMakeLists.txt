@@ -12,9 +12,9 @@ add_executable (license EXCLUDE_FROM_ALL license.cpp)
 target_link_libraries (license ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-# list(APPEND EXAMPLES_LIST ftp)
-# add_executable (ftp EXCLUDE_FROM_ALL ftp.cpp)
-# target_link_libraries (ftp ${PROJECT_NAME_MASTER} ${LIBRARIES})
+list(APPEND EXAMPLES_LIST counter)
+add_executable (counter EXCLUDE_FROM_ALL counter.cpp)
+target_link_libraries (counter ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 list(APPEND EXAMPLES_LIST cfg)
