@@ -7,9 +7,25 @@
 
 int main()
 {
-	axon::transport::transfer::samba smb("10.66.13.20", "username", "password", 0);
+	std::string hostname, username, password, schema;
 
-	smb.set(AXON_TRANSFER_SAMBA_DOMAIN, "domain.com");
+	for(int i=0;env[i]!=NULL;i++)
+	{
+    	auto parts = axon::util::split(env[i], '=');
+
+		if (parts[0] == "AXON_USERNAME")
+			username = parts[1];
+		else if (parts[0] == "AXON_PASSWORD")
+			password = parts[1];
+		else if (parts[0] == "AXON_HOSTNAME")
+			address = parts[1];
+		else if (parts[0] == "AXON_DOMAIN")
+			schema = parts[1];
+	}
+
+	axon::transfer::samba smb(hostname, username, password, 0);
+
+	smb.set(AXON_TRANSFER_SAMBA_DOMAIN, domain);
 	smb.set(AXON_TRANSFER_SAMBA_SHARE, "SHARENAME");
 
 	smb.connect();

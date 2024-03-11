@@ -11,48 +11,45 @@
 
 namespace axon
 {
-	namespace transport
+	namespace transfer
 	{
-		namespace transfer
-		{
-			class hdfs : public connection {
+		class hdfs : public connection {
 
-				std::string _domain, _cache;
+			std::string _domain, _cache;
 
-				struct hdfsBuilder *_builder = NULL;
-				hdfsFS _filesystem = NULL;
+			struct hdfsBuilder *_builder = NULL;
+			hdfsFS _filesystem = NULL;
 
-				static std::atomic<int> _instance;
-				static std::mutex _mtx;
+			static std::atomic<int> _instance;
+			static std::mutex _mtx;
 
-				bool init();
+			bool init();
 
-			public:
-				hdfs(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
-				hdfs(const hdfs& rhs) : connection(rhs) {  };
-				~hdfs();
+		public:
+			hdfs(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
+			hdfs(const hdfs& rhs) : connection(rhs) {  };
+			~hdfs();
 
-				bool connect();
-				bool disconnect();
+			bool connect();
+			bool disconnect();
 
-				bool chwd(std::string);
-				std::string pwd();
-				bool mkdir(std::string);
-				int list(const axon::transport::transfer::cb &);
-				int list(std::vector<entry> &);
-				long long copy(std::string, std::string, bool = false);
-				bool ren(std::string, std::string);
-				bool del(std::string);
+			bool chwd(std::string);
+			std::string pwd();
+			bool mkdir(std::string);
+			int list(const axon::transfer::cb &);
+			int list(std::vector<entry> &);
+			long long copy(std::string, std::string, bool = false);
+			bool ren(std::string, std::string);
+			bool del(std::string);
 
-				int cb(const struct entry *);
+			int cb(const struct entry *);
 
-				long long get(std::string, std::string, bool = false);
-				long long put(std::string, std::string, bool = false);
+			long long get(std::string, std::string, bool = false);
+			long long put(std::string, std::string, bool = false);
 
-				bool set(char, std::string);
-				bool set(char, int);
-			};
-		}
+			bool set(char, std::string);
+			bool set(char, int);
+		};
 	}
 }
 

@@ -60,11 +60,11 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		// db.execute("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE :x_1 = :y_3 AND ROWNUM < :rn", &f, &f, &i);
 
 		// db.query("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE :xk = ':ym' AND ROWNUM <= :rn and TABLE_NAME = :my", f, s, i, x);
-		// db.query("SELECT * FROM CPS_TRANSACTION_NORMALIZED WHERE ROWNUM > :rn", i);
+		// db.query("SELECT * FROM TRANSACTION_NORMALIZED WHERE ROWNUM > :rn", i);
 		// db.query("select * from system.clients where port > :p ALLOW FILTERING", i);
 		// db.execute("select * from system.clients where port > :p ALLOW FILTERING", i);
-		// db.query("select orderid, actual_amount, eventcount from hyperion.cps_transaction_normalized limit 10");
-		// db.query("select * from hyperion.cps_transaction_normalized where orderid = :oid");
+		// db.query("select orderid, actual_amount, eventcount from hyperion.transaction_normalized limit 10");
+		// db.query("select * from hyperion.transaction_normalized where orderid = :oid");
 		_db->query("select * from users where email = :e", argval);
 		// db<<argval;
 		while (_db->next())

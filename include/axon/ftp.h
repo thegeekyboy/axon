@@ -5,39 +5,36 @@
 
 namespace axon
 {
-	namespace transport
+	namespace transfer
 	{
-		namespace transfer
+		class ftp : public connection
 		{
-			class ftp : public connection
-			{
-				transport::tcpip::socks _sock;
-				std::thread _th;
+			transport::tcpip::socks _sock;
+			std::thread _th;
 
-				bool init();
-				bool login();
+			bool init();
+			bool login();
 
-			public:
-				ftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) {  };
-				ftp(const ftp& rhs) : connection(rhs) {  };
-				~ftp();
+		public:
+			ftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) {  };
+			ftp(const ftp& rhs) : connection(rhs) {  };
+			~ftp();
 
-				bool connect();
-				bool disconnect();
+			bool connect();
+			bool disconnect();
 
-				bool chwd(std::string);
-				std::string pwd();
-				bool mkdir(std::string);
-				int list(const axon::transport::transfer::cb &);
-				int list(std::vector<axon::entry> &);
-				long long copy(std::string, std::string, bool = false);
-				bool ren(std::string, std::string);
-				bool del(std::string);
+			bool chwd(std::string);
+			std::string pwd();
+			bool mkdir(std::string);
+			int list(const axon::transfer::cb &);
+			int list(std::vector<axon::entry> &);
+			long long copy(std::string, std::string, bool = false);
+			bool ren(std::string, std::string);
+			bool del(std::string);
 
-				long long get(std::string, std::string, bool = false);
-				long long put(std::string, std::string, bool = false);
-			};
-		}
+			long long get(std::string, std::string, bool = false);
+			long long put(std::string, std::string, bool = false);
+		};
 	}
 }
 
