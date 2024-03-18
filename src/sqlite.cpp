@@ -129,7 +129,7 @@ namespace axon
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, sqlite3_errmsg(_dbp));
 				}
 				else
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type at index: %d", index);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type %s at index: %d", element.type().name(), index);
 
 				index++;
 			}
@@ -218,7 +218,7 @@ namespace axon
 
 		sqlite::sqlite()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
 			_running = false;
@@ -227,7 +227,7 @@ namespace axon
 
 		sqlite::sqlite(std::string filename)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			_open = false;
 			_query = false;
 			_running = false;
@@ -244,7 +244,7 @@ namespace axon
 
 		sqlite::~sqlite()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			if (_open)
 			{
 				flush();
@@ -260,7 +260,7 @@ namespace axon
 
 		bool sqlite::connect()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			char *errmsg = 0;
 
 			if (_open)
@@ -290,7 +290,7 @@ namespace axon
 
 		bool sqlite::close()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
@@ -308,7 +308,7 @@ _statement.reset();
 
 		bool sqlite::flush()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
@@ -319,19 +319,19 @@ _statement.reset();
 
 		bool sqlite::ping()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			return true;
 		}
 
 		std::string sqlite::version()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			return sqlite3_libversion();
 		}
 
 		bool sqlite::transaction(trans_t ttype)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			if (ttype == transaction::BEGIN)
 				return execute("BEGIN TRANSACTION;");
 			else if (ttype == transaction::END)
@@ -342,7 +342,7 @@ _statement.reset();
 
 		bool sqlite::execute(const std::string sql)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
@@ -363,7 +363,7 @@ _statement.reset();
 
 		bool sqlite::execute(const std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_running)
 			{
@@ -386,7 +386,7 @@ _statement.reset();
 
 		bool sqlite::query(std::string sql)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
@@ -421,7 +421,7 @@ _statement.reset();
 
 		bool sqlite::query(const std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_running)
 			{
@@ -444,7 +444,7 @@ _statement.reset();
 
 		bool sqlite::next()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			int retcode;
 
 			if (!_open)
@@ -480,7 +480,7 @@ _statement.reset();
 
 		void sqlite::done()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
@@ -521,7 +521,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator<<(int value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -531,7 +531,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator<<(std::string& value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -541,7 +541,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator<<(axon::database::bind &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -556,7 +556,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator>>(int &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_int(_colidx);
 			_colidx++;
@@ -566,7 +566,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator>>(long &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_long(_colidx);
 			_colidx++;
@@ -576,7 +576,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator>>(float &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_float(_colidx);
 			_colidx++;
@@ -586,7 +586,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator>>(double &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_double(_colidx);
 			_colidx++;
@@ -596,7 +596,7 @@ _statement.reset();
 
 		sqlite& sqlite::operator>>(std::string &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_string(_colidx);
 			_colidx++;

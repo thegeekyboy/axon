@@ -34,13 +34,17 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		axon::database::sqlite db;
 
 		std::shared_ptr<axon::database::interface> _db;
-		std::shared_ptr<axon::database::sqlite> sqlite(new axon::database::sqlite());
-		_db = std::dynamic_pointer_cast<axon::database::interface>(sqlite);
-		
-		// db[AXON_DATABASE_KEYSPACE] = keyspace;
-		// db.connect(address, username, password);
 
-		_db->connect("/tmp/test.db", username, password);
+		std::shared_ptr<axon::database::scylladb> scylla(new axon::database::scylladb());
+		_db = std::dynamic_pointer_cast<axon::database::interface>(scylla);
+
+		// std::shared_ptr<axon::database::sqlite> sqlite(new axon::database::sqlite());
+		// _db = std::dynamic_pointer_cast<axon::database::interface>(sqlite);
+		
+		(*scylla)[AXON_DATABASE_KEYSPACE] = keyspace;
+		_db->connect(address, username, password);
+
+		// _db->connect("/tmp/test.db", username, password);
 		_db->ping();
 		std::cout<<_db->version()<<std::endl;
 
@@ -65,7 +69,8 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		// db.execute("select * from system.clients where port > :p ALLOW FILTERING", i);
 		// db.query("select orderid, actual_amount, eventcount from hyperion.transaction_normalized limit 10");
 		// db.query("select * from hyperion.transaction_normalized where orderid = :oid");
-		_db->query("select * from users where email = :e", argval);
+		// _db->query("select * from users where email = :e", argval);
+		_db->query("select * from hyperion.cps_transaction_normalized");
 		// db<<argval;
 		while (_db->next())
 		{
@@ -75,7 +80,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 			int eventcount = 0;
 		// 	db.get<long>(1, amount);
 		// 	db.get<int>(2, eventcount);
-			_db->get(2, name);
+			_db->get(0, name);
 			// db>>amount>>eventcount>>name;
 			std::cout<<"| long: "<<amount<<", int: "<<eventcount<<", text: "<<name;
 		// 	std::cout<<"Count: "<<cnt++<<", OrderID: "<<acctype<<", Account Type: "<<eventcount<<", Amount: "<<amount<<std::endl;

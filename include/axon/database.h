@@ -35,7 +35,7 @@ namespace axon {
 
 				int _vcount(std::string sql)
 				{
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 
 					int count = 0;
 					boost::regex expression("'(?:[^']|'')*'|\\B(:[a-zA-Z0-9_]+)");

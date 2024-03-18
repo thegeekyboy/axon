@@ -2,12 +2,13 @@
 #include <mutex>
 
 #include <axon.h>
+#include <axon/util.h>
 #include <axon/connection.h>
 #include <axon/samba.h>
 
-int main()
+int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
 {
-	std::string hostname, username, password, schema;
+	std::string hostname, username, password, domain;
 
 	for(int i=0;env[i]!=NULL;i++)
 	{
@@ -18,9 +19,9 @@ int main()
 		else if (parts[0] == "AXON_PASSWORD")
 			password = parts[1];
 		else if (parts[0] == "AXON_HOSTNAME")
-			address = parts[1];
+			hostname = parts[1];
 		else if (parts[0] == "AXON_DOMAIN")
-			schema = parts[1];
+			domain = parts[1];
 	}
 
 	axon::transfer::samba smb(hostname, username, password, 0);

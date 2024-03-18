@@ -5,6 +5,7 @@
 #include <tuple>
 #include <random>
 #include <filesystem>
+#include <bitset>
 
 #include <cxxabi.h>
 
@@ -64,6 +65,34 @@ namespace axon
 
 			return c;
 		}
+
+		unsigned long long bytestoull(const char *bcd, const size_t size)
+		{
+			std::stringstream ss;
+
+			for (size_t i = 0; i < size; i++)
+			{
+				std::bitset<8> x(bcd[i]);
+				ss<<x;
+			}
+			std::bitset<64> bits(ss.str());
+
+			return bits.to_ullong();
+		}
+
+		std::string bytestodecstring(const char *bcd, const size_t size)
+		{
+			std::stringstream ss;
+
+			for (size_t i = 0; i < size; i++)
+			{
+				std::bitset<8> x(bcd[i]);
+				ss<<x;
+			}
+
+			return ss.str();
+		}
+
 
 		unsigned long getdate()
 		{

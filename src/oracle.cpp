@@ -269,7 +269,7 @@ namespace axon {
 
 		bool oracle::connect()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (_sid.size() <= 1 || _username.size() <= 1 || _password.size() <= 1)
 				return false;
@@ -349,7 +349,7 @@ namespace axon {
 
 		bool oracle::close()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (_subscribing)
 				unwatch();
@@ -381,7 +381,7 @@ namespace axon {
 
 		bool oracle::ping()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -396,7 +396,7 @@ namespace axon {
 
 		std::string oracle::version()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -433,7 +433,7 @@ namespace axon {
 			// Database change notification trap. For details check the following URL
 			// https://web.stanford.edu/dept/itss/docs/oracle/10gR2/appdev.102/b14250/oci09adv.htm
 
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			bool rowids_needed = true;
 			ub4 timeout = 0;
@@ -487,7 +487,7 @@ namespace axon {
 
 		bool oracle::unwatch()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			sword rc;
 			if (_subscribing)
@@ -514,7 +514,7 @@ namespace axon {
 			// For further reading, following link is helpful
 			// https://docs.oracle.com/cd/B19306_01/appdev.102/b14250/oci04sql.htm
 
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			// if (!_running)
 			{
@@ -543,7 +543,7 @@ namespace axon {
 
 		bool oracle::execute(const std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			sword rc;
 			std::va_list list;
@@ -585,7 +585,7 @@ namespace axon {
 			// How to use list bind variable with IN statement was borrowed with thanks from
 			// https://stackoverflow.com/questions/18603281/oracle-oci-bind-variables-and-queries-like-id-in-1-2-3
 
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			int prefetch = 100;
 			sword rc;
@@ -606,7 +606,7 @@ namespace axon {
 
 		bool oracle::query(const std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			int prefetch = 100;
 			sword rc;
@@ -638,7 +638,7 @@ namespace axon {
 			// How to use list bind variable with IN statement was borrowed with thanks from
 			// https://stackoverflow.com/questions/18603281/oracle-oci-bind-variables-and-queries-like-id-in-1-2-3
 
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			int prefetch = 100;
 			sword rc, retval;
@@ -737,7 +737,7 @@ namespace axon {
 				_fetched = 0;
 				_rownum = 0;
 
-				axon::timer(__PRETTY_FUNCTION__);
+				axon::timer ctm(__PRETTY_FUNCTION__);
 
 				rc = OCIStmtFetch2(_statement, _error, _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
 				OCIAttrGet(_statement, OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error);
@@ -781,7 +781,7 @@ namespace axon {
 
 		bool oracle::build()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			int rc;
 
@@ -876,7 +876,7 @@ namespace axon {
 
 		std::string oracle::get(unsigned int i)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			std::string value;
 
@@ -981,7 +981,7 @@ namespace axon {
 			// API details on how to extract different type of number via OCI Number functions
 			// https://docs.oracle.com/cd/B28359_01/appdev.111/b28395/oci19map003.htm
 
-				axon::timer(__PRETTY_FUNCTION__);
+				axon::timer ctm(__PRETTY_FUNCTION__);
 
 			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
 
@@ -999,7 +999,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(double &value)
 		{
-				axon::timer(__PRETTY_FUNCTION__);
+				axon::timer ctm(__PRETTY_FUNCTION__);
 
 			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
 
@@ -1017,7 +1017,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(std::string &value)
 		{
-				axon::timer(__PRETTY_FUNCTION__);
+				axon::timer ctm(__PRETTY_FUNCTION__);
 
 			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
 
@@ -1066,7 +1066,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(long &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			DBGPRN("_index: %d, _colcnt: %d, _colidx: %d, col.type: %d", _index, _colcnt, _colidx, _col[_colidx].type);
 
@@ -1253,7 +1253,7 @@ namespace axon {
 
 		std::ostream& oracle::printer(std::ostream &stream)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			for (unsigned int i = 0; i < _colcnt; i++)
 			{

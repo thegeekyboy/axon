@@ -287,7 +287,7 @@ namespace axon
 
 		int s3::list(const axon::transfer::cb &cbfn)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			long count = 0;
 			bool done = false;
 
