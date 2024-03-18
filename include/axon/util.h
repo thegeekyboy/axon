@@ -19,6 +19,8 @@ namespace axon
 		typedef unsigned char BYTE;
 		
 		char *trim(char *);
+		unsigned long long bytestoull(const char *, const size_t);
+		std::string bytestodecstring(const char *, const size_t);
 		// int mkdir(const std::string&, mode_t);
 		std::tuple<std::string, std::string> splitpath(std::string);
 		std::vector<std::string> split(const std::string&, const char);

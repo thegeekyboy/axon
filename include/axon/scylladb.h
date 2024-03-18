@@ -16,6 +16,64 @@ namespace axon
 {
 	namespace database
 	{
+		struct SchemaMeta {
+			SchemaMeta(CassSession *session) {
+				axon::timer ctm(__PRETTY_FUNCTION__);
+				_schema = cass_session_get_schema_meta(session);
+			}
+			~SchemaMeta() {
+				if (_schema) cass_schema_meta_free(_schema);
+			}
+			const CassSchemaMeta *get() { return _schema; }
+			private:
+				const CassSchemaMeta* _schema;
+		};
+
+		struct tableinfo {
+
+			tableinfo() = delete;
+			tableinfo(CassSession *session, std::string keyspace, std::string table):
+			sm(session)
+			{
+				if ((_keyspace = cass_schema_meta_keyspace_by_name(sm.get(), keyspace.c_str())) == NULL)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get keyspace meta");
+
+				if ((_table = cass_keyspace_meta_table_by_name(_keyspace, table.c_str())) == NULL)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get table meta");
+			}
+			~tableinfo() {
+				
+			}
+
+			size_t colcnt() { return cass_table_meta_column_count(_table); }
+			size_t idxcnt() { return cass_table_meta_index_count(_table); }
+			bool column_exists(std::string name) { 
+				return (cass_table_meta_column_by_name(_table, name.c_str()) == NULL)?false:true;
+			}
+			void columns() {
+
+				CassIterator *xd;
+				
+				xd = cass_iterator_fields_from_table_meta(_table);
+
+				while (cass_iterator_next(xd))
+				{
+					const char *name;
+					size_t sz;
+
+					cass_iterator_get_meta_field_name(xd, &name, &sz);
+					std::cout<<name<<std::endl;
+				}
+
+				cass_iterator_free(xd);
+			}
+
+			private:
+				SchemaMeta sm;
+				const CassKeyspaceMeta* _keyspace;
+				const CassTableMeta *_table;
+		};
+
 		class scylladb: public interface {
 
 			struct resultset {
@@ -35,7 +93,7 @@ namespace axon
 				}
 
 				bool next() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_result == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "result not extracted");
 					
@@ -45,7 +103,7 @@ namespace axon
 				}
 
 				const CassRow *get() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_iterator == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "iterator empty");
 					_row = cass_iterator_get_row(_iterator);
@@ -71,7 +129,7 @@ namespace axon
 				}
 
 				void wait() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_cf == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "future not set");
 					cass_future_wait(_cf);
@@ -107,8 +165,14 @@ namespace axon
 				}
 
 				std::unique_ptr<resultset> make_recordset() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					return std::make_unique<resultset>(_cf);
+				}
+
+				CassFuture *get() {
+					if (_cf == NULL)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "future not ready");
+					return _cf;
 				}
 				
 				private:
@@ -117,6 +181,36 @@ namespace axon
 					std::string _errmsg;
 			};
 
+			struct prepared {
+
+				prepared() = delete;
+				prepared(future &cf):
+				p(NULL)
+				{
+					p = cass_future_get_prepared(cf.get());
+					if (p == NULL)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create parpared");
+				};
+
+				~prepared() { 
+					if (p) cass_prepared_free(p);
+				}
+
+				const CassPrepared *get() {
+					if (p == NULL)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "parpared not ready");
+					return p;
+				}
+
+				operator const CassPrepared*()
+				{
+					return get();
+				}
+
+				private:
+					const CassPrepared *p;
+			};
+			
 			struct statement {
 
 				statement(): _statement(NULL) { };
@@ -124,7 +218,13 @@ namespace axon
 					if (_statement != NULL) cass_statement_free(_statement);
 				};
 
-				CassStatement *get() { return _statement; }
+				CassStatement *get() {
+					if (_statement == NULL)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "statement not ready");
+					return _statement;
+				}
+
+				operator CassStatement*() { return get(); }
 
 				void prepare(CassSession *session, std::string sql) {
 
@@ -133,11 +233,9 @@ namespace axon
 					if (!fq)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, fq.what());
 
-					const CassPrepared *prepared = fq.prepared();
-					_statement = cass_prepared_bind(prepared);
+					if (_statement != NULL) cass_statement_free(_statement);
+					_statement = cass_prepared_bind(prepared(fq));				
 					_session = session;
-
-					cass_prepared_free(prepared);
 				};
 
 				std::unique_ptr<future> execute() {
@@ -209,6 +307,10 @@ namespace axon
 			int& operator[] (int);
 
 			scylladb& operator<<(int);
+			scylladb& operator<<(long);
+			scylladb& operator<<(long long);
+			scylladb& operator<<(float);
+			scylladb& operator<<(double);
 			scylladb& operator<<(std::string&);
 			scylladb& operator<<(axon::database::bind&);
 
@@ -217,6 +319,8 @@ namespace axon
 			scylladb& operator>>(double&);
 			scylladb& operator>>(std::string&);
 			scylladb& operator>>(long&);
+
+			std::shared_ptr<tableinfo> getinfo(std::string name) { return std::make_shared<tableinfo>(_session, _keyspace, name); }
 		};
 	}
 }

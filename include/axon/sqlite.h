@@ -24,7 +24,7 @@ namespace axon
 				};
 
 				void reset() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_statement != NULL) {
 						sqlite3_reset(_statement);
 						sqlite3_finalize(_statement);
@@ -35,7 +35,7 @@ namespace axon
 				sqlite3_stmt *get() { return _statement; }
 
 				void prepare(sqlite3 *session, std::string sql) {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_statement != NULL) {
 						sqlite3_reset(_statement);
 						sqlite3_finalize(_statement);
@@ -48,7 +48,7 @@ namespace axon
 				};
 
 				void execute() {
-					axon::timer(__PRETTY_FUNCTION__);
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_statement == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No prepared statement to execute!");
 
@@ -116,6 +116,9 @@ namespace axon
 			int& operator[] (int);
 
 			sqlite& operator<<(int);
+			sqlite& operator<<(long);
+			sqlite& operator<<(float);
+			sqlite& operator<<(double);
 			sqlite& operator<<(std::string&);
 			sqlite& operator<<(axon::database::bind&);
 

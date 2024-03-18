@@ -33,7 +33,7 @@ namespace axon
 				if (element == nullptr)
 					break;
 
-				INFPRN("* Index: %d of %d, Type Index: %s\033[0m", index, count, element->type().name());
+				INFPRN("* Index: %d of %d, Type Index: %s", index, count, element->type().name());
 
 				_bind.push_back(*element);
 
@@ -84,6 +84,12 @@ namespace axon
 					if ((ce = cass_statement_bind_string(stmt, index, (char*)data)) != CASS_OK)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
 				}
+				else if (element.type() == typeid(std::string))
+				{
+					std::string data = std::any_cast<std::string>(element);
+					if ((ce = cass_statement_bind_string(stmt, index, data.c_str())) != CASS_OK)
+						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
+				}
 				else if (element.type() == typeid(float))
 				{
 					float data = std::any_cast<float>(element);
@@ -120,9 +126,9 @@ namespace axon
 					if ((ce = cass_statement_bind_uint32(stmt, index, data)) != CASS_OK)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
 				}
-				else if (element.type() == typeid(int64_t))
+				else if (element.type() == typeid(long long))
 				{
-					int64_t data = std::any_cast<int64_t>(element);
+					int64_t data = std::any_cast<long long>(element);
 					if ((ce = cass_statement_bind_int64(stmt, index, data)) != CASS_OK)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
 				}
@@ -143,7 +149,10 @@ namespace axon
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
 				}
 				else
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type at index: %d", index);
+				{
+					std::cout<<element.type().name()<<std::endl;
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type %s at index: %d", element.type().name(), index);
+				}
 
 				index++;
 			}
@@ -155,7 +164,7 @@ namespace axon
 
 		scylladb::scylladb()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_connected = false;
 			_query = false;
@@ -186,7 +195,7 @@ namespace axon
 
 		bool scylladb::connect()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database already open");
@@ -224,7 +233,7 @@ namespace axon
 
 		bool scylladb::close()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -248,7 +257,7 @@ namespace axon
 
 		bool scylladb::flush()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -258,14 +267,14 @@ namespace axon
 
 		bool scylladb::ping()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			return true;
 		}
 
 		std::string scylladb::version()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -290,7 +299,7 @@ namespace axon
 
 		bool scylladb::execute(std::string sql)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
@@ -319,7 +328,7 @@ namespace axon
 
 		bool scylladb::execute(std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_running)
 			{
@@ -342,7 +351,7 @@ namespace axon
 
 		bool scylladb::query(std::string sql)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -377,7 +386,7 @@ namespace axon
 
 		bool scylladb::query(std::string sql, axon::database::bind first, ...)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_running)
 			{
@@ -400,7 +409,7 @@ namespace axon
 
 		bool scylladb::next()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -434,7 +443,7 @@ namespace axon
 
 		void scylladb::done()
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -475,7 +484,47 @@ namespace axon
 
 		scylladb& scylladb::operator<<(int value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		scylladb& scylladb::operator<<(long value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		scylladb& scylladb::operator<<(long long value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		scylladb& scylladb::operator<<(float value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		scylladb& scylladb::operator<<(double value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -485,7 +534,7 @@ namespace axon
 
 		scylladb& scylladb::operator<<(std::string& value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -495,7 +544,7 @@ namespace axon
 
 		scylladb& scylladb::operator<<(axon::database::bind &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_bind.push_back(value);
 			_colidx++;
@@ -521,7 +570,7 @@ namespace axon
 
 		scylladb& scylladb::operator>>(long &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			
 			value = _get_long(_colidx);
 			_colidx++;
@@ -531,7 +580,7 @@ namespace axon
 
 		scylladb& scylladb::operator>>(float &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			
 			value = _get_float(_colidx);
 
@@ -542,7 +591,7 @@ namespace axon
 
 		scylladb& scylladb::operator>>(double &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			
 			value = _get_double(_colidx);
 
@@ -553,7 +602,7 @@ namespace axon
 
 		scylladb& scylladb::operator>>(std::string &value)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			value = _get_string(_colidx);
 
@@ -564,7 +613,7 @@ namespace axon
 
 		int scylladb::_get_int(int position)
 		{
-			axon::timer(__PRETTY_FUNCTION__);
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			
 			int value = 0;
 

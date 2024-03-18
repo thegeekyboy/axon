@@ -2,13 +2,14 @@
 #include <aws/s3/S3Client.h>
 
 #include <axon.h>
+#include <axon/util.h>
 #include <axon/connection.h>
 #include <axon/s3.h>
 
 
-int main()
+int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
 {
-	std::string proxy, address, username, password, keyspace, bootstrap, schema, consumer;
+	std::string proxy, hostname, username, password, keyspace, bootstrap, schema, consumer;
 
 	for(int i=0;env[i]!=NULL;i++)
 	{
@@ -19,7 +20,7 @@ int main()
 		else if (parts[0] == "AXON_PASSWORD")
 			password = parts[1];
 		else if (parts[0] == "AXON_HOSTNAME")
-			address = parts[1];
+			hostname = parts[1];
 		else if (parts[0] == "AXON_KEYSPACE")
 			keyspace = parts[1];
 		else if (parts[0] == "AXON_BOOTSTRAP")
@@ -32,10 +33,10 @@ int main()
 			proxy = parts[1];
 	}
 
-	if (username.empty() || password.empty() !hostname.empty())
+	if (username.empty() || password.empty() || hostname.empty())
 		return 1;
 
-	axon::transfer::s3 conn(hostname, , "SECRET KEY", 8080);
+	axon::transfer::s3 conn(hostname, username, password, 8080);
 	std::vector<axon::entry> v;
 
 	conn.set(AXON_TRANSFER_S3_PROXY, proxy);

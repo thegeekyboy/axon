@@ -7,9 +7,9 @@ add_executable (sftp EXCLUDE_FROM_ALL sftp.cpp)
 target_link_libraries (sftp ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-list(APPEND EXAMPLES_LIST license)
-add_executable (license EXCLUDE_FROM_ALL license.cpp)
-target_link_libraries (license ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST license)
+# add_executable (license EXCLUDE_FROM_ALL license.cpp)
+# target_link_libraries (license ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 list(APPEND EXAMPLES_LIST counter)
@@ -17,9 +17,9 @@ add_executable (counter EXCLUDE_FROM_ALL counter.cpp)
 target_link_libraries (counter ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-list(APPEND EXAMPLES_LIST cfg)
-add_executable (cfg EXCLUDE_FROM_ALL cfg.cpp)
-target_link_libraries (cfg ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST cfg)
+# add_executable (cfg EXCLUDE_FROM_ALL cfg.cpp)
+# target_link_libraries (cfg ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 list(APPEND EXAMPLES_LIST database)
@@ -48,16 +48,20 @@ add_executable (mail EXCLUDE_FROM_ALL mail.cpp)
 target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-list(APPEND EXAMPLES_LIST logger)
-add_executable (logger EXCLUDE_FROM_ALL logger.cpp)
-target_link_libraries (logger ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST logger)
+# add_executable (logger EXCLUDE_FROM_ALL logger.cpp)
+# target_link_libraries (logger ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 
 # streambuf
-list(APPEND EXAMPLES_LIST stream)
-add_executable (stream EXCLUDE_FROM_ALL stream.cpp)
-target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST stream)
+# add_executable (stream EXCLUDE_FROM_ALL stream.cpp)
+# target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
+# scylladb
+list(APPEND EXAMPLES_LIST scylladb)
+add_executable (scylladb EXCLUDE_FROM_ALL scylladb.cpp)
+target_link_libraries (scylladb ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # kafka
 list(APPEND EXAMPLES_LIST kafka)
