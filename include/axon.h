@@ -17,7 +17,6 @@
 #include <linux/limits.h>
 
 #include <sys/stat.h>
-// #include <sys/types.h>
 #include <unistd.h>
 
 #define MAXBUF 2097152 //1048576
@@ -28,20 +27,30 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
+#define AXON_DEBUG 33
+#define AXON_INFO 34
+#define AXON_NOTICE 36
+#define AXON_WARNING 35
+#define AXON_ERROR 31
+
 #ifndef DEBUG
-#define DEBUG 0
+	#define DEBUG 0
 #endif
 
 #if DEBUG == 1
-#define INFPRN(...) RAWDBG(32, __VA_ARGS__)
-#define ERRPRN(...) RAWDBG(31, __VA_ARGS__)
-#define DBGPRN(...) RAWDBG(33, __VA_ARGS__)
-extern void RAWDBG(int, const char*, ...);
-extern std::mutex printer_safety;
+	#define DBGPRN(...) RAWDBG(AXON_DEBUG, __VA_ARGS__)
+	#define INFPRN(...) RAWDBG(AXON_INFO, __VA_ARGS__)
+	#define NOTPRN(...) RAWDBG(AXON_NOTICE, __VA_ARGS__)
+	#define WRNPRN(...) RAWDBG(AXON_WARNING, __VA_ARGS__)
+	#define ERRPRN(...) RAWDBG(AXON_ERROR, __VA_ARGS__)
+	extern void RAWDBG(int, const char*, ...);
+	extern std::mutex printer_safety;
 #else
-#define INFPRN(...)
-#define ERRPRN(...)
-#define DBGPRN(...)
+	#define DBGPRN(...)
+	#define INFPRN(...)
+	#define NOTPRN(...)
+	#define WRNPRN(...)
+	#define ERRPRN(...)
 #endif
 
 // AXON Namespace
@@ -197,14 +206,21 @@ namespace axon
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> _start, _end;
 		std::vector<long> _laps;
-		std::string _name;
+		std::string _name, _uuid;
 
 		timer(const char *name):_name(name)
 		{
+			_uuid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
 			_start = std::chrono::high_resolution_clock::now();
 		}
 
 		timer(std::string &name):_name(name)
+		{
+			_uuid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+			_start = std::chrono::high_resolution_clock::now();
+		}
+
+		timer(std::string name, std::string uuid):_name(name), _uuid(uuid)
 		{
 			_start = std::chrono::high_resolution_clock::now();
 		}
@@ -213,7 +229,7 @@ namespace axon
 		{
 			_end = std::chrono::high_resolution_clock::now();
 			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
-			DBGPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
+			DBGPRN("[%s] %s ran for %ldμs", _uuid.c_str(), _name.c_str(), microseconds.count());
 		}
 
 		long now()
@@ -234,6 +250,7 @@ namespace axon
 			std::chrono::time_point<std::chrono::high_resolution_clock> _temp = std::chrono::high_resolution_clock::now();
 			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_temp - _start);
 			_laps.push_back(microseconds.count());
+			DBGPRN("[%s] %s ran for %ldμs", _uuid.c_str(), _name.c_str(), microseconds.count());
 		}
 
 		template <

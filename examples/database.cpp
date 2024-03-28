@@ -9,6 +9,7 @@
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
 {
+	axon::timer ctm(__PRETTY_FUNCTION__);
 	std::string address, username, password, keyspace;
 
 	for(int i=0;env[i]!=NULL;i++)
@@ -28,20 +29,18 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 	if (argc <= 2) return 0;
 
 	try {
-		axon::timer(__PRETTY_FUNCTION__);
-		// axon::database::scylladb db;
-		
-		axon::database::sqlite db;
-
 		std::shared_ptr<axon::database::interface> _db;
 
-		std::shared_ptr<axon::database::scylladb> scylla(new axon::database::scylladb());
-		_db = std::dynamic_pointer_cast<axon::database::interface>(scylla);
+		std::shared_ptr<axon::database::oracle> ora(new axon::database::oracle());
+		_db = std::dynamic_pointer_cast<axon::database::interface>(ora);
+
+		// std::shared_ptr<axon::database::scylladb> scylla(new axon::database::scylladb());
+		// _db = std::dynamic_pointer_cast<axon::database::interface>(scylla);
+		// (*scylla)[AXON_DATABASE_KEYSPACE] = keyspace;
 
 		// std::shared_ptr<axon::database::sqlite> sqlite(new axon::database::sqlite());
 		// _db = std::dynamic_pointer_cast<axon::database::interface>(sqlite);
 		
-		(*scylla)[AXON_DATABASE_KEYSPACE] = keyspace;
 		_db->connect(address, username, password);
 
 		// _db->connect("/tmp/test.db", username, password);
@@ -56,36 +55,48 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		int st = atoi(argv[1]);
 		std::string argval = argv[2];
 
-		long blah = 1122;
-		axon::database::bind i = 1100, f = 15.1, s = (text*) "asd", addr = "BB840GPOUO", ld = blah;
+		axon::database::bind i = 1100, f = 15.1, s = (text*) "BD", addr = "BB840GPOUO";
 		std::string orderid = "BB830GPN0J";
 		int counter = 1;
 
+		// _db->execute("SELECT * FROM CPSTXN.CPS_ORDERHIS WHERE ROWNUM < 10");
+		// ora->execute("DELETE FROM ALL_DATA_TYPES WHERE TID = :rd", 10);
+		// ora->execute("DELETE FROM ALL_DATA_TYPES WHERE TID < :tid", st);
+		// _db->execute("select date_col, timestamp_col, timestamp_with_tz, timestamp_with_3_frac_sec_col FROM ALL_DATA_TYPES");
+		// _db->execute("select sysdate cdate from dual");
 		// db.execute("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE :x_1 = :y_3 AND ROWNUM < :rn", &f, &f, &i);
-
-		// db.query("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE :xk = ':ym' AND ROWNUM <= :rn and TABLE_NAME = :my", f, s, i, x);
+		// _db->query("SELECT TABLE_NAME FROM ALL_ALL_TABLES WHERE TABLE_NAME = :tn", argval);
 		// db.query("SELECT * FROM TRANSACTION_NORMALIZED WHERE ROWNUM > :rn", i);
 		// db.query("select * from system.clients where port > :p ALLOW FILTERING", i);
 		// db.execute("select * from system.clients where port > :p ALLOW FILTERING", i);
 		// db.query("select orderid, actual_amount, eventcount from hyperion.transaction_normalized limit 10");
 		// db.query("select * from hyperion.transaction_normalized where orderid = :oid");
 		// _db->query("select * from users where email = :e", argval);
-		_db->query("select * from hyperion.cps_transaction_normalized");
+		// _db->query("select * from hyperion.cps_transaction_normalized");
+		_db->query("SELECT * FROM EMP_UNIT WHERE UPPER(EMPNAME) LIKE :name", argval);
+		// _db->query("SELECT * FROM EMP_UNIT WHERE EMPID < :eid", st);
+		// _db->query("SELECT * FROM ALL_ALL_TABLES WHERE 1 < :rn", 2);
+		// _db->query("SELECT * FROM EMP_UNIT");
 		// db<<argval;
+
 		while (_db->next())
 		{
-			std::cout<<"=> "<<counter++;
+			// std::cout<<"=> "<<counter++;
 			std::string name;
 			long amount = 0;
-			int eventcount = 0;
-		// 	db.get<long>(1, amount);
-		// 	db.get<int>(2, eventcount);
-			_db->get(0, name);
-			// db>>amount>>eventcount>>name;
-			std::cout<<"| long: "<<amount<<", int: "<<eventcount<<", text: "<<name;
-		// 	std::cout<<"Count: "<<cnt++<<", OrderID: "<<acctype<<", Account Type: "<<eventcount<<", Amount: "<<amount<<std::endl;
+		// 	int eventcount = 0;
+		// // 	db.get<long>(1, amount);
+		// // 	db.get<int>(2, eventcount);
+			// _db->get(0, name);
+			_db->get(1, name);
+			// _db->get(1, name);
+			// _db->get(2, name);
+			// _db->get(3, name);
+		// 	// db>>amount>>eventcount>>name;
+		// 	std::cout<<"| long: "<<amount<<", int: "<<eventcount<<", text: "<<name;
+		// // 	std::cout<<"Count: "<<cnt++<<", OrderID: "<<acctype<<", Account Type: "<<eventcount<<", Amount: "<<amount<<std::endl;
 
-			std::cout<<std::endl;
+			std::cout<<counter++<<": "<<name<<std::endl;
 		}
 		_db->done();
 

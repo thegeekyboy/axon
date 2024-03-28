@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -s")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -32,6 +32,7 @@ include(CheckCXXCompilerFlag)
 enable_cxx_compiler_flag_if_supported("-D_GLIBCXX_USE_NANOSLEEP")
 enable_cxx_compiler_flag_if_supported("-Wall")
 enable_cxx_compiler_flag_if_supported("-Wextra")
+enable_cxx_compiler_flag_if_supported("-Wmaybe-uninitialized")
 enable_cxx_compiler_flag_if_supported("-pedantic")
 
 # set(CMAKE_CXX_STANDARD 17)
