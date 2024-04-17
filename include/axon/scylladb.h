@@ -260,7 +260,6 @@ namespace axon
 
 			statement _statement;
 
-			std::vector<axon::database::bind> _bind;
 			std::unique_ptr<resultset> _records;
 
 			std::mutex _safety;
@@ -270,55 +269,53 @@ namespace axon
 			int bind(statement&);
 
 		protected:
-			std::ostream& printer(std::ostream&);
+			std::ostream& printer(std::ostream&) override;
 
 		public:
-			int _get_int(int);
-			long _get_long(int);
-			float _get_float(int);
-			double _get_double(int);
-			std::string _get_string(int);
+			int _get_int(int) override;
+			long _get_long(int) override;
+			float _get_float(int) override;
+			double _get_double(int) override;
+			std::string _get_string(int) override;
 
 			scylladb();
 			scylladb(const scylladb&);
 
 			~scylladb();
 
-			bool connect();
-			bool connect(std::string, std::string, std::string);
-			bool close();
-			bool flush();
+			bool connect() override;
+			bool connect(std::string, std::string, std::string) override;
 
-			bool ping();
-			std::string version();
+			bool close() override;
+			bool flush() override;
+
+			bool ping() override;
+			std::string version() override;
 			
-			bool transaction(trans_t);
+			bool transaction(trans_t) override;
 
-			bool execute(std::string);
-			bool execute(std::string, axon::database::bind, ...);
+			bool execute(std::string) override;
 
-			bool query(std::string);
-			bool query(std::string, axon::database::bind, ...);
-
-			bool next();
-			void done();
+			bool query(std::string) override;
+			bool next() override;
+			void done() override;
 
 			std::string& operator[] (char);
 			int& operator[] (int);
 
-			scylladb& operator<<(int);
-			scylladb& operator<<(long);
-			scylladb& operator<<(long long);
-			scylladb& operator<<(float);
-			scylladb& operator<<(double);
-			scylladb& operator<<(std::string&);
-			scylladb& operator<<(axon::database::bind&);
+			scylladb& operator<<(int) override;
+			scylladb& operator<<(long) override;
+			scylladb& operator<<(long long) override;
+			scylladb& operator<<(float) override;
+			scylladb& operator<<(double) override;
+			scylladb& operator<<(std::string&) override;
+			scylladb& operator<<(axon::database::bind&) override;
 
-			scylladb& operator>>(int&);
-			scylladb& operator>>(float&);
-			scylladb& operator>>(double&);
-			scylladb& operator>>(std::string&);
-			scylladb& operator>>(long&);
+			scylladb& operator>>(int&) override;
+			scylladb& operator>>(long&) override;
+			scylladb& operator>>(float&) override;
+			scylladb& operator>>(double&) override;
+			scylladb& operator>>(std::string&) override;
 
 			std::shared_ptr<tableinfo> getinfo(std::string name) { return std::make_shared<tableinfo>(_session, _keyspace, name); }
 		};

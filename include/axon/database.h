@@ -28,6 +28,9 @@ namespace axon {
 		class interface
 		{
 			protected:
+
+				std::vector<axon::database::bind> _bind;
+
 				std::string _throwawaystr;
 				int _throwawayint;
 
@@ -73,10 +76,46 @@ namespace axon {
 				virtual bool transaction(trans_t) = 0;
 
 				virtual bool execute(const std::string) = 0;
-				virtual bool execute(const std::string, axon::database::bind, ...) = 0;
+
+				template <typename T>
+				bool execute(const std::string sql, T t)
+				{
+					if constexpr (std::is_same<T, std::string>::value)
+						_bind.push_back(t.c_str());
+					else
+						_bind.push_back(t);
+					return execute(sql);
+				}
+				template<typename T, typename... Args>
+				bool execute(std::string sql, T t, Args... args)
+				{
+					if constexpr (std::is_same<T, std::string>::value)
+						_bind.push_back(t.c_str());
+					else
+						_bind.push_back(t);
+					return execute(sql, args...) ;
+				}
 
 				virtual bool query(const std::string) = 0;
-				virtual bool query(const std::string, axon::database::bind, ...) = 0;
+
+				template <typename T>
+				bool query(const std::string sql, T t)
+				{
+					if constexpr (std::is_same<T, std::string>::value)
+						_bind.push_back(t.c_str());
+					else
+						_bind.push_back(t);
+					return query(sql);
+				}
+				template<typename T, typename... Args>
+				bool query(std::string sql, T t, Args... args)
+				{
+					if constexpr (std::is_same<T, std::string>::value)
+						_bind.push_back(t.c_str());
+					else
+						_bind.push_back(t);
+					return query(sql, args...) ;
+				}
 
 
 				virtual bool next() = 0;
@@ -101,12 +140,18 @@ namespace axon {
 				}
 
 				virtual interface& operator<<(int) = 0;
+				virtual interface& operator<<(long) = 0;
+				virtual interface& operator<<(long long) = 0;
+				virtual interface& operator<<(float) = 0;
+				virtual interface& operator<<(double) = 0;
 				virtual interface& operator<<(std::string&) = 0;
-				
+				virtual interface& operator<<(axon::database::bind&) = 0;
+							
 				virtual interface& operator>>(int&) = 0;
+				virtual interface& operator>>(long&) = 0;
+				virtual interface& operator>>(float&) = 0;
 				virtual interface& operator>>(double&) = 0;
 				virtual interface& operator>>(std::string&) = 0;
-				virtual interface& operator>>(long&) = 0;
 
 				friend std::ostream& operator<<(std::ostream&, interface&);
 		};

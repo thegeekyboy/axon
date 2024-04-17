@@ -361,29 +361,6 @@ _statement.reset();
 			return true;
 		}
 
-		bool sqlite::execute(const std::string sql, axon::database::bind first, ...)
-		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
-
-			if (!_running)
-			{
-				_running = true;
-
-				std::va_list list;
-				int count = _vcount(sql);
-
-				va_start(list, first);
-				prepare(count, &list, &first);
-				va_end(list);
-
-				_running = false;
-			}
-			else
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already busy with one query. please release first");
-
-			return execute(sql);
-		}
-
 		bool sqlite::query(std::string sql)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
@@ -417,29 +394,6 @@ _statement.reset();
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already busy with one query. please release first");
 
 			return true;
-		}
-
-		bool sqlite::query(const std::string sql, axon::database::bind first, ...)
-		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
-
-			if (!_running)
-			{
-				_running = true;
-
-				std::va_list list;
-				int count = _vcount(sql);
-
-				va_start(list, first);
-				prepare(count, &list, &first);
-				va_end(list);
-
-				_running = false;
-			}
-			else
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already busy with one query. please release first");
-
-			return query(sql);
 		}
 
 		bool sqlite::next()
@@ -520,6 +474,46 @@ _statement.reset();
 		}
 
 		sqlite& sqlite::operator<<(int value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator<<(long value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator<<(long long value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator<<(float value)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			_bind.push_back(value);
+			_colidx++;
+
+			return *this;
+		}
+
+		sqlite& sqlite::operator<<(double value)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 
