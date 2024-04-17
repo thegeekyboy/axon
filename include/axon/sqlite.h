@@ -70,22 +70,20 @@ namespace axon
 
 			statement _statement;
 
-			std::vector<axon::database::bind> _bind;
-
 			std::mutex _safety;
 
 			int prepare(int, va_list*, axon::database::bind*);
 			int bind(statement&);
 
 		protected:
-			std::ostream& printer(std::ostream&);
+			std::ostream& printer(std::ostream&) override;
 
 		public:
-			int _get_int(int);
-			long _get_long(int);
-			float _get_float(int);
-			double _get_double(int);
-			std::string _get_string(int);
+			int _get_int(int) override;
+			long _get_long(int) override;
+			float _get_float(int) override;
+			double _get_double(int) override;
+			std::string _get_string(int) override;
 
 			sqlite();
 			sqlite(std::string);
@@ -93,21 +91,19 @@ namespace axon
 
 			~sqlite();
 
-			bool connect();
-			bool connect(std::string, std::string, std::string);
-			bool close();
-			bool flush();
+			bool connect() override;
+			bool connect(std::string, std::string, std::string) override;
 
-			bool ping();
-			std::string version();
+			bool close() override;
+			bool flush() override;
+
+			bool ping() override;
+			std::string version() override;
 			
-			bool transaction(trans_t);
+			bool transaction(trans_t) override;
 
-			bool execute(const std::string);
-			bool execute(const std::string, axon::database::bind, ...);
-
-			bool query(const std::string, axon::database::bind, ...);
-			bool query(const std::string);
+			bool execute(const std::string) override;
+			bool query(const std::string) override;
 
 			bool next();
 			void done();
@@ -115,18 +111,19 @@ namespace axon
 			std::string& operator[] (char);
 			int& operator[] (int);
 
-			sqlite& operator<<(int);
-			sqlite& operator<<(long);
-			sqlite& operator<<(float);
-			sqlite& operator<<(double);
-			sqlite& operator<<(std::string&);
-			sqlite& operator<<(axon::database::bind&);
+			sqlite& operator<<(int) override;
+			sqlite& operator<<(long) override;
+			sqlite& operator<<(long long) override;
+			sqlite& operator<<(float) override;
+			sqlite& operator<<(double) override;
+			sqlite& operator<<(std::string&) override;
+			sqlite& operator<<(axon::database::bind&) override;
 
-			sqlite& operator>>(int&);
-			sqlite& operator>>(float&);
-			sqlite& operator>>(double&);
-			sqlite& operator>>(std::string&);
-			sqlite& operator>>(long&);
+			sqlite& operator>>(int&) override;
+			sqlite& operator>>(long&) override;
+			sqlite& operator>>(float&) override;
+			sqlite& operator>>(double&) override;
+			sqlite& operator>>(std::string&) override;
 		};
 	}
 }

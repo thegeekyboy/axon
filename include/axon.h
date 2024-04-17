@@ -23,25 +23,35 @@
 #define MAXBUF 2097152 //1048576
 
 #ifndef PATH_MAX
-#define PATH_MAX 260
+	#define PATH_MAX 260
 #endif
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
+#define AXON_DEBUG 33
+#define AXON_INFO 34
+#define AXON_NOTICE 36
+#define AXON_WARNING 35
+#define AXON_ERROR 31
+
 #ifndef DEBUG
-#define DEBUG 0
+	#define DEBUG 0
 #endif
 
 #if DEBUG == 1
-#define INFPRN(...) RAWDBG(32, __VA_ARGS__)
-#define ERRPRN(...) RAWDBG(31, __VA_ARGS__)
-#define DBGPRN(...) RAWDBG(33, __VA_ARGS__)
-extern void RAWDBG(int, const char*, ...);
-extern std::mutex printer_safety;
+	#define DBGPRN(...) RAWDBG(AXON_DEBUG, __VA_ARGS__)
+	#define INFPRN(...) RAWDBG(AXON_INFO, __VA_ARGS__)
+	#define NOTPRN(...) RAWDBG(AXON_NOTICE, __VA_ARGS__)
+	#define WRNPRN(...) RAWDBG(AXON_WARNING, __VA_ARGS__)
+	#define ERRPRN(...) RAWDBG(AXON_ERROR, __VA_ARGS__)
+	extern void RAWDBG(int, const char*, ...);
+	extern std::mutex printer_safety;
 #else
-#define INFPRN(...)
-#define ERRPRN(...)
-#define DBGPRN(...)
+	#define DBGPRN(...)
+	#define INFPRN(...)
+	#define NOTPRN(...)
+	#define WRNPRN(...)
+	#define ERRPRN(...)
 #endif
 
 // AXON Namespace
@@ -213,7 +223,7 @@ namespace axon
 		{
 			_end = std::chrono::high_resolution_clock::now();
 			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
-			DBGPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
+			INFPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
 		}
 
 		long now()

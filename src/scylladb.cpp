@@ -326,29 +326,6 @@ namespace axon
 			return true;
 		}
 
-		bool scylladb::execute(std::string sql, axon::database::bind first, ...)
-		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
-
-			if (!_running)
-			{
-				_running = true;
-
-				std::va_list list;
-				int count = _vcount(sql);
-
-				va_start(list, first);
-				prepare(count, &list, &first);
-				va_end(list);
-
-				_running = false;
-			}
-			else
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already busy with one query. please release first");
-
-			return execute(sql);
-		}
-
 		bool scylladb::query(std::string sql)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
@@ -384,29 +361,6 @@ namespace axon
 			return true;
 		}
 
-		bool scylladb::query(std::string sql, axon::database::bind first, ...)
-		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
-
-			if (!_running)
-			{
-				_running = true;
-
-				std::va_list list;
-				int count = _vcount(sql);
-
-				va_start(list, first);
-				prepare(count, &list, &first);
-				va_end(list);
-
-				_running = false;
-			}
-			else
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already busy with one query. please release first");
-
-			return query(sql);
-		}
-
 		bool scylladb::next()
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
@@ -415,7 +369,8 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
 			if (!_query && !_prepared)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
+				return false;
+				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
 			
 			if (!_query && _prepared)
 			{
@@ -449,7 +404,8 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
 			if (!_query)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No statement compiled to close");
+				return;
+				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No statement compiled to close");
 
 			_records.reset(nullptr);	// delete unique_ptr
 			_bind.clear();
@@ -550,11 +506,6 @@ namespace axon
 			_colidx++;
 
 			return *this;
-		}
-
-		std::ostream& scylladb::printer(std::ostream &stream)
-		{
-			return stream;
 		}
 
 		// https://docs.datastax.com/en/developer/cpp-driver/2.2/api/cassandra.h/#enum-CassValueType
@@ -789,5 +740,86 @@ namespace axon
 
 			return value;
 		};
+
+		std::ostream& scylladb::printer(std::ostream &stream)
+		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
+
+			int rc = _records->colcount();
+			const CassRow *row = _records->get();
+
+			for (int i = 0; i < rc; i++)
+			{
+				const CassValue *val = cass_row_get_column(row, i);
+				const CassDataType *data_type = cass_value_data_type(val);
+				CassError ce;
+
+				if (cass_value_is_null(val))
+				{
+					stream<<"<"<<i<<":NULL:NULL>, ";
+					continue;
+					// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "NULL value column");
+				}
+
+				switch(cass_data_type_type(data_type))
+				{
+					case CASS_VALUE_TYPE_TINY_INT:
+						int8_t i8;
+						if ((ce = cass_value_get_int8(val, &i8)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":i8:"<<i8<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_SMALL_INT:
+						int16_t i16;
+						if ((ce = cass_value_get_int16(val, &i16)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":i16:"<<i16<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_INT:
+						int32_t i32;
+						if ((ce = cass_value_get_int32(val, &i32)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":i32:"<<i32<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_BIGINT:
+						long i64;
+						if ((ce = cass_value_get_int64(val, &i64)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":i64:"<<i64<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_FLOAT:
+						float flt;
+						if ((ce = cass_value_get_float(val, &flt)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":f:"<<flt<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_DOUBLE:
+						double dbl;
+						if ((ce = cass_value_get_double(val, &dbl)) != CASS_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to extract value at index: %d - %s", i, cass_error_desc(ce));
+						stream<<"<"<<i<<":lf:"<<dbl<<">, ";
+						break;
+
+					case CASS_VALUE_TYPE_TEXT:
+					case CASS_VALUE_TYPE_VARCHAR:
+						const char *tmp;
+						size_t size;
+						cass_value_get_string(val, &tmp, &size);
+						stream<<"<"<<i<<":S:"<<tmp<<">, ";
+						break;
+
+					default:
+						break;
+				}
+			}
+
+			stream<<std::endl;
+			return stream;
+		}
 	}
 }
