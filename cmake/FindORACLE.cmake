@@ -51,10 +51,10 @@ find_path(ORACLE_INCLUDE_DIRS
   # instant client from rpm
   /usr/include/oracle/*/client${LIB_SUFFIX})
 
-set(ORACLE_VERSIONS 21 19 18 12 11 10)
+set(ORACLE_VERSIONS 23 21 19 18 12 11 10)
 set(ORACLE_OCI_NAMES clntsh libclntsh oci) # Dirty trick might help on OSX, see issues/89
 set(ORACLE_OCCI_NAMES libocci occi)
-set(ORACLE_NNZ_NAMES ociw32)
+set(ORACLE_NNZ_NAMES ociw32 nnz libnnz)
 foreach(loop_var IN LISTS ORACLE_VERSIONS)
   set(ORACLE_OCCI_NAMES ${ORACLE_OCCI_NAMES} oraocci${loop_var})
   set(ORACLE_NNZ_NAMES ${ORACLE_NNZ_NAMES} nnz${loop_var} libnnz${loop_var})

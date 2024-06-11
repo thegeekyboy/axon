@@ -136,7 +136,7 @@ namespace axon
 				DBGPRN("requested uid = %d", pw->pw_uid);
 
 				if (setfsuid(-1) != (int) pw->pw_uid)
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change fs uid with 'setfsuid'");
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change fs uid with 'setfsuid' to " + std::to_string(pw->pw_uid));
 			}
 
 			return true;

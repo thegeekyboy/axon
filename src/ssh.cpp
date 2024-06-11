@@ -471,7 +471,7 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr) + " - " + src);
 				}
 			}
-
+/*
 			std::ofstream file;
 			file.exceptions(std::ofstream::badbit);
 
@@ -481,7 +481,6 @@ namespace axon
 
 				if (compress)
 				{
-
 					out.push(boost::iostreams::bzip2_compressor());
 					out.push(file);
 				}
@@ -492,6 +491,7 @@ namespace axon
 
 					if (rc > 0)
 					{
+						std::cout<<rc<<"<---------->"<<FILEBUF;
 						if (compress)
 							out<<FILEBUF;
 						else
@@ -505,6 +505,60 @@ namespace axon
 			} catch (const std::ofstream::failure& e) {
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file to writing - " + dest);
 			}
+*/
+			FILE *fp;
+			BZFILE *bfp = NULL;
+			int bzerr;
+			unsigned int inbyte, outbyte;
+
+			if (!(fp = fopen(dest.c_str(), "wb")))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing - " + dest);
+
+			if (compress)
+			{
+				bfp = BZ2_bzWriteOpen(&bzerr, fp, 3, 0, 30);
+
+				if (bzerr != BZ_OK)
+				{
+					BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+					fclose(fp);
+					unlink(dest.c_str());
+
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not open compression stream");
+				}
+			}
+
+			do {
+
+				int rc = libssh2_sftp_read(hsftp, FILEBUF, MAXBUF);
+
+				if (rc > 0)
+				{
+					if (compress)
+					{
+						BZ2_bzWrite(&bzerr, bfp, FILEBUF, rc);
+						if (bzerr == BZ_IO_ERROR)
+						{
+							BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+							fclose(fp);
+							unlink(dest.c_str());
+
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error in compression stream");
+						}
+					}
+					else
+						fwrite(FILEBUF, rc, 1, fp);
+					filesize += rc;
+				}
+				else
+					break;
+
+			} while (true);
+
+			if (compress)
+				BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
+			fflush(fp);
+			fclose(fp);
 
 			libssh2_sftp_close(hsftp);
 
@@ -684,6 +738,10 @@ namespace axon
 								file.flag = axon::flags::FIFO;
 							else if (LIBSSH2_SFTP_S_ISSOCK(attrs.permissions))
 								file.flag = axon::flags::SOCKET;
+							else {
+								// TODO: this is not correct need to see what the issue is!!!!
+								file.flag = axon::flags::FILE;
+							}
 
 							file.et = axon::protocol::SFTP;
 							count++;

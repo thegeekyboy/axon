@@ -68,6 +68,17 @@ list(APPEND EXAMPLES_LIST kafka)
 add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp)
 target_link_libraries (kafka ${PROJECT_NAME_MASTER} ${LIBRARIES} boost_json)
 
+# stream
+list(APPEND EXAMPLES_LIST stream)
+add_executable (stream EXCLUDE_FROM_ALL stream.cpp)
+target_include_directories(stream PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES} ${ORACLE_LIBRARIES})
+
+# rabbitmq
+list(APPEND EXAMPLES_LIST rabbitmq)
+add_executable (rabbitmq EXCLUDE_FROM_ALL rabbitmq.cpp)
+target_link_libraries (rabbitmq ${PROJECT_NAME_MASTER} ${LIBRARIES})
+
 ## make example
 add_custom_target(examples)
 add_dependencies(examples ${EXAMPLES_LIST})
