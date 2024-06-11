@@ -7,17 +7,20 @@ namespace axon {
 
 	namespace database {
 
-		resultset::resultset(statement *stmt, error *err)
+		OCIEnv *environment::handle;
+		std::mutex environment::lock;
+		int environment::count = 0;
+
+		resultset::resultset(std::shared_ptr<axon::database::statement> stmt)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			_uuid = axon::util::uuid();
 			int rc = 0;
 			
-			_prefetch = 500;
+			_prefetch = AXON_DATABASE_ORACLE_PREFETCH;
 			_fetched = 0;
 			_statement = stmt;
-			_error = err;
 
 			_row_index = 0;
 			_row_count = 0;
@@ -29,8 +32,8 @@ namespace axon {
 
 			DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 
-			if ((rc = OCIAttrGet((CONST dvoid *) stmt->get(), (ub4) OCI_HTYPE_STMT, (void *) &paramcnt, (ub4 *) 0, (ub4) OCI_ATTR_PARAM_COUNT, err->get())) < OCI_SUCCESS)
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+			if ((rc = OCIAttrGet((CONST dvoid *) stmt->get(), (ub4) OCI_HTYPE_STMT, (void *) &paramcnt, (ub4 *) 0, (ub4) OCI_ATTR_PARAM_COUNT, _error.get())) < OCI_SUCCESS)
+				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 
 			DBGPRN("Number of columns in query is %d", paramcnt);
 			_col_count = paramcnt;
@@ -43,14 +46,23 @@ namespace axon {
 
 				_columns.push_back({NULL, i, 0, 0, 0, NULL, NULL});
 
-				if ((rc = OCIParamGet((dvoid *) stmt->get(), (ub4) OCI_HTYPE_STMT, (OCIError *) err->get(), (dvoid **) &_param, (ub4) i)) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
-				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid **) &_columns[i-1].name, (ub4 *) &namelen, (ub4) OCI_ATTR_NAME, err->get())) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
-				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, &_columns[i-1].type, (ub4 *) 0, (ub4) OCI_ATTR_DATA_TYPE, err->get())) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
-				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid *) &_columns[i-1].size, (ub4 *) 0, (ub4) OCI_ATTR_DATA_SIZE, err->get())) != OCI_SUCCESS)
-					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+				if ((rc = OCIParamGet((dvoid *) stmt->get(), (ub4) OCI_HTYPE_STMT, (OCIError *) _error.get(), (dvoid **) &_param, (ub4) i)) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
+
+				// if (i == 1)
+				// {
+				// 	char table[256] = { 0 };
+				// 	if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid **) &table, (ub4 *) &namelen, (ub4) OCI_ATTR_OBJ_NAME, _error.get())) != OCI_SUCCESS)
+				// 		throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
+				// 	std::cout<<"tn: "<<table<<std::endl;
+				// }
+
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid **) &_columns[i-1].name, (ub4 *) &namelen, (ub4) OCI_ATTR_NAME, _error.get())) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, &_columns[i-1].type, (ub4 *) 0, (ub4) OCI_ATTR_DATA_TYPE, _error.get())) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
+				if ((rc = OCIAttrGet((dvoid *) _param, (ub4) OCI_DTYPE_PARAM, (dvoid *) &_columns[i-1].size, (ub4 *) 0, (ub4) OCI_ATTR_DATA_SIZE, _error.get())) != OCI_SUCCESS)
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 
 				_columns[i-1].name[namelen] = 0;
 				_columns[i-1].size += 1;
@@ -79,8 +91,8 @@ namespace axon {
 
 						_columns[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
 
-						if ((rc = OCIDefineByPos(stmt->get(), &dptr, err->get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_STR, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
-								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+						if ((rc = OCIDefineByPos(stmt->get(), &dptr, _error.get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_STR, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 						break;
 
 					case SQLT_NUM:
@@ -91,8 +103,8 @@ namespace axon {
 
 						_columns[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
 
-						if ((rc = OCIDefineByPos(stmt->get(), &dptr, err->get(), i, _columns[i-1].data, sizeof(OCINumber), SQLT_VNU, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
-							throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+						if ((rc = OCIDefineByPos(stmt->get(), &dptr, _error.get(), i, _columns[i-1].data, sizeof(OCINumber), SQLT_VNU, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+							throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 						break;
 
 					case SQLT_DAT:
@@ -102,8 +114,8 @@ namespace axon {
 
 						_columns[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
 
-						if ((rc = OCIDefineByPos(stmt->get(), &dptr, err->get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_DAT, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
-								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+						if ((rc = OCIDefineByPos(stmt->get(), &dptr, _error.get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_DAT, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 						break;
 
 					case SQLT_TIMESTAMP:
@@ -114,8 +126,8 @@ namespace axon {
 
 						_columns[i-1].indicator = malloc(sizeof(sb2) * _prefetch);
 
-						if ((rc = OCIDefineByPos(stmt->get(), &dptr, err->get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_DAT, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
-								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err->what(rc));
+						if ((rc = OCIDefineByPos(stmt->get(), &dptr, _error.get(), i, _columns[i-1].data, _columns[i-1].size, SQLT_DAT, _columns[i-1].indicator, (ub2 *) 0, (ub2 *) 0, OCI_DEFAULT)) != OCI_SUCCESS)
+								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
 						break;
 
 					default:
@@ -147,8 +159,8 @@ namespace axon {
 
 				axon::timer ctm(__PRETTY_FUNCTION__);
 
-				rc = OCIStmtFetch2(_statement->get(), _error->get(), _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
-				OCIAttrGet(_statement->get(), OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error->get());
+				rc = OCIStmtFetch2(_statement->get(), _error.get(), _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
+				OCIAttrGet(_statement->get(), OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error.get());
 
 				if (rc == OCI_SUCCESS && rc == OCI_NO_DATA && _fetched == 0)
 					return false;
@@ -185,7 +197,7 @@ namespace axon {
 
 			std::string value;
 
-			DBGPRN("_index: %d, _col_count: %d, i: %d, col.type: %d", 0, _col_count, i, _columns[_col_index].type);
+			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, i, _columns[_col_index].type);
 
 			if (i >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, "recordset::operator>>(std::string&)", "Column out of bounds");
@@ -217,7 +229,7 @@ namespace axon {
 					{
 						double temp;
 						//OCINumberToInt(_error, (((OCINumber *) _columns[_colidx].data)+_row_index), sizeof(int), OCI_NUMBER_SIGNED, &temp);
-						OCINumberToReal(_error->get(), (((OCINumber *) _columns[i].data)+_row_index), sizeof(double), &temp);
+						OCINumberToReal(_error.get(), (((OCINumber *) _columns[i].data)+_row_index), sizeof(double), &temp);
 						value = std::to_string(temp);
 					}
 					break;
@@ -234,7 +246,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			int value = 0;
 
-			DBGPRN("_index: %d, _col_count: %d, i: %d, col.type: %d<>%d", 0, _col_count, position, _columns[position].type, SQLT_NUM);
+			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
 
 			if (position >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
@@ -242,7 +254,7 @@ namespace axon {
 			if (_columns[position].type != SQLT_NUM)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "variable type is not compatable with row type");
 
-			OCINumberToInt(_error->get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(int), OCI_NUMBER_SIGNED, &value);
+			OCINumberToInt(_error.get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(int), OCI_NUMBER_SIGNED, &value);
 
 			return value;
 		}
@@ -252,7 +264,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			long value = 0;
 
-			DBGPRN("_index: %d, _col_count: %d, i: %d, col.type: %d", 0, _col_count, position, _columns[_col_index].type);
+			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[_col_index].type);
 
 			if (position >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
@@ -284,7 +296,7 @@ namespace axon {
 				}
 			}
 			else if (_columns[position].type == SQLT_NUM)
-				OCINumberToInt(_error->get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(long), OCI_NUMBER_SIGNED, &value);
+				OCINumberToInt(_error.get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(long), OCI_NUMBER_SIGNED, &value);
 			else
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "variable type is not compatable with row type");
 
@@ -296,7 +308,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			float value = 0;
 
-			DBGPRN("_index: %d, _col_count: %d, i: %d, col.type: %d", 0, _col_count, position, _columns[position].type);
+			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
 
 			if (position >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
@@ -304,7 +316,7 @@ namespace axon {
 			if (_columns[position].type != SQLT_NUM)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "variable type is not compatable with row type");
 
-			OCINumberToReal(_error->get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(float), &value);
+			OCINumberToReal(_error.get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(float), &value);
 
 			return value;
 		}
@@ -314,7 +326,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			double value = 0;
 
-			DBGPRN("_index: %d, _col_count: %d, i: %d, col.type: %d", 0, _col_count, position, _columns[position].type);
+			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
 
 			if (position >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
@@ -322,7 +334,7 @@ namespace axon {
 			if (_columns[position].type != SQLT_NUM)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "variable type is not compatable with row type");
 
-			OCINumberToReal(_error->get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(double), &value);
+			OCINumberToReal(_error.get(), (((OCINumber *) _columns[position].data)+_row_index), sizeof(double), &value);
 
 			return value;
 		}
@@ -332,7 +344,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			std::string value;
 
-			DBGPRN("_index: %d, column count: %d, position: %d, type: %d, size: %d", 0, _col_count, position, _columns[position].type, _columns[position].size);
+			DBGPRN("_col_count: %d, position: %d, type: %d, size: %d", _col_count, position, _columns[position].type, _columns[position].size);
 
 			if (position >= _col_count)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
@@ -363,14 +375,14 @@ namespace axon {
 			return value;
 		}
 
-		statement::statement(environment &env, context &ctx):
-		_pointer((OCIStmt*) 0), _error(env)
+		statement::statement(axon::database::context &ctx): _pointer((OCIStmt*) 0)
 		{
 			_uuid = axon::util::uuid();
+			_prepared = false;
 
 			DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 			_context = &ctx;
-			if ((_error = OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_STMT, 0, NULL)).failed())
+			if ((_error = OCIHandleAlloc((dvoid *) _environment.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_STMT, 0, NULL)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 			
 			/* Allocate a statement handle */
@@ -381,6 +393,9 @@ namespace axon {
 		statement::~statement()
 		{
 			DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
+			
+			clear();
+
 			if (_pointer != (OCIStmt*) 0)
 				OCIHandleFree(_pointer, OCI_HTYPE_STMT);
 		}
@@ -394,9 +409,11 @@ namespace axon {
 
 		void statement::prepare(std::string sql)
 		{
-			// if ((rc = OCIStmtPrepare(_pointer, _error.get(), (text*) sql.c_str(), sql.size(), OCI_NTV_SYNTAX, OCI_DEFAULT)) != OCI_SUCCESS)
-			if ((_error = OCIStmtPrepare2(_context->get(), &_pointer, _error.get(), (text*) sql.c_str(), sql.size(), (OraText*) 0, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
+			// https://docs.oracle.com/en/database/oracle/oracle-database/19/lnoci/statement-functions.html#GUID-DF585B90-58BA-45FC-B7CE-6F7F987C03B9
+			// if ((_error = OCIStmtPrepare2(_context->get(), &_pointer, _error.get(), (text*) sql.c_str(), sql.size(), (OraText*) 0, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
+			if ((_error = OCIStmtPrepare(_pointer, _error.get(), (text*) sql.c_str(), sql.size(), OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
+			// _prepared = true;
 		}
 
 		int statement::bind(std::vector<axon::database::bind> &vars)
@@ -534,13 +551,28 @@ namespace axon {
 			return count;
 		}
 
-		void statement::execute(exec_type et)
+		void statement::bind(OCISubscription *sbptr)
+		{
+			// Associate the statement with the subscription handle
+			if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_STMT, sbptr, 0, OCI_ATTR_CHNF_REGHANDLE, _error)).failed())
+				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
+		}
+
+		void statement::execute(axon::database::exec_type et)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if ((_error = OCIStmtExecute(_context->get(), _pointer, _error.get(), (et == exec_type::select)?0:1, 0, (OCISnapshot *) 0, (OCISnapshot *) 0, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
+		}
 
+		void statement::clear()
+		{
+			if (_pointer != (OCIStmt*) 0 && _prepared)
+			{
+				OCIStmtRelease(_pointer, _error.get(), NULL, 0, OCI_DEFAULT);
+				_prepared = false;
+			}
 		}
 
 		int oracle::_get_int(int position)
@@ -564,18 +596,11 @@ namespace axon {
 			return _resultset->get_string(position);
 		}
 
-		oracle::oracle():
-			_context(_environment),
-			_error(_environment),
-			_server(_environment),
-			_session(_environment, _context),
-			_statement(_environment, _context)
+		oracle::oracle(): _session(_context), _statement(std::make_shared<axon::database::statement>(_context))
 		{
 			_connected = false;
 			_running = false;
 			_executed = false;
-
-			_port = 7776;
 
 			_rowidx = 0;
 			_colidx = 0;
@@ -670,7 +695,7 @@ namespace axon {
 			return _version;
 		}
 
-		bool oracle::transaction([[maybe_unused]] trans_t ttype)
+		bool oracle::transaction([[maybe_unused]] axon::database::trans_t ttype)
 		{
 			return true;
 		}
@@ -687,9 +712,9 @@ namespace axon {
 			if (_running)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "query in progress, try later.");
 
-			_statement.prepare(sql);
-			_statement.bind(_bind);
-			_statement.execute(exec_type::other);
+			_statement->prepare(sql);
+			_statement->bind(_bind);
+			_statement->execute(axon::database::exec_type::other);
 
 			return true;
 		}
@@ -708,13 +733,15 @@ namespace axon {
 
 			_running = true;
 
-			OCIStmt *stmt = _statement.get();
+			// OCIStmt *stmt = _statement.get();
 
-			if ((_error = OCIHandleAlloc((dvoid *) _environment.get(), (dvoid **) &stmt, (ub4) OCI_HTYPE_STMT, 0, NULL)).failed())
-				throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIHandleAlloc", _error.what());
+			// this was not commented! why? very strange!
+			// if ((_error = OCIHandleAlloc((dvoid *) _environment.get(), (dvoid **) &stmt, (ub4) OCI_HTYPE_STMT, 0, NULL)).failed())
+			// 	throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIHandleAlloc", _error.what());
+
 			// if ((rc = OCIAttrSet((dvoid *) _statement, OCI_HTYPE_STMT, (void*) &_prefetch, sizeof(int), OCI_ATTR_PREFETCH_ROWS, _error)) != OCI_SUCCESS)
 			// 	throw axon::exception(__FILE__, __LINE__, "axon::database::oracle::query - OCIAttrSet", axon::database::oracle::checker(_error, rc));
-			_statement.prepare(sql);
+			_statement->prepare(sql);
 
 			return true;
 		}
@@ -725,11 +752,11 @@ namespace axon {
 
 			if (_running && !_executed)
 			{
-				_statement.bind(_bind);
-				_statement.execute(exec_type::select);
+				_statement->bind(_bind);
+				_statement->execute(exec_type::select);
 
 				_resultset.reset(nullptr);
-				_resultset = std::make_unique<resultset>(&_statement, &_error);
+				_resultset = std::make_unique<axon::database::resultset>(_statement);
 				_executed = true;
 			}
 
@@ -750,9 +777,9 @@ namespace axon {
 			_resultset.reset(nullptr);
 		}
 
-		std::unique_ptr<resultset> oracle::make_resultset()
+		std::unique_ptr<axon::database::resultset> oracle::make_resultset()
 		{
-			return std::make_unique<resultset>(&_statement, &_error);
+			return std::make_unique<axon::database::resultset>(_statement);
 		}
 
 		std::string& oracle::operator[](char i)
@@ -903,7 +930,7 @@ namespace axon {
 
 			std::string strval;
 
-			for (unsigned int i = 0; i <= _resultset->column_count(); i++)
+			for (unsigned int i = 0; i < _resultset->column_count(); i++)
 			{
 				switch(_resultset->column_type(i))
 				{

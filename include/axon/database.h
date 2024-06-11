@@ -18,9 +18,35 @@ namespace axon {
 		typedef int trans_t;
 		// typedef std::variant<std::vector<std::string>, std::vector<double>, std::vector<int>, void *, char *, unsigned char*, float, double, int8_t, int16_t, int32_t, uint32_t, int64_t, uint64_t, bool> bind;
 		using bind = std::any;
+		
+		enum operation {
+			none = 0x0,
+			startup = 0x1,
+			shutdown = 0x2,
+			shutany = 0x3,
+			dropdb = 0x4,
+			unregister = 0x5,
+			object = 0x6,
+			querychange = 0x7
+		};
+
+		enum change {
+			allops = 0x0,
+			allrows = 0x1,
+			insert = 0x2,
+			update = 0x4,
+			remove = 0x8,
+			alter = 0x10,
+			drop = 0x20,
+			unknown = 0x40
+		};
+
+		enum exec_type {
+			select,
+			other
+		};
 
 		struct transaction {
-
 			static const trans_t END = 0;
 			static const trans_t BEGIN = 1;
 		};

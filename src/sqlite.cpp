@@ -144,7 +144,7 @@ namespace axon
 			int value = 0;
 
 			if (position >= sqlite3_column_count(_statement.get()))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds (%d of %d)", position, sqlite3_column_count(_statement.get()));
 
 			if (sqlite3_column_type(_statement.get(), position) != SQLITE_INTEGER)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
@@ -159,7 +159,7 @@ namespace axon
 			long value = 0;
 
 			if (position >= sqlite3_column_count(_statement.get()))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds (%d of %d)", position, sqlite3_column_count(_statement.get()));
 
 			if (sqlite3_column_type(_statement.get(), position) != SQLITE_INTEGER)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
@@ -174,7 +174,7 @@ namespace axon
 			float value = 0;
 
 			if (position >= sqlite3_column_count(_statement.get()))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds (%d of %d)", position, sqlite3_column_count(_statement.get()));
 
 			if (sqlite3_column_type(_statement.get(), position) != SQLITE_FLOAT)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
@@ -189,7 +189,7 @@ namespace axon
 			double value = 0;
 
 			if (position >= sqlite3_column_count(_statement.get()))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds (%d of %d)", position, sqlite3_column_count(_statement.get()));
 
 			if (sqlite3_column_type(_statement.get(), position) != SQLITE_FLOAT)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
@@ -205,7 +205,7 @@ namespace axon
 			char *tmp;
 
 			if (position >= sqlite3_column_count(_statement.get()))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds (%d of %d)", position, sqlite3_column_count(_statement.get()));
 
 			if (sqlite3_column_type(_statement.get(), position) != SQLITE_TEXT)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type is not compatable with row type");
@@ -405,7 +405,8 @@ _statement.reset();
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
 
 			if (!_query && !_prepared)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
+				return false;
+				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
 
 			if (!_query && _prepared)
 			{

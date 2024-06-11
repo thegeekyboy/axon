@@ -29,8 +29,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 			sid = parts[1];
 	}
 
-	if (argc <= 2) return 0;
-
 	try {
 
 		axon::database::oracle ora;
@@ -49,6 +47,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		db.ping();
 		std::cout<<db.version()<<std::endl;
 
+		if (argc <= 2) return 0;
 		int ival = atoi(argv[1]);
 		std::string sval = argv[2];
 
@@ -61,8 +60,9 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		// axon::database::bind l = slist;
 		axon::database::bind i = 1100, f = 15.1, s = (text*) "BD", addr = (char*)"%BD%";
 
-		// db.execute("DROP TABLE TABLE TBL_EMPLOYEE_INFO");
-		// db.execute("CREATE TABLE TBL_EMPLOYEE_INFO(EID NUMBER(5), NAME VARCHAR2(256), DESIGNATION VARCHAR2(256), UNIT VARCHAR2(8), GRADE VARCHAR2(8), SUPERVISOR_NAME VARCHAR2(256), OFFICE_EMAIL VARCHAR2(256), PERSONAL_EMAIL VARCHAR2(256), MOBILE_NUMBER VARCHAR2(32), ALTERNATE_NUMBER VARCHAR2(32), AREA VARCHAR2(128), HAS_VPN NUMBER(1), HAS_RESIGNED NUMBER(1), JOINING_DATE DATE, LAST_WORKING_DATE DATE, LAST_PROMOTION_DATE DATE, EXPERIENCE_BEFORE_JOINING NUMBER(4), TOTAL_EXPERIENCE NUMBER(4), GENDER VARCHAR2(16), PRIMARY KEY (EID))");
+		db.execute("CREATE TABLE TBL_EMPLOYEE_INFO (EID INT, NAME VARCHAR2(256), DESIGNATION VARCHAR2(256), UNIT VARCHAR2(32), JOINING_DATE DATE, GENDER VARCHAR2(16), PRIMARY KEY (EID))");
+		db.execute("INSERT INTO TBL_EMPLOYEE_INFO VALUES(1, 'SOME EMPLOYEE', 'CTO', 'TECHNOLOGY', '12-JAN-2020', 'Male')");
+		db.execute("INSERT INTO TBL_EMPLOYEE_INFO VALUES(2, 'OTHER EMPLOYEE', 'CHRO', 'HUMAN RESOURCE', '1-SEP-2010', 'Female')");
 
 		// db<<ival<<sval;
 		// db.execute("INSERT INTO TBL_EMPLOYEE_INFO (EID, NAME) VALUES (:yx, :pp)", ival, sval);
@@ -70,12 +70,14 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		// db.query("SELECT * FROM TBL_EMPLOYEE_INFO");
 		// db.query("SELECT * FROM TBL_EMPLOYEE_INFO WHERE UNIT = :uname", sval);
 		// db.query("SELECT * FROM TBL_EMPLOYEE_INFO WHERE EID = :eid", ival);
+
+		db.query("SELECT * FROM TBL_EMPLOYEE_INFO");
 		
 		// db.query("SELECT * FROM TBL_EMPLOYEE_INFO WHERE EID < :eid");
 		// db<<ival;
 
-		db.query("select * from TBL_EMPLOYEE_INFO where unit like :unit and eid < :eid");
-		db<<sval<<ival;
+		// db.query("select * from TBL_EMPLOYEE_INFO where unit like :unit and eid < :eid");
+		// db<<sval<<ival;
 
 		int counter = 0;
 
@@ -87,20 +89,22 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 			// db.get<int>(0, eid);
 			// db.get<std::string>(1, name);
 			// db.get<std::string>(2, unit);
-			// db.get<std::string>(13, joining);
+			// db.get<std::string>(3, joining);
 			
 			db.get(0, eid);
 			db.get(1, name);
 			db.get(2, unit);
-			db.get(13, joining);
+			db.get(3, joining);
 
-			// db>>eid>>name>>unit;
+			// db>>eid>>name>>unit>>joining;
 			
 			std::cout<<counter++<<": "<<eid<<"//"<<name<<"//"<<unit<<"//"<<joining<<std::endl;
 
 			// std::cout<<db; // print all columns
 		}
 		db.done();
+
+		db.execute("DROP TABLE TBL_EMPLOYEE_INFO");
 
 	} catch (axon::exception &e) {
 		std::cerr<<"exception: "<<e.what()<<std::endl;
