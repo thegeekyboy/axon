@@ -59,9 +59,9 @@ target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 # target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # scylladb
-list(APPEND EXAMPLES_LIST scylladb)
-add_executable (scylladb EXCLUDE_FROM_ALL scylladb.cpp)
-target_link_libraries (scylladb ${PROJECT_NAME_MASTER} ${LIBRARIES})
+# list(APPEND EXAMPLES_LIST scylladb)
+# add_executable (scylladb EXCLUDE_FROM_ALL scylladb.cpp)
+# target_link_libraries (scylladb ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # kafka
 list(APPEND EXAMPLES_LIST kafka)
