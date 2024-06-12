@@ -384,17 +384,17 @@ endif ()
 # endif()
 
 # Boost (regex, iostreams, system)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+set(BOOST_USE_STATIC_LIBS ON)
+set(BOOST_USE_MULTITHREADED ON)
+set(BOOST_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost REQUIRED COMPONENTS regex iostreams system thread filesystem) 
 
-if (Boost_FOUND)
-	list(APPEND INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
-	list(APPEND LINK_LIBRARIES ${Boost_LIBRARIES})
-else (NOT Boost_FOUND)
-	message(FATAL_ERROR "boost: could not detect/find the required libraries, cannot continue!")
+if (BOOST_FOUND)
+        list(APPEND INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+        list(APPEND LINK_LIBRARIES ${Boost_LIBRARIES})
+else (NOT BOOST_FOUND)
+        message(FATAL_ERROR "boost: could not detect/find the required libraries, cannot continue!")
 endif ()
 
 # oracle-oci

@@ -8,9 +8,9 @@ target_sources(${PROJECT_NAME}
 	${CMAKE_CURRENT_SOURCE_DIR}/dmi.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/ftplist.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/config.cpp
-	
+
 	${CMAKE_CURRENT_SOURCE_DIR}/fstream.cpp
-	
+
 	${CMAKE_CURRENT_SOURCE_DIR}/connection.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/nothing.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/file.cpp
