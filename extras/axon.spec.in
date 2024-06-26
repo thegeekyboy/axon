@@ -1,20 +1,29 @@
-Buildroot: @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/@CPACK_PACKAGE_FILE_NAME@
-Summary:        @PROJECT_DESCRIPTION@
-Name:           @CPACK_PACKAGE_NAME@
-Version:        @CPACK_PACKAGE_VERSION@
-Release:        @CPACK_PACKAGE_RELEASE@
-License:        Apache-2.0
-Group:          Development/Tools/Other
-Vendor:         @CPACK_PACKAGE_VENDOR@
-Prefix:         @CPACK_PACKAGING_INSTALL_PREFIX@
-Requires:       opencv >= 2.4
- 
-%define _rpmdir @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM
+# Restore old style debuginfo creation for rpm >= 4.14.
+%undefine _debugsource_packages
+%undefine _debuginfo_subpackages
+
+# -*- rpm-spec -*-
+Buildroot:		@CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/@CPACK_PACKAGE_FILE_NAME@
+Summary:		@PROJECT_DESCRIPTION@
+Name:			@CPACK_PACKAGE_NAME@
+Version:		@CPACK_PACKAGE_VERSION@
+Release:		@CPACK_PACKAGE_RELEASE@
+License:		Apache-2.0
+Group:			@CPACK_RPM_PACKAGE_GROUP@
+Vendor:			@CPACK_PACKAGE_VENDOR@
+Prefix:			@CPACK_PACKAGING_INSTALL_PREFIX@
+Autoreqprov:	no
+Requires:		@LIST_DEPS_RPM@
+
+%define _topdir @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM
+%define _rpmdir %_topdir/RPMS
+%define _srcrpmdir %_topdir/SRPMS
 %define _rpmfilename @CPACK_PACKAGE_FILE_NAME@.rpm
 %define _unpackaged_files_terminate_build 0
-%define _topdir @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM
- 
+
 %description
+DESCRIPTION
+===========
 Helper library for Hyperion Mediation tool. But You are most welcome to
 use this in anyway you like.
 
@@ -26,22 +35,41 @@ https://github.com/thegeekyboy/axon
 # we skip _install step because CPack does that for us.
 # We do only save CPack installed tree in _prepr
 # and then restore it in build.
+
 %prep
-mv $RPM_BUILD_ROOT @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot
- 
+mv $RPM_BUILD_ROOT %_topdir/tmpBBroot
+
 %install
 if [ -e $RPM_BUILD_ROOT ];
 then
-  rm -Rf $RPM_BUILD_ROOT
+	rm -rf $RPM_BUILD_ROOT
 fi
-mv "@CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/tmpBBroot" $RPM_BUILD_ROOT
- 
+mv %_topdir/tmpBBroot $RPM_BUILD_ROOT
+
+%clean
+
+%post
+@RPM_POST_INSTALL@
+
+%postun
+@RPM_POST_UNINSTALL@
+
+%pre
+@RPM_PRE_INSTALL@
+
+%preun
+@RPM_PRE_UNINSTALL@
+
+
+
 %files
 %defattr(-,root,root,-)
-@CPACK_PACKAGING_INSTALL_PREFIX@/@LIB_INSTALL_DIR@/*
-@CPACK_PACKAGING_INSTALL_PREFIX@/bin/@CPACK_PACKAGE_NAME@
- 
+@RPM_FILELIST@
+"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so"
+"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so.@CPACK_PACKAGE_VERSION_MAJOR@"
+"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so.@CPACK_PACKAGE_VERSION_MAJOR@.@CPACK_PACKAGE_VERSION_MINOR@.@CPACK_PACKAGE_VERSION_PATCH@"
+%dir "/usr/share/pkgconfig"
+"/usr/share/pkgconfig/axon.pc"
+
 %changelog
-* Tue Jan 29 2023 Amirul Islam <islam.amirul@outlook.com> 1.0.0
-- a place holder
-- first packager template
+@RPM_GIT_LOG@

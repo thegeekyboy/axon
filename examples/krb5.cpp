@@ -3,7 +3,6 @@
 #include <axon.h>
 #include <axon/kerberos.h>
 
-
 int main()
 {
 	try {
