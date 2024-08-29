@@ -7,6 +7,13 @@ else()
 	set(LIB_SUFFIX "")
 endif()
 
+function(removeDuplicateSubstring stringIn stringOut)
+	separate_arguments(stringIn)
+	list(REMOVE_DUPLICATES stringIn)
+	string(REPLACE ";" " " stringIn "${stringIn}")
+	set(${stringOut} "${stringIn}" PARENT_SCOPE)
+endfunction()
+
 # configure_file(${CMAKE_CURRENT_SOURCE_DIR}/extras/axon.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/axon.h)
 # configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/axon/defines.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/axon/defines.h)
 

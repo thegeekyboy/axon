@@ -12,6 +12,20 @@ namespace axon
 {
 	namespace queue
 	{
+		enum class encoding:char {
+			nothing,
+			text,
+			binary
+		};
+
+		struct envelope {
+			std::stringstream ss;
+			axon::queue::encoding enc;
+			size_t size;
+
+			envelope(): enc(axon::queue::encoding::nothing), size(0) { };
+		};
+
 		struct error {
 
 			amqp_rpc_reply_t _reply;
@@ -37,6 +51,26 @@ namespace axon
 				return (_reply.reply_type != right);
 			}
 
+			bool operator==(const amqp_status_enum& right)
+			{
+				return (_reply.library_error == right);
+			}
+
+			bool operator!=(const amqp_status_enum& right)
+			{
+				return (_reply.library_error != right);
+			}
+
+			bool operator==(const amqp_method_number_t& right)
+			{
+				return (_reply.reply.id == right);
+			}
+
+			bool operator!=(const amqp_method_number_t& right)
+			{
+				return (_reply.reply.id != right);
+			}
+
 			std::string what() { return message(_reply); }
 			static std::string message(const int errorno) { return amqp_error_string2(errorno); };
 			static std::string message(const amqp_rpc_reply_t& reply)
@@ -54,7 +88,7 @@ namespace axon
 						break;
 
 					case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-						ss<<amqp_error_string2(reply.library_error);
+						ss<<reply.reply_type<<": "<<amqp_error_string2(reply.library_error);
 						break;
 
 					case AMQP_RESPONSE_SERVER_EXCEPTION:
@@ -63,13 +97,13 @@ namespace axon
 							case AMQP_CONNECTION_CLOSE_METHOD:
 							{
 								amqp_connection_close_t *m = (amqp_connection_close_t *) reply.reply.decoded;
-								ss<<"server connection error "<<m->reply_code<<"h, message: "<<m->reply_text.bytes;
+								ss<<"server connection error "<<m->reply_code<<"h, message: "<<reinterpret_cast<char*>(m->reply_text.bytes);
 								break;
 							}
 							case AMQP_CHANNEL_CLOSE_METHOD:
 							{
 								amqp_channel_close_t *m = (amqp_channel_close_t *)reply.reply.decoded;
-								ss<<"server channel error "<<m->reply_code<<"h, message: "<<m->reply_text.bytes;
+								ss<<"server channel error "<<m->reply_code<<"h, message: "<<reinterpret_cast<char*>(m->reply_text.bytes);
 								break;
 							}
 							default:
@@ -138,6 +172,7 @@ namespace axon
 			std::string _id, _vhost, _hostname;
 			bool _connected;
 			uint16_t _port;
+			std::vector<std::string> _queue;
 
 			protected:
 				uint16_t _channel;
@@ -150,6 +185,15 @@ namespace axon
 
 				void connect(std::string, uint16_t, std::string, std::string, std::string);
 				void close();
+
+				void make_queue(std::string);
+				void delete_queue(std::string);
+
+				void make_exchange(std::string);
+
+				size_t count() { return 0; }
+				void clear(std::string);
+				void clear();
 		};
 
 		class producer: public rabbit {
@@ -158,7 +202,8 @@ namespace axon
 				producer() = default;
 				~producer() = default;
 
-				void push(std::string, std::string&, std::string&);
+				void push(std::string, std::string, char *, size_t, axon::queue::encoding);
+				void push(std::string, std::string, std::string);
 		};
 
 		class consumer: public rabbit {
@@ -173,7 +218,8 @@ namespace axon
 				void start(std::function<void(std::string)>);
 				void stop();
 
-				void pop(std::string&);
+				struct envelope pop();
+				struct envelope get(std::string);
 		};
 	}
 }
