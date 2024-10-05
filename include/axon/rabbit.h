@@ -26,6 +26,18 @@ namespace axon
 			envelope(): enc(axon::queue::encoding::nothing), size(0) { };
 		};
 
+		typedef struct qname {
+
+			qname(amqp_queue_declare_ok_t* ret) { set(ret); }
+			~qname() { if (buffer.len > 0) { free(buffer.bytes); buffer.len = 0; buffer.bytes = NULL; } }
+
+			void set(amqp_queue_declare_ok_t* ret) { amqp_bytes_malloc_dup(ret->queue); }
+			bool valid() { return (buffer.bytes != NULL); }
+
+			private:
+			amqp_bytes_t buffer;
+		} qname;
+
 		struct error {
 
 			amqp_rpc_reply_t _reply;
@@ -190,6 +202,8 @@ namespace axon
 				void delete_queue(std::string);
 
 				void make_exchange(std::string);
+
+				void bind(std::string, std::string, std::string);
 
 				size_t count() { return 0; }
 				void clear(std::string);

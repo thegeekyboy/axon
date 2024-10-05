@@ -40,7 +40,7 @@ namespace axon
 
 		void rabbit::connect(std::string hostname, uint16_t port, std::string vhost, std::string username, std::string password)
 		{
-			// DBGPRN("[%s] = %s, %d, %s, %s, %s", __PRETTY_FUNCTION__, hostname.c_str(), port, vhost.c_str(), username.c_str(), password.c_str());
+			DBGPRN("[%s] = %s, %d, %s, %s, %s", __PRETTY_FUNCTION__, hostname.c_str(), port, vhost.c_str(), username.c_str(), password.c_str());
 			axon::queue::error re;
 			int ec;
 
@@ -74,7 +74,7 @@ namespace axon
 
 		void rabbit::clear(std::string queue)
 		{
-			ERRPRN("ERROR", "clear queue - %s", queue.c_str());
+			DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
 			axon::queue::error re;
 			
 			[[maybe_unused]] amqp_queue_purge_ok_t* response = amqp_queue_purge(_connection.get(), _channel, amqp_cstring_bytes(queue.c_str()));
@@ -91,15 +91,15 @@ namespace axon
 
 		void rabbit::make_queue(std::string queue)
 		{
-			// DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
+			DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
 			axon::queue::error re;
 
-			[[maybe_unused]]  amqp_queue_declare_ok_t* response = amqp_queue_declare(
+			[[maybe_unused]] amqp_queue_declare_ok_t* response = amqp_queue_declare(
 				_connection.get(),
 				_channel,
 				amqp_cstring_bytes(queue.c_str()), 
 				0,									// passive
-				1,									// durable
+				0,									// durable
 				0,									// exclusive
 				0,									// auto_delete
 				amqp_empty_table					// arguments
@@ -107,11 +107,13 @@ namespace axon
 
 			if ((re = amqp_get_rpc_reply(_connection.get())) != AMQP_RESPONSE_NORMAL)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create queue - " + re.what());
+
+			// return qname(response);
 		}
 
 		void rabbit::delete_queue(std::string queue)
 		{
-			// DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
+			DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
 			axon::queue::error re;
 
 			amqp_queue_delete_ok_t *reply = amqp_queue_delete(
@@ -142,9 +144,33 @@ namespace axon
 				amqp_empty_table);							// arguments
 		}
 
+		void rabbit::bind(std::string queue, std::string exchange, std::string bindkey)
+		{
+			DBGPRN("[%s] = %s, %s, %s", __PRETTY_FUNCTION__, queue.c_str(), exchange.c_str(), bindkey.c_str());
+			
+			axon::queue::error re;
+			amqp_bytes_t queue_, exchange_, bindkey_;
+
+			queue_ = amqp_cstring_bytes(const_cast<char*>(queue.c_str()));
+			exchange_ = amqp_cstring_bytes(const_cast<char*>(exchange.c_str()));
+			bindkey_ = amqp_cstring_bytes(const_cast<char*>(bindkey.c_str()));
+
+			amqp_queue_bind(
+				_connection.get(),
+				_channel,
+				queue_,
+				exchange_,
+				bindkey_,
+				amqp_empty_table
+			);
+
+			if ((re = amqp_get_rpc_reply(_connection.get())) != AMQP_RESPONSE_NORMAL)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot bind to queue - " + re.what());
+		}
+
 		void producer::push(std::string exchange, std::string route, char *message, size_t size, axon::queue::encoding encode)
 		{
-			// DBGPRN("[%s] = %s, %s", __PRETTY_FUNCTION__, exchange.c_str(), route.c_str());
+			DBGPRN("[%s] = %s, %s", __PRETTY_FUNCTION__, exchange.c_str(), route.c_str());
 			amqp_bytes_t msg, exchange_, route_;
 			amqp_basic_properties_t props;
 
@@ -191,7 +217,7 @@ namespace axon
 
 		void consumer::attach(std::string queue, std::string exchange, std::string bindkey)
 		{
-			// DBGPRN("[%s] = %s, %s, %s", __PRETTY_FUNCTION__, queue.c_str(), exchange.c_str(), bindkey.c_str());
+			DBGPRN("[%s] = %s, %s, %s", __PRETTY_FUNCTION__, queue.c_str(), exchange.c_str(), bindkey.c_str());
 			
 			axon::queue::error re;
 			amqp_bytes_t queue_, exchange_, bindkey_;
