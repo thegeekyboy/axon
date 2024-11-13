@@ -1,8 +1,6 @@
 #ifndef AXON_FTP_H_
 #define AXON_FTP_H_
 
-#include <bzlib.h>
-
 namespace axon
 {
 	namespace transfer

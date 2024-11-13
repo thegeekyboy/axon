@@ -1,6 +1,7 @@
 #ifndef AXON_UTIL_H_
 #define AXON_UTIL_H_
 
+#include <iostream>
 #include <variant>
 #include <cstdarg>
 
@@ -14,10 +15,12 @@
 
 namespace axon
 {
+	std::string version();
+
 	namespace util
 	{
 		typedef unsigned char BYTE;
-		
+
 		char *trim(char *);
 		unsigned long long bytestoull(const char *, const size_t);
 		std::string bytestodecstring(const char *, const size_t);

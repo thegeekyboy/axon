@@ -1,11 +1,9 @@
 #ifndef AXON_CQN_H_
 #define AXON_CQN_H_
 
-#include <thread>
-#include <vector>
-#include <any>
-
 #include <axon/oracle.h>
+
+#include <thread>
 
 // required reading https://docs.oracle.com/en/database/oracle/oracle-database/19/lnoci/notification-streams-advanced-queuing.html
 
@@ -163,7 +161,7 @@ namespace axon
 
 				void start();
 				void stop();
-				
+
 				unsigned long long counter();
 
 				// std::unique_ptr<axon::database::resultset> next();

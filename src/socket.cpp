@@ -15,9 +15,9 @@ namespace axon
 
 				if (flags < 0)
 					return false;
-				
+
 				flags = blocking ? (flags&~O_NONBLOCK) : (flags|O_NONBLOCK);
-				
+
 				return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 			}
 
@@ -37,7 +37,7 @@ namespace axon
 			{
 				int on = 1;
 				struct linger lng = { 0, 0 };
-				
+
 				if ((_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error initializing socket()");
 

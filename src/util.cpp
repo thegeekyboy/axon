@@ -13,6 +13,7 @@
 #include <boost/filesystem.hpp>
 
 #include <axon.h>
+#include <axon/version.h>
 #include <axon/util.h>
 #include <axon/md5.h>
 #include <axon/aes.h>
@@ -34,6 +35,11 @@ void RAWDBG(int code, const char *format, ...)
 
 namespace axon
 {
+	std::string version()
+	{
+		return VERSION;
+	}
+
 	namespace util
 	{
 		static const std::string base64_chars =
@@ -116,7 +122,7 @@ namespace axon
 				return str;
 
 			end = str + strlen(str) - 1;
-			
+
 			while(end > str && isspace((unsigned char)*end))
 				end--;
 
@@ -144,7 +150,7 @@ namespace axon
 			}
 
 			std::tie(parent, remainder) = axon::util::splitpath(path);
-			
+
 			std::cin.get();
 
 			return _mkdir(parent, mode);
@@ -327,11 +333,11 @@ namespace axon
 					*p = '/';
 				}
 			}
-			
+
 			if (mkdir(tmp, S_IRWXU) == -1)
 				if (errno != EEXIST)
 					return false;
-			
+
 			return true;
 		}
 
@@ -449,7 +455,7 @@ namespace axon
 			}
 
 			unsigned long expiredate = ((((out[0]/16)*10)+(out[0]%16))*1000000) + ((((out[1]/16)*10)+(out[1]%16))*10000) + ((((out[2]/16)*10)+(out[2]%16))*100) + (((out[3]/16)*10)+(out[3]%16));
-			
+
 			//printf("%d > %d\n", getdate(), expiredate);
 			if (getdate() > expiredate)
 			{
@@ -473,7 +479,7 @@ namespace axon
 
 			if((fp = popen(final, "w")) == NULL)
 				return false;
-			
+
 			while((ch = fgetc(fp)) != EOF)
 				ss<<ch;
 
@@ -487,7 +493,7 @@ namespace axon
 			int status;
 
 			std::unique_ptr<char[], void (*)(void*)> result(abi::__cxa_demangle(mangled, 0, 0, &status), std::free);
-			
+
 			return result.get() ? std::string(result.get()) : "error occurred";
 		}
 
@@ -508,7 +514,7 @@ namespace axon
 			while (bufLen--)
 			{
 				char_array_3[i++] = *(buf++);
-			
+
 				if (i == 3)
 				{
 					char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
@@ -547,7 +553,7 @@ namespace axon
 			std::string out;
 
 			int val = 0, valb = -6;
-			
+
 			for (u_char c : in)
 			{
 				val = (val << 8) + c;
@@ -560,7 +566,7 @@ namespace axon
 
 			if (valb>-6)
 				out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val<<8)>>(valb+8))&0x3F]);
-			
+
 			while (out.size()%4)
 				out.push_back('=');
 
@@ -669,31 +675,31 @@ namespace axon
 				case axon::protocol::FILE:
 					return "axon::protocol::FILE";
 					break;
-				
+
 				case axon::protocol::SFTP:
 					return "axon::protocol::SFTP";
 					break;
-				
+
 				case axon::protocol::FTP:
 					return "axon::protocol::FTP";
 					break;
-				
+
 				case axon::protocol::S3:
 					return "axon::protocol::S3";
 					break;
-				
+
 				case axon::protocol::SAMBA:
 					return "axon::protocol::SAMBA";
 					break;
-				
+
 				case axon::protocol::SCP:
 					return "axon::protocol::SCP";
 					break;
-				
+
 				case axon::protocol::HDFS:
 					return "axon::protocol::HDFS";
 					break;
-				
+
 				case axon::protocol::DATABASE:
 					return "axon::protocol::DATABASE";
 					break;
@@ -751,15 +757,15 @@ namespace axon
 				case axon::authtype::PRIVATEKEY:
 					return "axon::authtype::PRIVATEKEY";
 					break;
-				
+
 				case axon::authtype::KERBEROS:
 					return "axon::authtype::KERBEROS";
 					break;
-				
+
 				case axon::authtype::NTLM:
 					return "axon::authtype::NTLM";
 					break;
-				
+
 				default:
 					return "axon::authtype::UNKNOWN";
 					break;

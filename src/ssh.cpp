@@ -154,9 +154,9 @@ namespace axon
 			{
 				std::string hex;
 				std::stringstream s;
-				
+
 				s<<hex<<std::setfill('0');
-				
+
 				for(unsigned char i = 0; i < 20; i++)
 				{
 					s<<std::setw(2)<<int(this->_sha1[i]);
@@ -220,12 +220,12 @@ namespace axon
 			sin.sin_family = AF_INET;
 			sin.sin_port = htons(port);
 			sin.sin_addr = *((struct in_addr *) record->h_addr);
-			
+
 			if (connect(_sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "socket exception at " + host + ":"+ std::to_string(port) + " - " + std::strerror(errno));
-			
+
 			libssh2_session_set_blocking(this->_session, 1);
-			
+
 			if ((_rc = libssh2_session_handshake(this->_session, this->_sock)) != 0)
 			{
 				std::string _errstr;
@@ -251,7 +251,7 @@ namespace axon
 		{
 			char* userauthlist;
 			auth_methods_t types = 0;
-			
+
 			userauthlist = libssh2_userauth_list(this->_session, username.c_str(), username.length());
 
 			if (strstr(userauthlist, "password") != NULL) {
@@ -316,7 +316,7 @@ namespace axon
 					_errstr = "Authentication using the supplied public key was not accepted";
 				else
 					_errstr = "Generic failure";
-				
+
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "libssh2_userauth_publickey_fromfile_ex() - " + _errstr);
 			}
 		}
@@ -376,7 +376,7 @@ namespace axon
 			struct stat fileinfo;
 
 			std::string srcx, destx, temp;
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
@@ -629,7 +629,7 @@ namespace axon
 			DBGPRN("[%s] requested sftp::chwd to %s", _id.c_str(), path.c_str());
 			std::lock_guard<std::mutex> lock(_lock);
 			LIBSSH2_SFTP_HANDLE *hsftp;
-			
+
 
 			if (!(hsftp = libssh2_sftp_opendir(_sftp, path.c_str())))
 			{
@@ -689,7 +689,7 @@ namespace axon
 			std::lock_guard<std::mutex> lock(_lock);
 			int count = 0;
 			LIBSSH2_SFTP_HANDLE *hsftp;
-			
+
 			if (!(hsftp = libssh2_sftp_opendir(_sftp, _path.c_str() )))
 			{
 				int i = libssh2_session_last_errno(_session);
@@ -723,7 +723,7 @@ namespace axon
 
 							file.name = filename;
 							file.size = attrs.filesize;
-							
+
 							if (LIBSSH2_SFTP_S_ISDIR(attrs.permissions))
 								file.flag = axon::flags::DIR;
 							else if (LIBSSH2_SFTP_S_ISLNK(attrs.permissions))
@@ -778,7 +778,7 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			auto [path, filename] = axon::util::splitpath(srcx);
 
 			if (src == dest || srcx == dest || path == dest || filename == dest)
@@ -805,7 +805,7 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -875,7 +875,7 @@ namespace axon
 				return _is_open;
 
 			_is_open = false;
-			
+
 			return _is_open;
 		}
 */
@@ -930,13 +930,13 @@ namespace axon
 			}
 
 			do {
-				
+
 				sb = fread(FILEBUF, 1, MAXBUF, fp);
 				if (sb <= 0) {
 					break;
 				}
 				BUFPTR = FILEBUF;
-			
+
 				do {
 					rc = libssh2_sftp_write(hsftp, BUFPTR, sb);
 
@@ -948,7 +948,7 @@ namespace axon
 					filesize += rc;
 
 				} while (sb);
-			
+
 			} while (rc > 0);
 
 			fclose(fp);

@@ -4,6 +4,7 @@
 #include <queue>
 #include <atomic>
 #include <thread>
+#include <cstring>
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -47,7 +48,7 @@ namespace axon
 				bool linewaiting();
 				std::string line();
 				bool purge();
-				
+
 				bool writeline(std::string);
 				long write(std::string);
 				long write(const char *, size_t);

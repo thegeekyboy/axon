@@ -70,7 +70,7 @@ namespace axon
 		usleep(10000);
 		if (!_connected)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "not connected to mail server");
-		
+
 		while (_socket.alive())
 		{
 			if (_socket.linewaiting())
@@ -81,7 +81,7 @@ namespace axon
 				{
 					std::vector<std::string> tokens = axon::util::split(resp, ' ');
 					uint16_t code = std::stoi(tokens[0]);
-					
+
 					if (code == SMTP_OK_CONNECTION_CLOSED || rc == SMTP_ERR_CONNECTION_CLOSED || rc == SMTP_ERR_ABORTED_LOCAL_ISSUE)
 						return false;
 					else if (code == rc)
@@ -105,7 +105,7 @@ namespace axon
 		_socket.open(_server, _port);
 
 		_th = std::thread(&axon::transport::tcpip::socks::readline, &_socket);
-		
+
 		while (_socket.alive())
 		{
 			if (_socket.linewaiting())
@@ -116,7 +116,7 @@ namespace axon
 				{
 					std::vector<std::string> tokens = axon::util::split(resp, ' ');
 					uint16_t code = std::stoi(tokens[0]);
-					
+
 					switch (code)
 					{
 						case SMTP_OK_CONNECTION_CLOSED:
@@ -124,7 +124,7 @@ namespace axon
 						case SMTP_ERR_ABORTED_LOCAL_ISSUE:
 							return false;
 							break;
-						
+
 						case SMTP_OK_READY:
 							usleep(100000);
 							_socket.writeline("HELO " + _localhost);
@@ -287,7 +287,7 @@ namespace axon
 		_wait(SMTP_OK_SEND_BODY);
 
 		_socket.writeline("From: " + _from);
-		
+
 		if (axon::util::count(_to) > 0)
 			_socket.writeline("To: " + final_to);
 
@@ -313,7 +313,7 @@ namespace axon
 			_socket.writeline("Content-Transfer-Encoding: base64\r\n");
 			_socket.writeline(_html);
 		}
-		
+
 		_socket.writeline("\r\n--" + secondary + "--\r\n");
 
 		for (auto &atch : _attachment)

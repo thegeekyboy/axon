@@ -50,7 +50,7 @@ namespace axon
 		bool samba::init()
 		{
 			std::lock_guard<std::mutex> guard(_mtx);
-			
+
 			_smb2 = NULL;
 			_dir = NULL;
 
@@ -68,7 +68,7 @@ namespace axon
 
 			smb2_set_security_mode(_smb2, SMB2_NEGOTIATE_SIGNING_ENABLED);
 			smb2_set_authentication(_smb2, 1);
-			
+
 			smb2_set_domain(_smb2, _domain.c_str());
 			smb2_set_user(_smb2, _username.c_str());
 			smb2_set_password(_smb2, _password.c_str());
@@ -116,7 +116,7 @@ namespace axon
 
 			for (unsigned int i = 1; i < parts.size(); i++)
 				prefix += parts[i] + "/";
-			
+
 			struct smb2dir *dir;
 
 			if ((dir = smb2_opendir(_smb2, prefix.c_str())) == NULL)
@@ -135,7 +135,7 @@ namespace axon
 		{
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			return _path;
 		}
 
@@ -178,9 +178,9 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			auto [path, filename] = axon::util::splitpath(srcx);
-			
+
 			if (src == dest || srcx == dest || path == dest || filename == dest)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
 
@@ -196,12 +196,12 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -212,7 +212,7 @@ namespace axon
 
 			if (src_parts[0] != _share)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] ren:changing share from " + _share + " to " + src_parts[0] + " is not supported after connect");
-			
+
 			if (dest_parts[0] != _share)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination share must be same");
 
@@ -228,7 +228,7 @@ namespace axon
 
 			if (smb2_rename(_smb2, src_prefix.c_str(), dest_prefix.c_str()) < 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "]" + std::string("failed to rename file ") + smb2_get_error(_smb2));
-			
+
 			return true;
 		}
 
@@ -238,7 +238,7 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (target[0] == '/')
 				targetx = target;
 			else
@@ -276,21 +276,21 @@ namespace axon
 					file.name = ent->name;
 					file.size = ent->st.smb2_size;
 					file.et = axon::protocol::SAMBA;
-					
+
 					switch (ent->st.smb2_type)
 					{
 						case SMB2_TYPE_FILE:
 							file.flag = axon::flags::FILE;
 							break;
-						
+
 						case SMB2_TYPE_DIRECTORY:
 							file.flag = axon::flags::DIR;
 							break;
-						
+
 						case SMB2_TYPE_LINK:
 							file.flag = axon::flags::LINK;
 							break;
-						
+
 						default:
 							break;
 					}
@@ -319,7 +319,7 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
@@ -372,7 +372,7 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -389,7 +389,7 @@ namespace axon
 			prefix.erase(prefix.length() - 1);
 
 			std::ifstream input(src, std::ios::in | std::ios::binary);
-			
+
 			if (input.fail())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file for reading");
 
@@ -399,7 +399,7 @@ namespace axon
 			while (true)
 			{
 				input.read (reinterpret_cast<char*>(&buffer), 1024);
-				
+
 				if ((count = input.gcount()) <= 0)
 					break;
 

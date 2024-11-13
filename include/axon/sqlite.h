@@ -64,7 +64,7 @@ namespace axon
 			bool _open, _query, _running, _prepared;
 			int _type, _index, _rowidx, _colidx;
 			std::string _path, _name, _username, _password;
-			
+
 			sqlite3 *_dbp;
 			sqlite3_stmt *_stmt;
 
@@ -99,7 +99,7 @@ namespace axon
 
 			bool ping() override;
 			std::string version() override;
-			
+
 			bool transaction(trans_t) override;
 
 			bool execute(const std::string) override;

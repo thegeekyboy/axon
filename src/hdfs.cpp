@@ -1,13 +1,9 @@
-#include <atomic>
-#include <mutex>
-#include <thread>
-
-#include <bzlib.h>
-
 #include <axon.h>
 #include <axon/connection.h>
 #include <axon/hdfs.h>
 #include <axon/util.h>
+
+#include <bzlib.h>
 
 namespace axon
 {
@@ -42,7 +38,7 @@ namespace axon
 
 			hdfsBuilderSetNameNode(_builder, _hostname.c_str());
 			hdfsBuilderSetNameNodePort(_builder, _port);
-			
+
 			hdfsBuilderConfSetStr(_builder, "dfs.encrypt.data.transfer", "true");			// when kerberos and secure is on, we must enable this
 			hdfsBuilderConfSetStr(_builder, "dfs.encrypt.data.transfer.algorithm", "3des");	// when kerberos and secure is on, we must enable this
 			hdfsBuilderConfSetStr(_builder, "hadoop.security.authentication", "kerberos");	// TODO: only activate when auth method is KRB
@@ -58,7 +54,7 @@ namespace axon
 
 			if (!hdfsGetWorkingDirectory(_filesystem, tmpname, PATH_MAX))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot retrive working path - " + hdfsGetLastError());
-			
+
 			_path = tmpname;
 
 			return true;
@@ -68,7 +64,7 @@ namespace axon
 		{
 			if (_filesystem)
 				hdfsDisconnect(_filesystem);
-			
+
 			return true;
 		}
 
@@ -175,7 +171,7 @@ namespace axon
 
 			if (hdfsCopy(_filesystem, srcx.c_str(), _filesystem, destx.c_str()) != 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot copy file");
-			
+
 			return 0L;
 		}
 
@@ -295,7 +291,7 @@ namespace axon
 			char FILEBUF[MAXBUF];
 			long rc, wc;
 			unsigned long long filesize = 0;
-			
+
 			FILE *fp;
 			hdfsFile file;
 
@@ -311,7 +307,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot open file - " + hdfsGetLastError());
 
 			do {
-				
+
 				rc = fread(FILEBUF, 1, MAXBUF, fp);
 
 				if (rc <= 0)

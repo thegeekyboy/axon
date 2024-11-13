@@ -1,24 +1,16 @@
 #ifndef AXON_MASTER_H_
 #define AXON_MASTER_H_
 
-#include <iostream>
+#include <string>
+#include <utility>
 #include <sstream>
 #include <array>
 #include <vector>
 #include <functional>
 #include <chrono>
 #include <iomanip>
-#include <mutex>
-
-#include <cstdio>
-#include <cstdarg>
-
-#include <string.h>
-#include <linux/limits.h>
 
 #include <sys/stat.h>
-// #include <sys/types.h>
-#include <unistd.h>
 
 #define MAXBUF 2097152 //1048576
 
@@ -147,12 +139,12 @@ namespace axon
 		~exception() throw() {};
 
 		virtual const char* what() const throw () {
-			
+
 			return message.c_str();
 		};
 
 		virtual const char* msg() const throw () {
-			
+
 			return _msg.c_str();
 		};
 	};
@@ -259,7 +251,7 @@ namespace axon
 		static std::string iso8601()
 		{
 			std::stringstream ss;
-			
+
 			const auto current_time_point {std::chrono::system_clock::now()};
 			const auto current_time_since_epoch {current_time_point.time_since_epoch()};
 			const auto current_milliseconds {std::chrono::duration_cast<std::chrono::milliseconds> (current_time_since_epoch).count() % 1000};

@@ -278,7 +278,7 @@ namespace axon
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
-			
+
 			const CassSchemaMeta* schema_meta;;
 
 			if ((schema_meta = cass_session_get_schema_meta(_session)) == NULL)
@@ -312,11 +312,11 @@ namespace axon
 				std::lock_guard<std::mutex> lock(_safety);
 
 				std::unique_ptr<future> fq;
-				
+
 				_statement.prepare(_session, sql);
 				bind(_statement);
 				fq = _statement.execute();
-				
+
 				fq->wait();
 
 				if (!fq)
@@ -339,11 +339,11 @@ namespace axon
 			if (!_running)
 			{
 				_running = true;
-				
+
 				{
 					// Scope the lock guard locally just in case
 					std::lock_guard<std::mutex> lock(_safety);
-					
+
 					_statement.prepare(_session, sql);
 
 					_prepared = true;
@@ -371,13 +371,13 @@ namespace axon
 			if (!_query && !_prepared)
 				return false;
 				// throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No fetch in progress");
-			
+
 			if (!_query && _prepared)
 			{
 				std::unique_ptr<future> fq;
 				bind(_statement);
 				fq = _statement.execute();
-					
+
 				fq->wait();
 
 				if (!fq)
@@ -522,7 +522,7 @@ namespace axon
 		scylladb& scylladb::operator>>(long &value)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
-			
+
 			value = _get_long(_colidx);
 			_colidx++;
 
@@ -532,7 +532,7 @@ namespace axon
 		scylladb& scylladb::operator>>(float &value)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
-			
+
 			value = _get_float(_colidx);
 
 			_colidx++;
@@ -543,7 +543,7 @@ namespace axon
 		scylladb& scylladb::operator>>(double &value)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
-			
+
 			value = _get_double(_colidx);
 
 			_colidx++;
@@ -565,12 +565,12 @@ namespace axon
 		int scylladb::_get_int(int position)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
-			
+
 			int value = 0;
 
 			if (!_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No active query");
-			
+
 			if (position >= _records->colcount())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -626,7 +626,7 @@ namespace axon
 
 			if (!_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No active query");
-			
+
 			if (position >= _records->colcount())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -637,7 +637,7 @@ namespace axon
 
 			if (data_type == NULL)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "NULL value column");
-			
+
 			if (cass_data_type_type(data_type) != CASS_VALUE_TYPE_BIGINT)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Variable type <long> is not compatable with row type %d", cass_data_type_type(data_type));
 
@@ -656,7 +656,7 @@ namespace axon
 
 			if (!_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No active query");
-			
+
 			if (position >= _records->colcount())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -686,7 +686,7 @@ namespace axon
 
 			if (!_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No active query");
-			
+
 			if (position >= _records->colcount())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
@@ -716,7 +716,7 @@ namespace axon
 
 			if (!_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No active query");
-			
+
 			if (position >= _records->colcount())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 

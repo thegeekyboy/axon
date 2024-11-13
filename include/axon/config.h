@@ -4,14 +4,12 @@
 #include <stack>
 #include <queue>
 
-#include <string.h>
-#include <unistd.h>
+#include <cstring>
 
 #include <libconfig.h>
 
 namespace axon
 {
-
 	enum conftype
 	{
 		MISSING = -1,

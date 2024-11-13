@@ -2,7 +2,6 @@
 #define AXON_DATABASE_H_
 
 #include <any>
-#include <variant>
 #include <boost/regex.hpp>
 
 #define AXON_DATABASE_HOSTNAME 'a'
@@ -16,9 +15,8 @@ namespace axon {
 	namespace database {
 
 		typedef int trans_t;
-		// typedef std::variant<std::vector<std::string>, std::vector<double>, std::vector<int>, void *, char *, unsigned char*, float, double, int8_t, int16_t, int32_t, uint32_t, int64_t, uint64_t, bool> bind;
 		using bind = std::any;
-		
+
 		enum operation {
 			none = 0x0,
 			startup = 0x1,
@@ -172,7 +170,7 @@ namespace axon {
 				virtual interface& operator<<(double) = 0;
 				virtual interface& operator<<(std::string&) = 0;
 				virtual interface& operator<<(axon::database::bind&) = 0;
-							
+
 				virtual interface& operator>>(int&) = 0;
 				virtual interface& operator>>(long&) = 0;
 				virtual interface& operator>>(float&) = 0;

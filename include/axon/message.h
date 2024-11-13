@@ -1,6 +1,8 @@
 #ifndef AXON_MSGQUE_H_
 #define AXON_MSGQUE_H_
 
+#include <cstring>
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <mqueue.h>

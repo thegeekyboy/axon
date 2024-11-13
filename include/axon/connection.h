@@ -1,7 +1,6 @@
 #ifndef AXON_CONNECTION_H_
 #define AXON_CONNECTION_H_
 
-#include <boost/format.hpp>
 #include <boost/regex.hpp>
 
 #define AXON_TRANSFER_CONNECTION_PORT 0x01

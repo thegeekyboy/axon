@@ -115,12 +115,12 @@ namespace axon {
 
 				if ((err = OCIAttrGet(*tprt, OCI_DTYPE_TABLE_CHDES, &table_name,  NULL, OCI_ATTR_CHDES_TABLE_NAME, err.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
-				
+
 				if ((err = OCIAttrGet(*tprt, OCI_DTYPE_TABLE_CHDES,  (dvoid *) &table_op, NULL, OCI_ATTR_CHDES_TABLE_OPFLAGS, err.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 				if (table_op & axon::database::change::allrows) {
-					
+
 					if (table_op & axon::database::change::insert)
 						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - insert"<<std::endl;
 					else if (table_op & axon::database::change::update)
@@ -173,9 +173,9 @@ namespace axon {
 			axon::stream::message_t data = {false, op, ch, table, rowid};
 			_pipe.push_back(std::move(data));
 			// _pipe.emplace_front(blah);
-			
+
 			// std::string sql = "SELECT * FROM " + table + " WHERE ROWID = '" + rowid + "'";
-			
+
 			// std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(*_context);
 			// stmt->prepare(sql);
 			// stmt->execute(axon::database::exec_type::select);
@@ -273,7 +273,7 @@ namespace axon {
 					DBGPRN("rowid: %s, table: %s", data.rowid.c_str(), data.table.c_str());
 
 					std::string sql = "SELECT * FROM " + data.table + " WHERE ROWID = '" + data.rowid + "'";
-				
+
 					std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(*_oracle->get_context());
 					stmt->prepare(sql);
 					stmt->execute(axon::database::exec_type::select);

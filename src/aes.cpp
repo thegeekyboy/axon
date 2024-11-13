@@ -33,10 +33,9 @@ NOTE:	 String length must be evenly divisible by 16byte (str_len % 16 == 0)
 /*****************************************************************************/
 /* Includes:																 */
 /*****************************************************************************/
-#include <stdint.h>
-#include <string.h> // CBC mode, for memset
 #include <axon/aes.h>
 
+#include <cstring>
 
 /*****************************************************************************/
 /* Defines:																	 */
@@ -157,7 +156,7 @@ static void KeyExpansion(void)
 {
 	uint32_t i, j, k;
 	uint8_t tempa[4]; // Used for the column/row operations
-	
+
 	// The first round key is the key itself.
 	for(i = 0; i < Nk; ++i)
 	{
@@ -390,7 +389,7 @@ static void Cipher(void)
 
 	// Add the First round key to the state before starting the rounds.
 	AddRoundKey(0); 
-	
+
 	// There will be Nr rounds.
 	// The first Nr-1 rounds are identical.
 	// These Nr-1 rounds are executed in the loop below.
@@ -401,7 +400,7 @@ static void Cipher(void)
 		MixColumns();
 		AddRoundKey(round);
 	}
-	
+
 	// The last round is given below.
 	// The MixColumns function is not here in the last round.
 	SubBytes();
@@ -426,7 +425,7 @@ static void InvCipher(void)
 		AddRoundKey(round);
 		InvMixColumns();
 	}
-	
+
 	// The last round is given below.
 	// The MixColumns function is not here in the last round.
 	InvShiftRows();
@@ -540,7 +539,7 @@ void AES128_CBC_decrypt_buffer(uint8_t* output, uint8_t* input, uint32_t length,
 {
 	uintptr_t i;
 	uint8_t remainders = length % KEYLEN; /* Remaining bytes in the last non-full block */
-	
+
 	BlockCopy(output, input);
 	state = (state_t*)output;
 
@@ -579,5 +578,3 @@ void AES128_CBC_decrypt_buffer(uint8_t* output, uint8_t* input, uint32_t length,
 
 
 #endif // #if defined(CBC) && CBC
-
-

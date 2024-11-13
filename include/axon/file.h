@@ -1,8 +1,6 @@
 #ifndef AXON_FILE_H_
 #define AXON_FILE_H_
 
-#include <limits.h>
-
 struct linux_dirent {
 	unsigned long  d_ino;
 	off_t          d_off;

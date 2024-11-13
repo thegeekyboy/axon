@@ -132,12 +132,12 @@ namespace axon
 		~exception() throw() {};
 
 		virtual const char* what() const throw () {
-			
+
 			return message.c_str();
 		};
 
 		virtual const char* msg() const throw () {
-			
+
 			return _msg.c_str();
 		};
 	};

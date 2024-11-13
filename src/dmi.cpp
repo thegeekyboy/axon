@@ -1,6 +1,12 @@
+#include <cstring>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+
 #include <axon.h>
 #include <axon/dmi.h>
-
+// TODO: _buffer is a mess, need to redo it
 namespace axon
 {
 	namespace identity
@@ -315,12 +321,12 @@ namespace axon
 					dmi_fixup_type_34(&h);
 
 				next = data + h.length;
-				
+
 				while ((unsigned long)(next - buf + 1) < len && (next[0] != 0 || next[1] != 0))
 					next++;
-				
+
 				next += 2;
-				
+
 				if (display)
 				{
 					if ((unsigned long)(next - buf) <= len)

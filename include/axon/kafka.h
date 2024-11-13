@@ -162,7 +162,7 @@ namespace axon
 				void subscribe();
 				bool start(std::function<void(axon::stream::recordset*)>);
 				void stop();
-				
+
 				unsigned long long counter();
 
 				std::unique_ptr<axon::stream::recordset> next();
