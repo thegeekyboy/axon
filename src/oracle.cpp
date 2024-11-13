@@ -17,7 +17,7 @@ namespace axon {
 
 			_uuid = axon::util::uuid();
 			int rc = 0;
-			
+
 			_prefetch = AXON_DATABASE_ORACLE_PREFETCH;
 			_fetched = 0;
 			_statement = stmt;
@@ -371,7 +371,7 @@ namespace axon {
 			}
 			else
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "variable type is not compatable with row type");
-			
+
 			return value;
 		}
 
@@ -384,7 +384,7 @@ namespace axon {
 			_context = &ctx;
 			if ((_error = OCIHandleAlloc((dvoid *) _environment.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_STMT, 0, NULL)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-			
+
 			/* Allocate a statement handle */
 			// if ((rc = OCIAttrSet((dvoid *) ctx.get(), (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _pointer, (ub4) 0, OCI_ATTR_SESSION, _error.get())) != OCI_SUCCESS)
 			// 	throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
@@ -393,7 +393,7 @@ namespace axon {
 		statement::~statement()
 		{
 			DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
-			
+
 			clear();
 
 			if (_pointer != (OCIStmt*) 0)
@@ -443,7 +443,7 @@ namespace axon {
 				{
 					char *data = std::any_cast<char *>(element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data, strlen(data)+1, SQLT_STR, NULL, 0, 0, 0, 0, OCI_DEFAULT)).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
@@ -451,7 +451,7 @@ namespace axon {
 				{
 					const char *data = std::any_cast<const char *>(element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data, strlen(data)+1, SQLT_STR, NULL, 0, 0, 0, 0, OCI_DEFAULT)).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
@@ -459,7 +459,7 @@ namespace axon {
 				{
 					unsigned char **data = std::any_cast<unsigned char*>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)(*data), strlen((char*)*data)+1, SQLT_STR, NULL, 0, 0, 0, 0, OCI_DEFAULT)).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
@@ -467,7 +467,7 @@ namespace axon {
 				{
 					std::string *data = std::any_cast<std::string>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data->c_str(), data->size(), SQLT_STR, NULL, 0, 0, 0, 0, OCI_DEFAULT)).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
@@ -475,7 +475,7 @@ namespace axon {
 				{
 					float *data = std::any_cast<float>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(float), SQLT_FLT, NULL, 0, 0, 0, 0, OCI_DEFAULT )).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
@@ -491,7 +491,7 @@ namespace axon {
 				{
 					int8_t *data = std::any_cast<int8_t>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int8_t), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT )).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
@@ -500,7 +500,7 @@ namespace axon {
 				{
 					int16_t *data = std::any_cast<int16_t>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int16_t), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT )).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
@@ -509,7 +509,7 @@ namespace axon {
 				{
 					int32_t *data = std::any_cast<int32_t>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int32_t), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT)).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
@@ -518,7 +518,7 @@ namespace axon {
 				{
 					uint32_t *data = std::any_cast<uint32_t>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(uint32_t), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT )).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
@@ -527,7 +527,7 @@ namespace axon {
 				{
 					int64_t *data = std::any_cast<int64_t>(&element);
 					OCIBind *bndp = (OCIBind *) 0;
-					
+
 					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int64_t), SQLT_INT, NULL, 0, 0, 0, 0, OCI_DEFAULT )).failed())
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
@@ -727,7 +727,7 @@ namespace axon {
 			// How to use list bind variable with IN statement was borrowed with thanks from
 			// https://stackoverflow.com/questions/18603281/oracle-oci-bind-variables-and-queries-like-id-in-1-2-3
 
-			
+
 			if (_running)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "query in progress, try later.");
 
@@ -942,11 +942,11 @@ namespace axon {
 						strval = _resultset->get_string(i);
 						stream<<"<"<<i<<":S:"<<_resultset->column_type(i)<<":"<<strval<<">, ";
 						break;
-					
+
 					case SQLT_NUM:
 						stream<<"<"<<i<<":D:"<<_resultset->column_type(i)<<":"<<_resultset->get_int(i)<<">, ";
 						break;
-					
+
 					case SQLT_DAT:
 					case SQLT_TIMESTAMP:
 						stream<<"<"<<i<<":T:"<<_resultset->column_type(i)<<":"<<_resultset->get_long(i)<<">, ";

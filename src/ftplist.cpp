@@ -1,24 +1,25 @@
-/* ftpparse.c, ftpparse.h: library for parsing FTP LIST responses
-20001223
-D. J. Bernstein, djb@cr.yp.to
-http://cr.yp.to/ftpparse.html
+/*
+	ftpparse.c, ftpparse.h: library for parsing FTP LIST responses
+	20001223
+	D. J. Bernstein, djb@cr.yp.to
+	http://cr.yp.to/ftpparse.html
 
-Commercial use is fine, if you let me know what programs you're using this in.
+	Commercial use is fine, if you let me know what programs you're using this in.
 
-Currently covered formats:
-EPLF.
-UNIX ls, with or without gid.
-Microsoft FTP Service.
-Windows NT FTP Server.
-VMS.
-WFTPD.
-NetPresenz (Mac).
-NetWare.
-MSDOS.
+	Currently covered formats:
+		EPLF.
+		UNIX ls, with or without gid.
+		Microsoft FTP Service.
+		Windows NT FTP Server.
+		VMS.
+		WFTPD.
+		NetPresenz (Mac).
+		NetWare.
+		MSDOS.
 
-Definitely not covered: 
-Long VMS filenames, with information split across two lines.
-NCSA Telnet FTP server. Has LIST = NLST (and bad NLST for directories).
+	Definitely not covered: 
+		Long VMS filenames, with information split across two lines.
+		NCSA Telnet FTP server. Has LIST = NLST (and bad NLST for directories).
 */
 
 #include <axon.h>
@@ -137,10 +138,10 @@ static int check(char *buf, const char *monthname)
 {
 	if ((buf[0] != monthname[0]) && (buf[0] != monthname[0] - 32)) 
 		return 0;
-	
+
 	if ((buf[1] != monthname[1]) && (buf[1] != monthname[1] - 32)) 
 		return 0;
-	
+
 	if ((buf[2] != monthname[2]) && (buf[2] != monthname[2] - 32)) 
 		return 0;
 
@@ -213,10 +214,10 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 				{
 					fp->name = buf + j + 1;
 					fp->namelen = len - j - 1;
-				
+
 					return 1;
 				}
-				
+
 				if (buf[j] == ',')
 				{
 
@@ -248,7 +249,7 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 			}
 
 			return 0;
-	
+
 
 		case 'b':
 		case 'c':
@@ -260,63 +261,63 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 
 			if (*buf == 'd')
 				fp->flagtrycwd = 1;
-		
+
 			if (*buf == '-')
 				fp->flagtryretr = 1;
-			
+
 			if (*buf == 'l')
 				fp->flagtrycwd = fp->flagtryretr = 1;
 
 			state = 1;
 			i = 0;
-		
+
 			for (j = 1;j < len;++j)
 			if ((buf[j] == ' ') && (buf[j - 1] != ' '))
 			{
 				switch(state)
 				{
 					case 1: /* skipping perm */
-				
+
 						state = 2;
 						break;
 
 					case 2: /* skipping nlink */
-				
+
 						state = 3;
-				
+
 						if ((j - i == 6) && (buf[i] == 'f')) /* for NetPresenz */
 							state = 4;
 						break;
-					
+
 					case 3: /* skipping uid */
-					
+
 						state = 4;
 						break;
-					
+
 					case 4: /* getting tentative size */
-					
+
 						size = getlong(buf + i,j - i);
 						state = 5;
 						break;
-					
+
 					case 5: /* searching for month, otherwise getting tentative size */
-					
+
 						month = getmonth(buf + i,j - i);
-						
+
 						if (month >= 0)
 							state = 6;
 						else
 							size = getlong(buf + i,j - i);
 						break;
-					
+
 					case 6: /* have size and month */
-					
+
 						mday = getlong(buf + i,j - i);
 						state = 7;
 						break;
-					
+
 					case 7: /* have size, month, mday */
-					
+
 						if ((j - i == 4) && (buf[i + 1] == ':'))
 						{
 
@@ -344,16 +345,16 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 						}
 						else
 							return 0;
-	
+
 						fp->name = buf + j + 1;
 						fp->namelen = len - j - 1;
 						state = 8;
 						break;
-	
+
 					case 8: /* twiddling thumbs */
 						break;
 				}
-	
+
 				i = j + 1;
 
 				while ((i < len) && (buf[i] == ' '))
@@ -399,7 +400,7 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 	for (i = 0;i < len;++i)
 		if (buf[i] == ';')
 			break;
-	
+
 	if (i < len) 
 	{
 
@@ -416,80 +417,80 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 						}
 		if (!fp->flagtrycwd)
 			fp->flagtryretr = 1;
-	
+
 		while (buf[i] != ' ')
 			if (++i == len)
 				return 0;
-	
+
 		while (buf[i] == ' ')
 			if (++i == len)
 				return 0;
-	
+
 		while (buf[i] != ' ')
 			if (++i == len)
 				return 0;
-	
+
 		while (buf[i] == ' ')
 			if (++i == len)
 				return 0;
-		
+
 		j = i;
-	
+
 		while (buf[j] != '-')
 			if (++j == len)
 				return 0;
-	
+
 		mday = getlong(buf + i,j - i);
-	
+
 		while (buf[j] == '-')
 			if (++j == len)
 				return 0;
-	
+
 		i = j;
-	
+
 		while (buf[j] != '-')
 			if (++j == len)
 				return 0;
-	
+
 		month = getmonth(buf + i,j - i);
-	
+
 		if (month < 0)
 			return 0;
-	
+
 		while (buf[j] == '-')
 			if (++j == len)
 				return 0;
-	
+
 		i = j;
-	
+
 		while (buf[j] != ' ')
 			if (++j == len)
 				return 0;
-	
+
 		year = getlong(buf + i,j - i);
-	
+
 		while (buf[j] == ' ')
 			if (++j == len)
 				return 0;
-	
+
 		i = j;
-		
+
 		while (buf[j] != ':')
 			if (++j == len)
 				return 0;
-	
+
 		hour = getlong(buf + i,j - i);
-	
+
 		while (buf[j] == ':')
 			if (++j == len)
 				return 0;
-	
+
 		i = j;
-		
+
 		while ((buf[j] != ':') && (buf[j] != ' '))
 			if (++j == len)
 				return 0;
-	
+
 		minute = getlong(buf + i, j - i);
 
 		fp->mtimetype = FTPPARSE_MTIME_REMOTEMINUTE;
@@ -507,74 +508,74 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 	{
 		i = 0;
 		j = 0;
-		
+
 		while (buf[j] != '-')
 			if (++j == len)
 				return 0;
-		
+
 		month = getlong(buf + i, j - i) - 1;
-		
+
 		while (buf[j] == '-')
 			if (++j == len)
 				return 0;
-		
+
 		i = j;
-		
+
 		while (buf[j] != '-')
 			if (++j == len)
 				return 0;
-		
+
 		mday = getlong(buf + i, j - i);
 
 		while (buf[j] == '-')
 			if (++j == len)
 				return 0;
-		
+
 		i = j;
-		
+
 		while (buf[j] != ' ')
 			if (++j == len)
 				return 0;
-		
+
 		year = getlong(buf + i, j - i);
-		
+
 		if (year < 50)
 			year += 2000;
-		
+
 		if (year < 1000)
 			year += 1900;
-		
+
 		while (buf[j] == ' ')
 			if (++j == len)
 				return 0;
-		
+
 		i = j;
-		
+
 		while (buf[j] != ':')
 			if (++j == len)
 				return 0;
-		
+
 		hour = getlong(buf + i, j - i);
 
 		while (buf[j] == ':')
 			if (++j == len)
 				return 0;
-		
+
 		i = j;
-		
+
 		while ((buf[j] != 'A') && (buf[j] != 'P'))
 			if (++j == len)
 				return 0;
-		
+
 		minute = getlong(buf + i,j - i);
-		
+
 		if (hour == 12)
 			hour = 0;
-		
+
 		if (buf[j] == 'A')
 			if (++j == len)
 				return 0;
-		
+
 		if (buf[j] == 'P')
 		{
 			hour += 12;
@@ -582,7 +583,7 @@ int ftpparse(struct ftpparse *fp, char *buf,int len)
 			if (++j == len)
 				return 0;
 		}
-		
+
 		if (buf[j] == 'M')
 			if (++j == len)
 				return 0;

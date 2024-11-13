@@ -108,7 +108,7 @@ namespace axon
 	{
 		_path = path;
 		_filename = filename;
-	
+
 		open();
 	}
 

@@ -37,7 +37,7 @@ namespace axon {
 				environment() {
 
 					_uuid = axon::util::uuid();
-					
+
 					{
 						std::lock_guard<std::mutex> _lock(lock);
 						if (count == 0)
@@ -46,7 +46,7 @@ namespace axon {
 
 							if (OCIEnvCreate((OCIEnv **) &handle, OCI_EVENTS|OCI_OBJECT|OCI_THREADED, NULL, NULL, NULL, NULL, 0, NULL) != OCI_SUCCESS)
 								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize environment");
-							printf("\033[0;31m[%s] environment allocating\033[0m\n", axon::timer::iso8601().c_str());
+							DBGPRN("\033[0;31m[%s] environment allocating\033[0m\n", axon::timer::iso8601().c_str());
 						}
 						count++;
 					}
@@ -58,7 +58,7 @@ namespace axon {
 					if (count == 1)
 					{
 						if (handle != (OCIEnv *) 0) {
-							printf("\033[0;31m[%s] environment destroying\033[0m\n", axon::timer::iso8601().c_str());
+							DBGPRN("\033[0;31m[%s] environment destroying\033[0m\n", axon::timer::iso8601().c_str());
 							OCIHandleFree(handle, (ub4) OCI_HTYPE_ENV);
 						}
 					}
@@ -75,7 +75,7 @@ namespace axon {
 		};
 
 		class error {
-			
+
 			std::string _uuid;
 			OCIError *_pointer;
 			int _retcode;
@@ -87,7 +87,7 @@ namespace axon {
 					_retcode = 0;
 					_pointer = (OCIError *) 0;
 					_uuid = axon::util::uuid();
-					
+
 					if (OCIHandleAlloc(env.get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate error object");
 					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
@@ -97,23 +97,21 @@ namespace axon {
 						OCIHandleFree(_pointer, (ub4) OCI_HTYPE_ERROR);
 					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
-				
+
 				bool failed() {
 					return (_retcode != OCI_SUCCESS && _retcode != OCI_SUCCESS_WITH_INFO);
 				}
-				
+
 				axon::database::error& operator= (int retcode) {
 					_retcode = retcode;
 					return *this;
 				}
 
 				bool operator==(int retcode) {
-					std::cout<<__PRETTY_FUNCTION__<<std::endl;
 					return (_retcode == retcode);
 				}
 
 				bool operator!=(int retcode) {
-					std::cout<<__PRETTY_FUNCTION__<<std::endl;
 					return (_retcode != retcode);
 				}
 
@@ -367,7 +365,7 @@ namespace axon {
 			axon::database::session _session;
 
 			std::shared_ptr<axon::database::statement> _statement;
-			
+
 			bool _connected, _running, _executed;
 
 			std::string _hostname, _username, _password;
@@ -403,7 +401,7 @@ namespace axon {
 				bool transaction(axon::database::trans_t) override;
 
 				bool execute(const std::string) override;
-				
+
 				bool query(const std::string) override;
 				bool query(const std::string, std::vector<std::string>);
 				bool next() override;

@@ -284,7 +284,7 @@ namespace axon
 		bool sqlite::connect(std::string filename, std::string, std::string)
 		{
 			_path = filename;
-			
+
 			return connect();
 		}
 

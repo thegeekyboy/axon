@@ -2,17 +2,17 @@
 #define AXON_FTPPARSE_H
 
 /*
-ftpparse(&fp,buf,len) tries to parse one line of LIST output.
+	ftpparse(&fp,buf,len) tries to parse one line of LIST output.
 
-The line is an array of len characters stored in buf.
-It should not include the terminating CR LF; so buf[len] is typically CR.
+	The line is an array of len characters stored in buf.
+	It should not include the terminating CR LF; so buf[len] is typically CR.
 
-If ftpparse() can't find a filename, it returns 0.
+	If ftpparse() can't find a filename, it returns 0.
 
-If ftpparse() can find a filename, it fills in fp and returns 1.
-fp is a struct ftpparse, defined below.
-The name is an array of fp.namelen characters stored in fp.name;
-fp.name points somewhere within buf.
+	If ftpparse() can find a filename, it fills in fp and returns 1.
+	fp is a struct ftpparse, defined below.
+	The name is an array of fp.namelen characters stored in fp.name;
+	fp.name points somewhere within buf.
 */
 
 struct ftpparse {
@@ -38,9 +38,9 @@ struct ftpparse {
 #define FTPPARSE_MTIME_REMOTEMINUTE 2 /* time zone and secs are unknown */
 #define FTPPARSE_MTIME_REMOTEDAY 3 /* time zone and time of day are unknown */
 /*
-When a time zone is unknown, it is assumed to be GMT. You may want
-to use localtime() for LOCAL times, along with an indication that the
-time is correct in the local time zone, and gmtime() for REMOTE* times.
+	When a time zone is unknown, it is assumed to be GMT. You may want
+	to use localtime() for LOCAL times, along with an indication that the
+	time is correct in the local time zone, and gmtime() for REMOTE* times.
 */
 
 #define FTPPARSE_ID_UNKNOWN 0

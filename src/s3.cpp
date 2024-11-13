@@ -110,7 +110,7 @@ namespace axon
 			if (_connected)
 			{
 				delete _client;
-			
+
 				_instance--;
 				if (_instance <= 0)
 				{
@@ -138,7 +138,7 @@ namespace axon
 			std::vector<std::string> parts = axon::util::split(path, '/');
 
 			std::string bucket = parts[0];
-			
+
 			Aws::S3::Model::HeadBucketRequest request;
 			request.SetBucket(bucket);
 			auto result = _client->HeadBucket(request);
@@ -160,7 +160,7 @@ namespace axon
 			DBGPRN("[%s] requested s3::pwd()", _id.c_str());
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			return _path;
 		}
 
@@ -185,7 +185,7 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			auto [path, filename] = axon::util::splitpath(srcx);
 
 			if (src == dest || srcx == dest || path == dest || filename == dest)
@@ -210,7 +210,7 @@ namespace axon
 				Aws::S3::Model::HeadObjectResult fileinfo = result.GetResult();
 				filesize = fileinfo.GetContentLength(); 
 			}
-			
+
 			Aws::S3::Model::CopyObjectRequest request;
 
 			request.WithCopySource(srcx)
@@ -233,12 +233,12 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -257,7 +257,7 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (target[0] == '/')
 				targetx = target;
 			else
@@ -275,10 +275,10 @@ namespace axon
 			}
 
 			Aws::S3::Model::DeleteObjectRequest request;
-			
+
 			request.WithBucket("").WithKey(targetx);
 			auto response = _client->DeleteObject(request);
-			
+
 			if (!response.IsSuccess())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] object delete error");
 
@@ -347,7 +347,7 @@ namespace axon
 		int s3::list(std::vector<axon::entry> &vec)
 		{
 			return list([&](const axon::entry &e) mutable {
-				
+
 				vec.push_back(e);
 			});
 		}
@@ -360,7 +360,7 @@ namespace axon
 
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
@@ -389,7 +389,7 @@ namespace axon
 			Aws::S3::Model::GetObjectResult& details = result.GetResult();
 
 			const long long filesize = details.GetContentLength();
-			
+
 			std::ofstream file;
 			file.exceptions(std::ofstream::badbit);
 
@@ -421,10 +421,10 @@ namespace axon
 			// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
 			std::string destx;
 			Aws::S3::Model::PutObjectRequest request;
-			
+
 			if (_path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -445,7 +445,7 @@ namespace axon
 				prefix.pop_back();
 
 			request.WithBucket(bucket).WithKey(prefix);
-			
+
 			auto data = Aws::MakeShared<Aws::FStream>("PutObjectInputStream", src, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
 			request.SetBody(data);
 
@@ -459,4 +459,3 @@ namespace axon
 		}
 	}
 }
-

@@ -34,7 +34,7 @@ include(compiler)
 include(definitions)
 
 if (UNIX)
-  include(CheckFunctionExists)
+	include(CheckFunctionExists)
 endif (UNIX)
 
 include (dependencies)
@@ -45,6 +45,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 
 add_subdirectory(src)
 add_subdirectory(examples)
+add_subdirectory(experiment)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -68,23 +69,32 @@ add_custom_command(
 )
 
 ## version management
-add_custom_target(
-	TARGET "version"
-	POST_BUILD
-	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3, $$4+1 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
-	COMMAND awk -F'[.-]' '{ printf \"\#define VERSION \\"%d.%d.%d-%d\\"\\n\" , $$1, $$2, $$3, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/include/version.h\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+# add_custom_target(
+# 	# TARGET "version"
+# 	COMMENT "bumping ?? build version"
+# 	TARGET "${PROJECT_NAME}"
+# 	POST_BUILD
+# 	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3, $$4+1 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+# 	COMMAND awk -F'[.-]' '{ printf \"\#define VERSION \\"%d.%d.%d-%d\\"\\n\" , $$1, $$2, $$3, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/include/axon/version.h\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+# )
+
+## make bump version
+add_custom_target("bump" COMMENT "bumping minor version")
+add_custom_command(
+	TARGET "bump"
+	COMMENT "bumping minor version"
+	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3+1, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
+	COMMAND awk -F'[.-]' '{ printf \"\#define VERSION \\"%d.%d.%d-%d\\"\\n\" , $$1, $$2, $$3, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/include/axon/version.h\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
 )
 
-## make bump
-add_custom_target("bump" COMMENT "bumping build version")
+## bump build version
 add_custom_command(
 	TARGET "${PROJECT_NAME}"
 	COMMENT "bumping build version"
-	# COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3+1, $$4 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
 	COMMAND awk -F'[.-]' '{ printf \"%d.%d.%d-%d\" , $$1, $$2, $$3, $$4+1 > \"${CMAKE_CURRENT_SOURCE_DIR}/version\"}' ${CMAKE_CURRENT_SOURCE_DIR}/version
 )
 ##
 
 ## make release
 add_custom_target(release)
-add_dependencies(release ${PROJECT_NAME} bump)
+add_dependencies(release bump ${PROJECT_NAME})

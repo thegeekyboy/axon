@@ -111,7 +111,7 @@ namespace axon
 				}
 				usleep(10000);
 			}
-			
+
 			_sock.line();
 			_sock.line();
 
@@ -202,7 +202,7 @@ namespace axon
 
 								temp = boost::regex_replace(temp, ex1, "$1");
 								_path = boost::regex_replace(temp, ex2, "\"");
-								
+
 								return _path;
 							}
 						}
@@ -226,7 +226,7 @@ namespace axon
 			// TODO: implement remote system copy function
 			// TODO: implement compression on remote
 			std::string srcx;
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
@@ -376,7 +376,7 @@ namespace axon
 				axon::entry e;
 				struct ftpparse ftpl;
 				std::string retline = tsock.line();
-				
+
 				if (retline.size() > 20)
 				{
 					char linebuf[512];
@@ -384,13 +384,13 @@ namespace axon
 					bzero(linebuf, 512);
 					strcpy(linebuf, retline.c_str());
 					ftpparse(&ftpl, linebuf, retline.size());
-					
+
 					if (ftpl.flagtrycwd == 0)
 					{
 						if (match(ftpl.name))
 						{
 								struct entry file;
-							
+
 								e.name = axon::util::trim(ftpl.name);
 								e.size = ftpl.size;
 								e.et = axon::protocol::FTP;
@@ -473,7 +473,7 @@ namespace axon
 				fwrite(buf, rc, 1, fp);
 				szx += rc;
 			}
-			
+
 			fclose(fp);
 
 			while (_sock.alive())
@@ -548,7 +548,7 @@ namespace axon
 			char flb[MAXBUF+1];
 
 			do {
-				
+
 				if ((sb = fread(flb, 1, MAXBUF, fp)) <= 0)
 					break;
 

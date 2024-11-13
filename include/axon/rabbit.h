@@ -152,7 +152,7 @@ namespace axon
 		};
 
 		struct socket {
-			
+
 			socket(axon::queue::connection *conn):_socket(NULL), _connection(conn) {
 				if (!(_socket = amqp_tcp_socket_new(_connection->get())))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "could not create socket.");
@@ -177,7 +177,7 @@ namespace axon
 				amqp_socket_t *_socket;
 				axon::queue::connection *_connection;
 		};
-		
+
 
 		class rabbit {
 

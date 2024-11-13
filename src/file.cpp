@@ -51,13 +51,13 @@ namespace axon
 				srcx = _path + "/" + src;
 
 			auto [path, filename] = axon::util::splitpath(srcx);
-			
+
 			if (src == dest || srcx == dest || path == dest || filename == dest)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] source and destination object cannot be same for copy operation");
 
 			if (!(fpd = fopen(dest.c_str(), "wb")))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Error opening file for writing " + dest);
-			
+
 			if (!(fps = fopen(src.c_str(), "rb")))
 			{
 				fclose(fpd);
@@ -85,7 +85,7 @@ namespace axon
 					if (compress)
 					{
 						BZ2_bzWrite(&bzerr, bfp, FILEBUF, szr);
-						
+
 						if (bzerr == BZ_IO_ERROR)
 						{
 							BZ2_bzWriteClose(&bzerr, bfp, 0, &inbyte, &outbyte);
@@ -159,7 +159,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change directory - " + std::string(strerror(errno)));
 
 			_path = path;
-				
+
 			return false;
 		}
 
@@ -167,7 +167,7 @@ namespace axon
 		{
 			if (_path.size() <= 0 && _fd != -1)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
-			
+
 			return _path;
 		}
 
@@ -183,12 +183,12 @@ namespace axon
 
 			if (_path.size() <= 0 && _fd != -1)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
-			
+
 			if (src[0] == '/')
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -199,7 +199,7 @@ namespace axon
 
 			if (std::rename(srcx.c_str(), destx.c_str()))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] File rename failed - " + std::string(strerror(errno)));
-			
+
 			return true;
 		}
 
@@ -209,7 +209,7 @@ namespace axon
 
 			if (_path.size() <= 0 && _fd != -1)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Path not initialized yet");
-			
+
 			if (target[0] == '/')
 				targetx = target;
 			else
@@ -255,11 +255,11 @@ namespace axon
 							case DT_BLK:
 								file.flag = axon::flags::BLOCK;
 								break;
-							
+
 							case DT_CHR:
 								file.flag = axon::flags::CHAR;
 								break;
-							
+
 							case DT_DIR:
 								file.flag = axon::flags::DIR;
 								break;
@@ -279,7 +279,7 @@ namespace axon
 							case DT_SOCK:
 								file.flag = axon::flags::SOCKET;
 								break;
-							
+
 							case DT_UNKNOWN:
 								file.flag = axon::flags::UNKNOWN;
 								break;
@@ -313,7 +313,7 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else
@@ -331,7 +331,7 @@ namespace axon
 				srcx = src;
 			else
 				srcx = _path + "/" + src;
-			
+
 			if (dest[0] == '/')
 				destx = dest;
 			else

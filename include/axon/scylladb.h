@@ -42,7 +42,7 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get table meta");
 			}
 			~tableinfo() {
-				
+
 			}
 
 			size_t colcnt() { return cass_table_meta_column_count(_table); }
@@ -53,7 +53,7 @@ namespace axon
 			void columns() {
 
 				CassIterator *xd;
-				
+
 				xd = cass_iterator_fields_from_table_meta(_table);
 
 				while (cass_iterator_next(xd))
@@ -96,7 +96,7 @@ namespace axon
 					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (_result == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "result not extracted");
-					
+
 					if (!cass_iterator_next(_iterator))
 						return false;
 					return true;
@@ -149,7 +149,7 @@ namespace axon
 				const CassPrepared *prepared() {
 					return cass_future_get_prepared(_cf);
 				}
-				
+
 				future& operator=(CassFuture *cf) {
 					if (_cf != NULL)
 						cass_future_free(_cf);
@@ -157,7 +157,7 @@ namespace axon
 
 					return *this;
 				}
-				
+
 				bool operator!() {
 					if (_errcode != CASS_OK)
 						return true;
@@ -174,7 +174,7 @@ namespace axon
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "future not ready");
 					return _cf;
 				}
-				
+
 				private:
 					CassFuture *_cf;
 					CassError _errcode;
@@ -210,7 +210,7 @@ namespace axon
 				private:
 					const CassPrepared *p;
 			};
-			
+
 			struct statement {
 
 				statement(): _statement(NULL) { };
@@ -254,7 +254,7 @@ namespace axon
 			int _type, _rowidx, _colidx;
 			uint8_t _port;
 			std::string _keyspace, _hostname, _username, _password;
-			
+
 			CassCluster* _cluster = NULL;
 			CassSession* _session = NULL;
 
@@ -291,7 +291,7 @@ namespace axon
 
 			bool ping() override;
 			std::string version() override;
-			
+
 			bool transaction(trans_t) override;
 
 			bool execute(std::string) override;

@@ -129,7 +129,6 @@ namespace axon
 
 						if (resp.size() > 1)
 						{
-							std::cout<<"Debug>"<<resp<<"<"<<std::endl;
 							boost::smatch what;
 
 							if (vec != NULL) vec->push_back(resp);

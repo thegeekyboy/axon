@@ -1,6 +1,7 @@
 #ifndef AXON_LOG_H_
 #define AXON_LOG_H_
 
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <mutex>

@@ -329,10 +329,10 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "topic list is empty");
 
 			subscription sb(_topic.size());
-			
+
 			for (std::string &topic : _topic)
 				sb.add(topic.c_str());
-			
+
 			if ((err = rd_kafka_subscribe(_rk, sb)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, std::string(rd_kafka_err2str(err)));
 

@@ -1,10 +1,6 @@
 #ifndef AXON_DMI_H_
 #define AXON_DMI_H_
 
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
 
 #if defined(__BEOS__) || defined(__HAIKU__)
 #define DMI_H_DEFAULT_MEM_DEV "/dev/misc/mem"

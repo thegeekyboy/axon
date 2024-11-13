@@ -44,10 +44,10 @@ namespace axon
 		{
 			const char* _md5;
 			const char* _sha1;
-			
+
 			std::string _hex_md5;
 			std::string _hex_sha1;
-			
+
 			LIBSSH2_SESSION* _session;
 
 		public:
@@ -78,7 +78,7 @@ namespace axon
 			void set(int, bool);
 			void set(int, std::string);
 			void set(int, auth_methods_t);
-			
+
 			session();
 			virtual ~session();
 

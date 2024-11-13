@@ -19,17 +19,19 @@ target_sources(${PROJECT_NAME}
 	${CMAKE_CURRENT_SOURCE_DIR}/s3.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/samba.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/hdfs.cpp
-	
+
 	${CMAKE_CURRENT_SOURCE_DIR}/sqlite.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/scylladb.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
-	
+
 	${CMAKE_CURRENT_SOURCE_DIR}/kafka.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/cqn.cpp
 
 	${CMAKE_CURRENT_SOURCE_DIR}/rabbit.cpp
 
 	${CMAKE_CURRENT_SOURCE_DIR}/kerberos.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ldap.cpp
+
 	${CMAKE_CURRENT_SOURCE_DIR}/message.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/mml.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/socket.cpp

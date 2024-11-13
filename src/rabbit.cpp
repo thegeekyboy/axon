@@ -76,7 +76,7 @@ namespace axon
 		{
 			DBGPRN("[%s] = %s", __PRETTY_FUNCTION__, queue.c_str());
 			axon::queue::error re;
-			
+
 			[[maybe_unused]] amqp_queue_purge_ok_t* response = amqp_queue_purge(_connection.get(), _channel, amqp_cstring_bytes(queue.c_str()));
 
 			if ((re = amqp_get_rpc_reply(_connection.get())) != AMQP_RESPONSE_NORMAL)
@@ -147,7 +147,7 @@ namespace axon
 		void rabbit::bind(std::string queue, std::string exchange, std::string bindkey)
 		{
 			DBGPRN("[%s] = %s, %s, %s", __PRETTY_FUNCTION__, queue.c_str(), exchange.c_str(), bindkey.c_str());
-			
+
 			axon::queue::error re;
 			amqp_bytes_t queue_, exchange_, bindkey_;
 
@@ -176,17 +176,17 @@ namespace axon
 
 			props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 			props.delivery_mode = 2; // persistent delivery mode
-			
+
 			switch (encode)
 			{
 				case axon::queue::encoding::text:
 					props.content_type = amqp_cstring_bytes("text/plain");
 					break;
-				
+
 				case axon::queue::encoding::binary:
 					props.content_type = amqp_cstring_bytes("application/octet-stream");
 					break;
-				
+
 				default:
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid encoding");
 			}
@@ -218,7 +218,7 @@ namespace axon
 		void consumer::attach(std::string queue, std::string exchange, std::string bindkey)
 		{
 			DBGPRN("[%s] = %s, %s, %s", __PRETTY_FUNCTION__, queue.c_str(), exchange.c_str(), bindkey.c_str());
-			
+
 			axon::queue::error re;
 			amqp_bytes_t queue_, exchange_, bindkey_;
 
@@ -286,7 +286,7 @@ namespace axon
 					env.enc = axon::queue::encoding::binary;
 				else if (strcmp(cstr, "text/plain") == 0)
 					env.enc = axon::queue::encoding::text;
-				
+
 				for (size_t i = 0; i < packet.message.body.len; i++) env.ss<<buf[i];
 			}
 
@@ -319,7 +319,7 @@ namespace axon
 					env.enc = axon::queue::encoding::binary;
 				else if (strcmp(cstr, "text/plain") == 0)
 					env.enc = axon::queue::encoding::text;
-				
+
 				for (size_t i = 0; i < message.body.len; i++) env.ss<<buf[i];
 			}
 

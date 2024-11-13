@@ -21,7 +21,6 @@ namespace axon
 			hdfsFS _filesystem = NULL;
 
 			static std::atomic<int> _instance;
-			static std::mutex _mtx;
 
 			bool init();
 

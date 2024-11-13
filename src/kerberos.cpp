@@ -280,16 +280,16 @@ namespace axon
 
 			if (!axon::util::iswritable(_cache_file))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cache file is not accessible " + _cache_file);
-			
+
 			if ((retval = krb5_init_context(&_ctx)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize context - " + _errstr(retval));
 
 			if ((retval = krb5_kt_resolve(_ctx, _keytab_file.c_str(), &_keytab)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot resolve keytab - " + _errstr(retval));
-			
+
 			if ((retval = krb5_cc_resolve(_ctx, _cache_file.c_str(), &_cache)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot open/initialize kerberos cache - " + _errstr(retval));
-			
+
 			return true;
 		}
 
@@ -306,7 +306,7 @@ namespace axon
 				defprinc = defname;
 			else
 				defprinc = "";
-			
+
 			krb5_free_unparsed_name(_ctx, defname);
 			krb5_free_principal(_ctx, principal);
 
@@ -338,7 +338,7 @@ namespace axon
 					break;
 
 				char *sName = NULL, *cName = NULL;
-				
+
 				krb5_unparse_name(_ctx, creds.server, &sName);
 				krb5_unparse_name(_ctx, creds.client, &cName);
 
@@ -373,7 +373,7 @@ namespace axon
 			{
 				char *name;
 				krb5_unparse_name(_ctx, entry.principal, &name);
-				
+
 				if (_principal == name)
 					isValid = true;
 
@@ -389,7 +389,7 @@ namespace axon
 		void kerberos::renew()
 		{
 			long int retval;
-			
+
 			krb5_principal principal;
 			krb5_creds creds = { };
 

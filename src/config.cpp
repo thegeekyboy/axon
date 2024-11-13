@@ -24,7 +24,7 @@ void config_setting_copy_simple(config_setting_t * parent, const config_setting_
 	else 
 	{
 		config_setting_t * set;
-		
+
 		set = config_setting_add(parent, config_setting_name(src), config_setting_type(src));
 
 		if(CONFIG_TYPE_INT == config_setting_type(src))
@@ -49,7 +49,7 @@ void config_setting_copy_simple(config_setting_t * parent, const config_setting_
 void config_setting_copy_elem(config_setting_t * parent, const config_setting_t * src)
 {
 	config_setting_t * set;
-	
+
 	set = NULL;
 	if(config_setting_is_aggregate(src))
 		config_setting_copy_aggregate(parent, src);
@@ -77,7 +77,7 @@ void config_setting_copy_aggregate(config_setting_t * parent, const config_setti
 	int i, n;
 
 	newAgg = config_setting_add(parent, config_setting_name(src), config_setting_type(src));
-	
+
 	n = config_setting_length(src);	
 	for(i = 0; i < n; i++)
 	{
@@ -102,7 +102,7 @@ int config_setting_copy(config_setting_t * parent, const config_setting_t * src)
 		config_setting_copy_aggregate(parent, src);
 	else
 		config_setting_copy_simple(parent, src);
-	
+
 	return CONFIG_TRUE;
 }
 /*
@@ -141,7 +141,7 @@ namespace axon
 	{
 		_open = false;
 		config_init(&_cfg);
-		
+
 		if (source._open)
 		{
 			if (access(source._filename.c_str(), F_OK) == -1)
@@ -172,7 +172,7 @@ namespace axon
 	bool config::load(std::string filename)
 	{
 		_filename = filename;
-		
+
 		return load();
 	}
 
@@ -270,7 +270,7 @@ namespace axon
 	{
 		if (config_lookup(&_cfg, path.c_str()) == NULL)
 			return false;
-		
+
 		return true;
 	}
 
@@ -331,9 +331,7 @@ namespace axon
 	bool config::add(const config_setting_t *src)
 	{
 		if(CONFIG_FALSE == config_setting_copy(_root, src))
-		{
-			printf("Failed to copy src to dst\n");
-		}
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Error copying config data");
 
 		return true;
 	}
@@ -701,7 +699,7 @@ namespace axon
 			settings = _master;
 		else
 			return;
-		
+
 		int count = config_setting_length(settings);
 		for (int index = 0; index < count; index++)
 		{
@@ -712,9 +710,9 @@ namespace axon
 				int stype = config_setting_type(setting);
 				char name[512] = { 0 }, *cname;
 
-				int dval, bval;
-				long long llval;
-				double fval;
+				[[maybe_unused]] int dval, bval;
+				[[maybe_unused]] long long llval;
+				[[maybe_unused]] double fval;
 
 				if ((cname = config_setting_name(setting)) != NULL)
 					snprintf(name, 512, "%s", cname);
@@ -723,45 +721,47 @@ namespace axon
 				{
 					case CONFIG_TYPE_INT:
 						dval = config_setting_get_int(setting);
-						std::cout<<std::string(level, ' ')<<index<<") "<<name<<dval<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %d", level, index, name, dval);
 						break;
 					case CONFIG_TYPE_INT64:
 						llval = config_setting_get_int64(setting);
-						std::cout<<std::string(level, ' ')<<index<<") "<<name<<llval<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %lld", level, index, name, llval);
 						break;
 					case CONFIG_TYPE_FLOAT:
 						fval = config_setting_get_float(setting);
-						std::cout<<std::string(level, ' ')<<index<<") "<<name<<fval<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %f", level, index, name, fval);
 						break;
 					case CONFIG_TYPE_STRING:
 						const char *sval;
 						if ((sval = config_setting_get_string(setting)) == NULL)
 							continue;
-						std::cout<<std::string(level, ' ')<<index<<") "<<name<<sval<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %s", level, index, name, sval);
 						break;
 					case CONFIG_TYPE_BOOL:
 						bval = config_setting_get_bool(setting);
-						std::cout<<std::string(level, ' ')<<index<<") "<<name<<bval<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %d", level, index, name, bval);
 						break;
 					case CONFIG_TYPE_ARRAY:
-						std::cout<<std::string(level, ' ')<<index<<") [array] "<<name<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [array]", level, index, name);
 						print(setting, level+1);
 						break;
 					case CONFIG_TYPE_LIST:
-						std::cout<<std::string(level, ' ')<<index<<") [list] "<<name<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [list]", level, index, name);
 						print(setting, level+1);
 						break;
 					case CONFIG_TYPE_GROUP:
-						std::cout<<std::string(level, ' ')<<index<<") [group] "<<name<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [group]", level, index, name);
 						print(setting, level+1);
 						break;
 					default:
-						std::cout<<index<<") "<<cname<<" is unknown type"<<std::endl;
+						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [unknown]", level, index, name);
 						break;
 				}
 			}
 			else
-				std::cout<<index<<") unknown"<<std::endl;
+			{
+				DBGPRN("axon::config::print(): Level: %d,  Index: %d - Unknown", level, index);
+			}
 		}
 	}
 

@@ -79,6 +79,11 @@ list(APPEND EXAMPLES_LIST rabbitmq)
 add_executable (rabbitmq EXCLUDE_FROM_ALL rabbitmq.cpp)
 target_link_libraries (rabbitmq ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
+# ldap
+list(APPEND EXAMPLES_LIST ldap)
+add_executable (ldap EXCLUDE_FROM_ALL ldap.cpp)
+target_link_libraries (ldap ${PROJECT_NAME_MASTER} ${LIBRARIES})
+
 ## make example
 add_custom_target(examples)
 add_dependencies(examples ${EXAMPLES_LIST})
