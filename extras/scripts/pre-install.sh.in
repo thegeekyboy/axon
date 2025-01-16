@@ -1,11 +1,11 @@
 #!/bin/bash
-export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig/
+export PKG_CONFIG_PATH=/usr/share/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig/:/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig/
 for lib in @LIST_DEPS_SCRIPT@
 do
 	/usr/bin/pkg-config ${lib}
 	if [ $? -ne 0 ]
 	then
-		printf "\033[0;31m${lib}\033[0m is not installed..\n"
+		printf "\033[0;31m${lib}\033[0m is not installed, installation cannot continue\n"
 		exit 1
 	fi
 done

@@ -80,12 +80,23 @@ there are bunch of dependencies for axon to run correctly.
 - [rdkafka](https://github.com/confluentinc/librdkafka)
 - [libserdes](https://github.com/confluentinc/libserdes)
 - [libmagic](https://www.darwinsys.com/file/)
+- [openldap](https://www.openldap.org/)
 
 ```bash
-$ sudo yum install bzip2 bzip2-devel bzip2-libs cpp-httplib-devel cppzmq-devel czmq-devel file file-devel flex  jansson-devel krb5-devel krb5-libs krb5-workstation libblkid-devel libconfig-devel libcurl-devel libgcrypt-devel libntlm-devel librabbitmq-devel librdkafka librdkafka-devel libssh2-devel libuuid libuuid-devel libuv-devel libxml2-devel libzstd-devel nano openssl-devel protobuf protobuf-c protobuf-c-devel protobuf-devel rabbitmq-server sqlite-devel xz-devel
+$ sudo yum install bzip2 bzip2-devel bzip2-libs cpp-httplib-devel cppzmq-devel czmq-devel file file-devel flex  jansson-devel krb5-devel krb5-libs krb5-workstation libblkid-devel libconfig-devel libcurl-devel libgcrypt-devel libntlm-devel librabbitmq-devel librdkafka librdkafka-devel libssh2-devel libuuid libuuid-devel libuv-devel libxml2-devel libzstd-devel nano openssl-devel protobuf protobuf-c protobuf-c-devel protobuf-devel rabbitmq-server sqlite-devel xz-devel openldap-devel
 ```
 
-&#9888;	_often it was noticed that when `confluent-libserdes-devel` package installs header files, the folder permission is incorrect. best check the permission after installing the package._
+⚠️ _often it was noticed that when `confluent-libserdes-devel` package installs header files, the folder permission is incorrect. best check the permission after installing the package._
+
+⚠️ if _avro-c_ is missing or is not installed from above package. then install as following
+
+```bash
+git clone https://github.com/apache/avro/
+cd avro/lang/c
+mkdir build && cd build
+cmake3 .. -DCMAKE_INSTALL_PREFIX=/usr
+sudo make install
+```
 
 #### ✔️ oracle <a name="toc22"></a>
 
@@ -113,7 +124,7 @@ EOF
 
 #### ✔️ aws-c-sdk <a name="toc23"></a>
 
-if you face any issue compiling then, download a known [working release](https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.10.57.tar.gz)
+if you face any issue compiling then, download a known [working release](https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.11.178.tar.gz)
 
 ```bash
 git clone https://github.com/aws/aws-sdk-cpp
@@ -139,20 +150,18 @@ sudo make install
 the following libraries needs to be compiled from the provided source as official source does not support kerberos connection with hdfs3 library for some reason!
 
 ✨ a locked version of [libgsasl](https://www.gnu.org/software/gsasl/) by [Brett Rosen](https://github.com/bdrosen96)
-
 ```bash
 $ sudo yum install autoconf gettext-devel libtool gtk-doc gengetopt gperf texlive-epstopdf ghostscript texinfo help2man http://mirror.centos.org/centos/7/os/x86_64/Packages/gperf-3.0.4-8.el7.x86_64.rpm
 ```
 
+⚠️ due to new changes in the ssl apis the original libgsasl from Brett Rosen requires much changes to compile. fortunately [nokia](https://github.com/nokia/) has made the necessary changes which can be download from [here](https://github.com/nokia/libgsasl/releases/download/v1.8.2/libgsasl-1.8.2.tar.gz)
+
 ```bash
-git clone https://github.com/bdrosen96/libgsasl
-cd libgsasl
-sed -i '31i AM_PROG_AR' configure.ac
-sed -i '31i AM_PROG_AR' lib/configure.ac
-make
-find . -type f -exec sed -i -e 's/AM_PROG_MKDIR_P/AC_PROG_MKDIR_P/g' {} \;
-autoreconf -iv
+https://github.com/nokia/libgsasl/releases/download/v1.8.2/libgsasl-1.8.2.tar.gz
+tar xf libgsasl-1.8.2.tar.gz
+cd libgsasl-1.8.2
 LDFLAGS="-lssl -lcrypto" ./configure --prefix=/usr  --with-gssapi-impl=mit
+make
 sudo make install
 ```
 
@@ -184,4 +193,3 @@ cd axon && mkdir build && cd build
 cmake3 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
 sudo make install
 ```
-
