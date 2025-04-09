@@ -471,41 +471,7 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr) + " - " + src);
 				}
 			}
-/*
-			std::ofstream file;
-			file.exceptions(std::ofstream::badbit);
 
-			try {
-				file.open(dest, std::ios::out | std::ios::binary);
-				boost::iostreams::filtering_ostream out;
-
-				if (compress)
-				{
-					out.push(boost::iostreams::bzip2_compressor());
-					out.push(file);
-				}
-
-				do {
-					memset(FILEBUF, '\0', MAXBUF);
-					int rc = libssh2_sftp_read(hsftp, FILEBUF, MAXBUF);
-
-					if (rc > 0)
-					{
-						std::cout<<rc<<"<---------->"<<FILEBUF;
-						if (compress)
-							out<<FILEBUF;
-						else
-							file<<FILEBUF;
-
-						filesize += rc;
-					}
-					else
-						break;
-				} while (true);
-			} catch (const std::ofstream::failure& e) {
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file to writing - " + dest);
-			}
-*/
 			FILE *fp;
 			BZFILE *bfp = NULL;
 			int bzerr;
@@ -534,6 +500,7 @@ namespace axon
 
 				if (rc > 0)
 				{
+					filesize += rc;
 					if (compress)
 					{
 						BZ2_bzWrite(&bzerr, bfp, FILEBUF, rc);
@@ -548,7 +515,6 @@ namespace axon
 					}
 					else
 						fwrite(FILEBUF, rc, 1, fp);
-					filesize += rc;
 				}
 				else
 					break;

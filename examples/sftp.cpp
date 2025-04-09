@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <axon.h>
 #include <axon/socket.h>
 #include <axon/connection.h>

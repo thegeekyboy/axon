@@ -8,7 +8,7 @@ Description: @PROJECT_DESCRIPTION@
 Version: @PROJECT_VERSION@
 URL: https://github.com/thegeekyboy/axon
 
-Requires: @STR_LIBRARIES@
-Libs: -L${libdir} -laxon
+#Requires: @STR_LIBRARIES@
+Libs: -L${libdir} -laxon -lntlm
 Libs.private: @STR_LDFLAGS@
 Cflags: -I${includedir}

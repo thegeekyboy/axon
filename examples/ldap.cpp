@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <axon.h>
 #include <axon/ldap.h>
 
@@ -21,7 +23,7 @@ int main(int argc, char ** argv)
 
 	std::unique_ptr<axon::directory::ldap::recordset> rc = ldp.search(dn, filter);
 	
-	std::cout<<AXONVERSION<<"<count: "<<rc->count()<<std::endl;
+	std::cout<<axon::version()<<"<count: "<<rc->count()<<std::endl;
 
 	while(rc->next()) {
 		auto retval = rc->get();
