@@ -3,17 +3,17 @@
 %undefine _debuginfo_subpackages
 
 # -*- rpm-spec -*-
-Buildroot:		@CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/@CPACK_PACKAGE_FILE_NAME@
-Summary:		@PROJECT_DESCRIPTION@
-Name:			@CPACK_PACKAGE_NAME@
-Version:		@CPACK_PACKAGE_VERSION@
-Release:		@CPACK_PACKAGE_RELEASE@
-License:		Apache-2.0
-Group:			@CPACK_RPM_PACKAGE_GROUP@
-Vendor:			@CPACK_PACKAGE_VENDOR@
-Prefix:			@CPACK_PACKAGING_INSTALL_PREFIX@
-Autoreqprov:	no
-Requires:		@LIST_DEPS_RPM@
+Buildroot:      @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM/@CPACK_PACKAGE_FILE_NAME@
+Summary:        @PROJECT_DESCRIPTION@
+Name:           @CPACK_PACKAGE_NAME@
+Version:        @CPACK_PACKAGE_VERSION@
+Release:        @CPACK_PACKAGE_RELEASE@
+License:        Apache-2.0
+Group:          @CPACK_RPM_PACKAGE_GROUP@
+Vendor:         @CPACK_PACKAGE_VENDOR@
+Prefix:         @CPACK_PACKAGING_INSTALL_PREFIX@
+Autoreqprov:    no
+Requires:       @STR_RPM_DEPENDENCY@
 
 %define _topdir @CMAKE_CURRENT_BINARY_DIR@/_CPack_Packages/Linux/RPM
 %define _rpmdir %_topdir/RPMS
@@ -22,8 +22,6 @@ Requires:		@LIST_DEPS_RPM@
 %define _unpackaged_files_terminate_build 0
 
 %description
-DESCRIPTION
-===========
 Helper library for Hyperion Mediation tool. But You are most welcome to
 use this in anyway you like.
 
@@ -60,15 +58,12 @@ mv %_topdir/tmpBBroot $RPM_BUILD_ROOT
 %preun
 @RPM_PRE_UNINSTALL@
 
-
-
 %files
 %defattr(-,root,root,-)
 @RPM_FILELIST@
 "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so"
 "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so.@CPACK_PACKAGE_VERSION_MAJOR@"
 "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libaxon.so.@CPACK_PACKAGE_VERSION_MAJOR@.@CPACK_PACKAGE_VERSION_MINOR@.@CPACK_PACKAGE_VERSION_PATCH@"
-%dir "/usr/share/pkgconfig"
 "/usr/share/pkgconfig/axon.pc"
 
 %changelog

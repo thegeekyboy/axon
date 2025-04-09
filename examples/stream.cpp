@@ -1,6 +1,8 @@
+#include <iostream>
 #include <signal.h>
 
 #include <axon.h>
+#include <axon/util.h>
 #include <axon/scylladb.h>
 #include <axon/cqn.h>
 

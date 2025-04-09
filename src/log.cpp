@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <axon.h>
 #include <axon/log.h>
 #include <axon/util.h>
