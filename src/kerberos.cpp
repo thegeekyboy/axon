@@ -1,51 +1,19 @@
-#include <iostream>
 #include <string>
+#include <iostream>
 
 #include <string.h>
 #include <krb5/krb5.h>
 
 #include <axon.h>
-#include <axon/util.h>
 #include <axon/kerberos.h>
 
 namespace axon
 {
 	namespace authentication
 	{
-		kerberos::kerberos(std::string keytab, std::string cache, std::string realm, std::string principal)
-		{
-			if (!axon::util::exists(keytab))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file does not exist");
+		std::string krb_errno_to_str(long int rc) {
 
-			_keytab_file = keytab;
-			_cache_file = cache;
-			_realm = realm;
-			_principal = principal;
-
-			_cache = NULL;
-			_keytab = NULL;
-			_ctx = NULL;
-
-			_id = axon::util::uuid();
-		}
-
-		kerberos::~kerberos()
-		{
-			if (_cache)
-				krb5_cc_close(_ctx, _cache);
-
-			if (_keytab)
-				krb5_kt_close(_ctx, _keytab);
-
-			if (_ctx)
-				krb5_free_context(_ctx);
-
-			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
-		}
-
-		std::string kerberos::_errstr(long int i)
-		{
-			switch(i)
+			switch(rc)
 			{
 				case KRB5KDC_ERR_NONE:  return "No error"; break;
 				case KRB5KDC_ERR_NAME_EXP:  return "Client's entry in database has expired"; break;
@@ -263,74 +231,63 @@ namespace axon
 			return "undefined error";
 		}
 
-		void kerberos::print(const int errnum, const int ln)
+		// bool kerberos::keytab::add()
+		bool kerberos::keytab::find(std::string princ)
 		{
-			const char *errstr = krb5_get_error_message(_ctx, errnum);
+			bool found = false;
+			long int retval = 0;
 
-			std::cerr<<ln<<": "<<errstr<<std::endl; // how to print this log?
-			krb5_free_error_message(_ctx, errstr);
+			krb5_kt_cursor cursor = NULL;
+			krb5_keytab_entry entry = { };
+
+			if ((retval = krb5_kt_start_seq_get(_context.get(), _pointer, &cursor)))
+				// return found;
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot start iterate over keytab cursor - " + krb_errno_to_str(retval));
+
+			DBGPRN("searching: %s", princ.c_str());
+
+			while ((retval = krb5_kt_next_entry(_context.get(), _pointer, &entry, &cursor)) == 0)
+			{
+				char *name;
+				krb5_unparse_name(_context.get(), entry.principal, &name);
+
+				if (princ == name)
+					found = true;
+
+				INFPRN("name: %s, created: %s", name, axon::timer::fulldate(entry.timestamp).c_str());
+				// DBGPRN("version: %d", entry.key.length);
+				// std::cout<<"++ contents: "<<entry.key.enctype<<std::endl;
+				for (uint16_t i = 0; i < entry.key.length; i++) NOTPRN("%02X ", entry.key.contents[i]);
+
+				krb5_free_unparsed_name(_context.get(), name);
+				krb5_free_keytab_entry_contents(_context.get(), &entry);
+			}
+
+			krb5_kt_end_seq_get(_context.get(), _pointer, &cursor);
+
+			return found;
 		}
 
-		bool kerberos::init()
+		bool kerberos::cache::find(std::string realm, std::string princ)
 		{
-			int retval;
+			bool found = false;
 
-			if (!axon::util::exists(_keytab_file))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file is not accessible");
-
-			if (!axon::util::iswritable(_cache_file))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cache file is not accessible " + _cache_file);
-
-			if ((retval = krb5_init_context(&_ctx)))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize context - " + _errstr(retval));
-
-			if ((retval = krb5_kt_resolve(_ctx, _keytab_file.c_str(), &_keytab)))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot resolve keytab - " + _errstr(retval));
-
-			if ((retval = krb5_cc_resolve(_ctx, _cache_file.c_str(), &_cache)))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot open/initialize kerberos cache - " + _errstr(retval));
-
-			return true;
-		}
-
-		std::string kerberos::cachePrincipal()
-		{
-			krb5_principal principal = 0;
-			char *defname = NULL;
-			std::string defprinc;
-
-			krb5_cc_get_principal(_ctx, _cache, &principal);
-			krb5_unparse_name(_ctx, principal, &defname);
-
-			if (defname)
-				defprinc = defname;
-			else
-				defprinc = "";
-
-			krb5_free_unparsed_name(_ctx, defname);
-			krb5_free_principal(_ctx, principal);
-
-			return defprinc;
-		}
-
-		bool kerberos::isCacheValid()
-		{
 			krb5_cc_cursor cursor = NULL;
 			krb5_creds creds = { };
-			bool isValid = false;
 			long int retval;
 			time_t now = time(NULL);
 
-			if ((retval = krb5_cc_start_seq_get(_ctx, _cache, &cursor)))
-				return false;//throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _cache_file + "-cannot start iterate over cache cursor - " + _errstr(retval));
+			if ((retval = krb5_cc_start_seq_get(_context.get(), _pointer, &cursor)))
+				return false;
 
-			std::string sprinc = "krbtgt/" + _realm + "@" + _realm;
+			std::string sprinc = "krbtgt/" + realm + "@" +realm;
+			std::string cprinc = princ + "@" + realm;
 
 			while (true)
 			{
-				krb5_free_cred_contents(_ctx, &creds);
+				krb5_free_cred_contents(_context.get(), &creds);
 
-				retval = krb5_cc_next_cred(_ctx, _cache, &cursor, &creds);
+				retval = krb5_cc_next_cred(_context.get(), _pointer, &cursor, &creds);
 
 				if (retval == KRB5_CC_FORMAT)
 					break;
@@ -339,85 +296,123 @@ namespace axon
 
 				char *sName = NULL, *cName = NULL;
 
-				krb5_unparse_name(_ctx, creds.server, &sName);
-				krb5_unparse_name(_ctx, creds.client, &cName);
+				krb5_unparse_name(_context.get(), creds.server, &sName);
+				krb5_unparse_name(_context.get(), creds.client, &cName);
 
-				if (sprinc == sName && _principal == cName && creds.times.endtime > now)
-					isValid = true;
+				if (sprinc == sName && cprinc == cName && creds.times.endtime > now)
+					found = true;
 
-				DBGPRN("server: %s, client: %s, now: %ld, expire: %d", sName, cName, now, creds.times.endtime);
+				INFPRN("sprinc = %s, sName = %s, cprinc = %s, cName = %s", sprinc.c_str(), sName, cprinc.c_str(), cName);
+				INFPRN("server: %s, client: %s, now: %s, expire: %s", sName, cName, axon::timer::fulldate(now).c_str(), axon::timer::fulldate(creds.times.endtime).c_str());
 
-				krb5_free_unparsed_name(_ctx, sName);
-				krb5_free_unparsed_name(_ctx, cName);
+				krb5_free_unparsed_name(_context.get(), sName);
+				krb5_free_unparsed_name(_context.get(), cName);
 			}
 
-			krb5_cc_end_seq_get(_ctx, _cache, &cursor);
-			krb5_free_cred_contents(_ctx, &creds);
+			krb5_cc_end_seq_get(_context.get(), _pointer, &cursor);
+			krb5_free_cred_contents(_context.get(), &creds);
 
-			return isValid;
+			return found;
+		}
+
+		std::string kerberos::principal::name()
+		{
+			char *ptr;
+
+			if (_pointer != nullptr)
+			{
+				krb5_unparse_name(_context.get(), _pointer, &ptr);
+				_name = ptr;
+				krb5_free_unparsed_name(_context.get(), ptr);
+			}
+			return _name;
+		}
+
+		kerberos::kerberos(std::string ktfile, std::string ccfile, std::string realm, std::string princ):
+		_id(axon::util::uuid()), _realm(realm), _principal(princ), _keytab(_context, ktfile), _cache(_context, ccfile)
+		{
+		}
+
+		kerberos::~kerberos()
+		{
+			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
+		}
+
+		void kerberos::print(const int errnum, const int ln)
+		{
+			const char *errstr = krb5_get_error_message(_context.get(), errnum);
+
+			DBGPRN("%d => %s", ln, errstr); // how to print this log?
+			krb5_free_error_message(_context.get(), errstr);
+		}
+
+		std::string kerberos::cachePrincipal()
+		{
+			principal princ(_context, _cache);
+			return princ.name();
+		}
+
+		bool kerberos::isCacheValid()
+		{
+			return _cache.find(_realm, _principal);
 		}
 
 		bool kerberos::isValidKeytab()
 		{
-			long int retval = 0;
-			bool isValid = false;
-			std::string sprinc = "krbtgt/" + _realm + "@" + _realm;
-
-			krb5_kt_cursor cursor = NULL;
-			krb5_keytab_entry entry = { };
-
-			if ((retval = krb5_kt_start_seq_get(_ctx, _keytab, &cursor)))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot start iterate over keytab cursor - " + _errstr(retval));
-
-			while ((retval = krb5_kt_next_entry(_ctx, _keytab, &entry, &cursor)) == 0)
-			{
-				char *name;
-				krb5_unparse_name(_ctx, entry.principal, &name);
-
-				if (_principal == name)
-					isValid = true;
-
-				krb5_free_unparsed_name(_ctx, name);
-				krb5_free_keytab_entry_contents(_ctx, &entry);
-			}
-
-			krb5_kt_end_seq_get(_ctx, _keytab, &cursor);
-
-			return isValid;
+			return _keytab.find(_principal+"@"+_realm);
 		}
 
-		void kerberos::renew()
+		bool kerberos::authenticate()
 		{
 			long int retval;
 
-			krb5_principal principal;
+			principal princ(_context);
 			krb5_creds creds = { };
 
-			// memset(&creds, 0, sizeof(creds));
-			if ((retval = krb5_parse_name(_ctx, _principal.c_str(), &principal)))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot parse principal string - " + _errstr(retval));
+			if ((retval = krb5_parse_name(_context.get(), _principal.c_str(), princ.getp())))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot parse principal string - " + krb_errno_to_str(retval));
 
-			if ((retval = krb5_get_init_creds_keytab(_ctx, &creds, principal, _keytab, 0, NULL, NULL)))
-			{
-				krb5_free_principal(_ctx, principal);
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize keytab credentials - " + _errstr(retval));
-			}
+			if ((retval = krb5_get_init_creds_keytab(_context.get(), &creds, princ.get(), _keytab.get(), 0, NULL, NULL)))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize keytab credentials - " + krb_errno_to_str(retval));
 
-			if ((retval = krb5_cc_initialize(_ctx, _cache, principal)))
-			{
-				krb5_free_principal(_ctx, principal);
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__,"cannot initialize cache - " + _errstr(retval));
-			}
+			if ((retval = krb5_cc_initialize(_context.get(), _cache.get(), princ.get())))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__,"cannot initialize cache - " + krb_errno_to_str(retval));
 
-			if ((retval = krb5_cc_store_cred(_ctx, _cache, &creds)))
-			{
-				krb5_free_principal(_ctx, principal);
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot store credentials - " + _errstr(retval));
-			}
+			if ((retval = krb5_cc_store_cred(_context.get(), _cache.get(), &creds)))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot store credentials - " + krb_errno_to_str(retval));
 
-			// krb5_free_creds(_ctx, &creds); <- donno why this dont work!! throws a double free exception.
-			krb5_free_cred_contents(_ctx, &creds); // so using this instead, dont seem to get any memory leak
-			krb5_free_principal(_ctx, principal);
+			// krb5_free_creds(_context.get(), &creds); <- donno why this dont work!! throws a double free exception.
+			krb5_free_cred_contents(_context.get(), &creds); // so using this instead, dont seem to get any memory leak
+
+			return true;
+		}
+
+		bool kerberos::authenticate(std::string password)
+		{
+			long int retval;
+			
+			krb5_get_init_creds_opt options;
+			principal princ(_context);
+			krb5_creds creds = { };
+
+			krb5_get_init_creds_opt_init(&options);
+
+			if ((retval = krb5_parse_name(_context.get(), _principal.c_str(), princ.getp())))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot parse principal string - " + krb_errno_to_str(retval));
+
+			if ((retval = krb5_get_init_creds_password(_context.get(), &creds, princ.get(), password.c_str(), nullptr, nullptr, 0, nullptr, &options)))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize keytab credentials - " + krb_errno_to_str(retval));
+
+			if ((retval = krb5_cc_initialize(_context.get(), _cache.get(), princ.get())))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__,"cannot initialize cache - " + krb_errno_to_str(retval));
+
+			if ((retval = krb5_cc_store_cred(_context.get(), _cache.get(), &creds)))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot store credentials - " + krb_errno_to_str(retval));
+
+			// krb5_free_creds(_context.get(), &creds); <- donno why this dont work!! throws a double free exception.
+			krb5_free_cred_contents(_context.get(), &creds); // so using this instead, dont seem to get any memory leak
+
+			return true;
 		}
 	}
 }

@@ -121,19 +121,20 @@ namespace axon {
 
 				if (table_op & axon::database::change::allrows) {
 
-					// if (table_op & axon::database::change::insert)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - insert"<<std::endl;
-					// else if (table_op & axon::database::change::update)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - update"<<std::endl;
-					// else if (table_op & axon::database::change::remove)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - remove"<<std::endl;
-					// else if (table_op & axon::database::change::alter)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - alter"<<std::endl;
-					// else if (table_op & axon::database::change::drop)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - drop"<<std::endl;
-					// else if (table_op & axon::database::change::unknown)
-					// 	std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - unknown"<<std::endl;
-
+#if DEBUG == 1
+					if (table_op & axon::database::change::insert)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - insert", table_name, table_op);
+					else if (table_op & axon::database::change::update)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - update", table_name, table_op);
+					else if (table_op & axon::database::change::remove)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - remove", table_name, table_op);
+					else if (table_op & axon::database::change::alter)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - alter", table_name, table_op);
+					else if (table_op & axon::database::change::drop)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - drop", table_name, table_op);
+					else if (table_op & axon::database::change::unknown)
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - unknown", table_name, table_op);
+#endif
 					continue;
 				}
 
@@ -222,8 +223,8 @@ namespace axon {
 
 		std::string cqn::subscribe(std::string topic)
 		{
-			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, std::string, void *) {
-				//TODO: do something here
+			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, std::string rowid, void *) {
+				DBGPRN("rowid: %s", rowid.c_str());
 			});
 		}
 

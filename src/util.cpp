@@ -206,8 +206,7 @@ namespace axon
 			{
 				if (access(path.c_str(), W_OK) == 0)
 					return true;
-				else
-					return false;
+				return false;
 			}
 			else
 			{
@@ -215,8 +214,7 @@ namespace axon
 				{
 					if (access(path.c_str(), W_OK) == 0)
 						return true;
-					else
-						return false;
+					return false;
 				}
 				else
 				{
@@ -225,8 +223,7 @@ namespace axon
 
 					if (access(folder.c_str(), W_OK) == 0)
 						return true;
-					else
-						return false;
+					return false;
 				}
 			}
 

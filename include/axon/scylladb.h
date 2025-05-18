@@ -62,6 +62,7 @@ namespace axon
 					size_t sz;
 
 					cass_iterator_get_meta_field_name(xd, &name, &sz);
+					DBGPRN("%s", name);
 				}
 
 				cass_iterator_free(xd);

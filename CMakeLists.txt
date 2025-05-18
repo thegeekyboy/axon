@@ -52,6 +52,7 @@ add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(experiment)
 
+include_directories (${CMAKE_BINARY_DIR}/include)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 

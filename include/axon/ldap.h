@@ -5,7 +5,8 @@
 #define STRINGIZE_A(x) #x
 
 #include <memory>
-#include <algorithm>
+#include <vector>
+#include <sstream>
 
 #include STRINGIZE(LDAP_INCLUDEDIR/ldap.h)
 #include <sasl/sasl.h>

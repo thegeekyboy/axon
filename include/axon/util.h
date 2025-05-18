@@ -96,6 +96,15 @@ namespace axon
 		{
 			return std::chrono::duration_cast<result_t>(clock_t::now() - ep);
 		}
+
+    static std::string fulldate(std::time_t unixtime)
+		{
+			std::stringstream ss;
+			std::tm* t = std::gmtime(&unixtime);
+			ss << std::put_time(t, "%Y-%m-%d %I:%M:%S %p");
+
+			return ss.str();
+		}
 	};
 
 	namespace util

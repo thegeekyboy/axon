@@ -5,7 +5,7 @@
 #include <cstring>
 #include <sys/stat.h>
 
-#define MAXBUF 2097152 //1048576
+#define MAXBUF 2097152
 
 #ifndef PATH_MAX
 	#define PATH_MAX 260

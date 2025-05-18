@@ -186,7 +186,7 @@ namespace axon
 					close();
 				} catch (axon::exception& e) {
 
-					std::cerr<<e.what()<<std::endl;
+					ERRPRN("%s", e.what());
 				}
 			}
 		}
