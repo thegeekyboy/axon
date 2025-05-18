@@ -121,19 +121,20 @@ namespace axon {
 
 				if (table_op & axon::database::change::allrows) {
 
+#if DEBUG == 1
 					if (table_op & axon::database::change::insert)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - insert"<<std::endl;
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - insert", table_name, table_op);
 					else if (table_op & axon::database::change::update)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - update"<<std::endl;
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - update", table_name, table_op);
 					else if (table_op & axon::database::change::remove)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - remove"<<std::endl;
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - remove", table_name, table_op);
 					else if (table_op & axon::database::change::alter)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - alter"<<std::endl;
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - alter", table_name, table_op);
 					else if (table_op & axon::database::change::drop)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - drop"<<std::endl;
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - drop", table_name, table_op);
 					else if (table_op & axon::database::change::unknown)
-						std::cout<<"table: "<<table_name<<" = OCI_OPCODE_ALLROWS <> "<<table_op<<" - unknown"<<std::endl;
-
+						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - unknown", table_name, table_op);
+#endif
 					continue;
 				}
 
@@ -235,7 +236,7 @@ namespace axon {
 		{
 			// return subscribe(topic, &test);
 			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, std::string rowid, void *) {
-				std::cout<<rowid<<std::endl;
+				DBGPRN("rowid: %s", rowid.c_str());
 			});
 		}
 

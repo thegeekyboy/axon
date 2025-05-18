@@ -149,10 +149,7 @@ namespace axon
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "failed to bind at index: %d, driver: %s", index, cass_error_desc(ce));
 				}
 				else
-				{
-					std::cout<<element.type().name()<<std::endl;
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type %s at index: %d", element.type().name(), index);
-				}
 
 				index++;
 			}
@@ -188,7 +185,7 @@ namespace axon
 					close();
 				} catch (axon::exception& e) {
 
-					std::cerr<<e.what()<<std::endl;
+					ERRPRN("%s", e.what());
 				}
 			}
 		}

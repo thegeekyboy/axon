@@ -29,3 +29,11 @@ function(enable_cxx_compiler_flag_if_supported flag)
 		unset(flag_supported CACHE)
 	endif()
 endfunction()
+
+# remove duplicates in list then generate string
+function(removeDuplicateSubstring stringIn stringOut)
+	separate_arguments(stringIn)
+	list(REMOVE_DUPLICATES stringIn)
+	string(REPLACE ";" " " stringIn "${stringIn}")
+	set(${stringOut} "${stringIn}" PARENT_SCOPE)
+endfunction()

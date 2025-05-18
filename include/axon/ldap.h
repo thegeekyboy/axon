@@ -4,6 +4,10 @@
 #define STRINGIZE(x) STRINGIZE_A(x)
 #define STRINGIZE_A(x) #x
 
+#include <memory>
+#include <vector>
+#include <sstream>
+
 #include STRINGIZE(LDAP_INCLUDEDIR/ldap.h)
 #include <sasl/sasl.h>
 

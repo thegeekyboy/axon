@@ -1,5 +1,6 @@
 #include <string>
 #include <sstream>
+#include <functional>
 
 #include <axon/util.h>
 #include <axon/rabbit.h>
