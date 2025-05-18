@@ -2,6 +2,7 @@
 #define AXON_RABBIT_H_
 
 #include <sstream>
+#include <functional>
 
 #include <amqp.h>
 #include <amqp_tcp_socket.h>

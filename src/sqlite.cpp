@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <axon.h>
 #include <axon/util.h>
 #include <axon/sqlite.h>
@@ -6,6 +8,41 @@ namespace axon
 {
 	namespace database
 	{
+		sqlite::statement::~statement() {
+			reset();
+		};
+
+		void sqlite::statement::reset() {
+			axon::timer ctm(__PRETTY_FUNCTION__);
+			if (_statement != NULL) {
+				sqlite3_reset(_statement);
+				sqlite3_finalize(_statement);
+				_statement = NULL;
+			}
+		}
+
+		void sqlite::statement::prepare(sqlite3 *session, std::string sql) {
+			axon::timer ctm(__PRETTY_FUNCTION__);
+			if (_statement != NULL) {
+				sqlite3_reset(_statement);
+				sqlite3_finalize(_statement);
+			}
+
+			if (sqlite3_prepare_v2(session, sql.c_str(), sql.size(), &_statement, 0) != SQLITE_OK)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error compiling sql statement, driver: %s", sqlite3_errmsg(session));
+
+			_session = session;
+		};
+
+		void sqlite::statement::execute() {
+			axon::timer ctm(__PRETTY_FUNCTION__);
+			if (_statement == NULL)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No prepared statement to execute!");
+
+			sqlite3_step(_statement);
+			sqlite3_reset(_statement);
+		}
+
 		int sqlite::prepare(int count, va_list *list, axon::database::bind *first)
 		{
 			axon::database::bind *element = first;

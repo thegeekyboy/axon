@@ -14,7 +14,7 @@
 #include <boost/filesystem.hpp>
 
 #include <axon.h>
-#include <axon/version.h>
+#include <version.h>
 #include <axon/util.h>
 #include <axon/md5.h>
 #include <axon/aes.h>

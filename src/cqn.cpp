@@ -173,16 +173,6 @@ namespace axon {
 		{
 			axon::stream::message_t data = {false, op, ch, table, rowid};
 			_pipe.push_back(std::move(data));
-			// _pipe.emplace_front(blah);
-
-			// std::string sql = "SELECT * FROM " + table + " WHERE ROWID = '" + rowid + "'";
-
-			// std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(*_context);
-			// stmt->prepare(sql);
-			// stmt->execute(axon::database::exec_type::select);
-
-			// std::unique_ptr<axon::database::resultset> rs = std::make_unique<axon::database::resultset>(&stmt);
-			// _topic.callback(op, ch, table, rowid, std::move(rs));
 			_topic.callback(op, ch, table, rowid, this);
 		}
 
@@ -221,7 +211,6 @@ namespace axon {
 			}
 		}
 
-		// std::string cqn::subscribe(std::string topic, std::function<void(axon::stream::recordset*)> interceptor)
 		std::string cqn::subscribe(std::string topic, cbfn interceptor)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
@@ -234,7 +223,6 @@ namespace axon {
 
 		std::string cqn::subscribe(std::string topic)
 		{
-			// return subscribe(topic, &test);
 			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, std::string rowid, void *) {
 				DBGPRN("rowid: %s", rowid.c_str());
 			});

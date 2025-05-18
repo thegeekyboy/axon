@@ -19,42 +19,12 @@ namespace axon
 			struct statement {
 
 				statement(): _statement(NULL) { };
-				~statement() {
-					reset();
-				};
+				~statement();
 
-				void reset() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					if (_statement != NULL) {
-						sqlite3_reset(_statement);
-						sqlite3_finalize(_statement);
-						_statement = NULL;
-					}
-				}
-
+				void reset();
 				sqlite3_stmt *get() { return _statement; }
-
-				void prepare(sqlite3 *session, std::string sql) {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					if (_statement != NULL) {
-						sqlite3_reset(_statement);
-						sqlite3_finalize(_statement);
-					}
-
-					if (sqlite3_prepare_v2(session, sql.c_str(), sql.size(), &_statement, 0) != SQLITE_OK)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "There was an error compiling sql statement, driver: %s", sqlite3_errmsg(session));
-
-					_session = session;
-				};
-
-				void execute() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					if (_statement == NULL)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No prepared statement to execute!");
-
-					sqlite3_step(_statement);
-					sqlite3_reset(_statement);
-				}
+				void prepare(sqlite3 *, std::string);
+				void execute();
 
 				private:
 					sqlite3_stmt* _statement;

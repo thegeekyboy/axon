@@ -43,7 +43,7 @@ namespace axon {
 
 			struct error {
 
-				std::stringstream message;
+				std::string message;
 				bool isError;
 
 				error(LDAP *ldap, int rc) {
@@ -51,14 +51,14 @@ namespace axon {
 					isError = false;
 					if (rc != LDAP_SUCCESS) {
 						ldap_get_option(ldap, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*)&msg);
-						message<<ldap_err2string(rc)<<" - "<<msg;
+						message= std::string(ldap_err2string(rc))+" - "+msg;
 						ldap_memfree(msg);
 						isError = true;
 					}
 					else
-						message<<"no error";
+						message="no error";
 				}
-				std::string get() { return message.str(); }
+				std::string get() { return message; }
 				operator bool() { return isError; }
 			};
 
