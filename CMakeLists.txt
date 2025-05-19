@@ -28,7 +28,6 @@ message(STATUS "Starting build process for ${PROJECT_NAME} ${VERSION}")
 
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
-# add_library(${PROJECT_NAME} OBJECT)
 add_library(${PROJECT_NAME} SHARED "")
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
@@ -52,8 +51,7 @@ add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(experiment)
 
-include_directories (${CMAKE_BINARY_DIR}/include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})

@@ -14,7 +14,7 @@
 #include <boost/filesystem.hpp>
 
 #include <axon.h>
-#include <version.h>
+#include <axon/version.h>
 #include <axon/util.h>
 #include <axon/md5.h>
 #include <axon/aes.h>
@@ -27,7 +27,7 @@ void RAWDBG(int code, const char *format, ...)
 	va_list argptr;
 	char refmt[2048];
 
-	snprintf(refmt, 2048, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
+	snprintf(refmt, 2047, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
 	va_start(argptr, format);
 	vfprintf(stderr, refmt, argptr);
 	fflush(stderr);
