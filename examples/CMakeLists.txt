@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
 project(examples)
+include_directories(${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include")
 
 #
 list(APPEND EXAMPLES_LIST sftp)
