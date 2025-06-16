@@ -7,11 +7,9 @@ namespace axon
 {
 	namespace transfer
 	{
-		connection::connection(std::string hostname, std::string username, std::string password, uint16_t port)
+		connection::connection(std::string hostname, std::string username, std::string password, uint16_t port):
+		_id(axon::util::uuid()), _hostname(hostname), _username(username), _password(password), _port(port), _connected(false), _fileopen(false)
 		{
-			_id = axon::util::uuid();
-			_connected = false;
-
 			DBGPRN("[%s] connection %s class starting.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 
 			const char* r_hostname_ip = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}";
@@ -27,20 +25,13 @@ namespace axon
 
 			if (username.size() <= 0 || !boost::regex_match(username, regex_username))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username is empty or format is wrong");
-
-			_hostname = hostname;
-			_username = username;
-			_password = password;
-			_port = port;
-
 		}
 
-		connection::connection(const connection& rhs)
+		connection::connection(std::string hostname, std::string username, std::string password): connection(hostname, username, password, -1) {}
+
+		connection::connection(const connection& rhs):
+		_id(axon::util::uuid()), _hostname(rhs._hostname), _username(rhs._username), _password(rhs._password)
 		{
-			_hostname = rhs._hostname;
-			_username = rhs._username;
-			_password = rhs._password;
-			_id = axon::util::uuid();
 		}
 
 		connection::~connection()

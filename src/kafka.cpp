@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include <thread>
 
@@ -36,7 +35,7 @@ namespace axon
 		void subscription::add(std::string topic)
 		{
 			if (rd_kafka_topic_partition_list_add(_subscription, topic.c_str(), RD_KAFKA_PARTITION_UA) == NULL)
-				std::cerr<<"null returned"<<std::endl;
+				DBGPRN("null returned!");
 		}
 
 		int subscription::count()
@@ -55,8 +54,7 @@ namespace axon
 		{
 			for (int i = 0; i < _subscription->cnt; i++) {
 				rd_kafka_topic_partition_t *p = &_subscription->elems[i];
-				printf("Topic \"%s\" partition %" PRId32, p->topic,
-						p->partition);
+				DBGPRN("Topic \"%s\" partition %" PRId32, p->topic, p->partition);
 				if (p->err)
 						printf(" error %s", rd_kafka_err2str(p->err));
 				else {
@@ -370,7 +368,7 @@ namespace axon
 						recordset rc(_serdes, rkm);
 						f(&rc);
 					} catch(const std::bad_function_call& e) {
-						std::cout<<e.what()<<std::endl;
+						DBGPRN("%s", e.what());
 					}
 
 					if ((_counter % MIN_COMMIT_COUNT) == 0)

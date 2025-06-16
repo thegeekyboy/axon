@@ -23,7 +23,9 @@ namespace axon
 	{
 		file::~file()
 		{
+			if (_fileopen) close();
 			disconnect();
+
 			DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
@@ -145,7 +147,7 @@ namespace axon
 		bool file::disconnect()
 		{
 			if (_fd != -1)
-				close(_fd);
+				::close(_fd);
 
 			return true;
 		}
@@ -153,9 +155,9 @@ namespace axon
 		bool file::chwd(std::string path)
 		{
 			if (_fd != -1)
-				close(_fd);
+				::close(_fd);
 
-			if ((_fd = open(path.c_str(), O_RDONLY | O_DIRECTORY)) == -1)
+			if ((_fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY)) == -1)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Could not change directory - " + std::string(strerror(errno)));
 
 			_path = path;
@@ -340,6 +342,110 @@ namespace axon
 			//ren(temp, dest);
 			DBGPRN("[%s] requested file::put() src = %s, dest = %s", _id.c_str(), srcx.c_str(), dest.c_str());
 			return copy(srcx, destx, compress); // return size
+		}
+
+		bool file::open(std::string filename, std::ios_base::openmode om)
+		{
+			DBGPRN("[%s] requested file::open() %s to %s", _id.c_str(), filename.c_str(), ((om==std::ios::out)?"write":"read"));
+
+			if (_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
+
+			std::string finalpath;
+
+			if (filename[0] == '/')
+				finalpath = filename;
+			else
+				finalpath = _path + "/" + filename;
+
+			std::vector<std::string> parts = axon::util::split(finalpath, '/');
+
+			if (om & std::ios::out)
+				_fp = fopen(finalpath.c_str(), "wb");
+			else
+				_fp = fopen(finalpath.c_str(), "rb");
+
+			if (!_fp) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file " + finalpath);
+
+			_fileopen = true;
+			_om = om;
+
+			return _fileopen;
+		}
+
+		bool file::close()
+		{
+			DBGPRN("[%s] requested file::close()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			fclose(_fp);
+			_fp = NULL;
+
+			_fileopen = false;
+
+			return !_fileopen;
+		}
+
+		bool file::push(axon::transfer::connection& conn)
+		{
+			DBGPRN("[%s] requested file::push()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			char buffer[MAXBUF];
+			ssize_t size = 0;
+
+			while ((size = this->read(buffer, MAXBUF-1)) > 0)
+				conn.write(buffer, size);
+
+			return true;
+		}
+
+		ssize_t file::read(char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested file::read() => size(%ld)", _id.c_str(), size);
+
+			ssize_t filesize = 0;
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::in))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
+
+			if ((filesize = fread(buffer, 1, size, _fp)) <= 0)
+				return 0;
+
+			return filesize;
+		}
+
+		ssize_t file::write(const char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested file::write() => size(%ld)", _id.c_str(), size);
+
+			ssize_t rc = 0, remaining = size, filesize = 0;
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::out))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform write operation when file is open for read");
+
+			do {
+
+				if ((rc = fwrite(buffer, 1, remaining, _fp)) < 0)
+					break;
+
+				buffer += rc;
+				filesize += rc;
+				remaining -= rc;
+
+			} while (remaining > 0);
+
+			return filesize;
 		}
 	}
 }

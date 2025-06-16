@@ -1,17 +1,12 @@
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <chrono>
-#include <tuple>
 #include <random>
-#include <filesystem>
 #include <bitset>
+#include <filesystem>
+#include <algorithm>
 
 #include <cxxabi.h>
+#include <unistd.h>
 
 #include <magic.h>
-#include <boost/filesystem.hpp>
 
 #include <axon.h>
 #include <axon/version.h>
@@ -111,31 +106,6 @@ namespace axon
 			return str;
 		}
 
-		std::tuple<std::string, std::string> splitpath(std::string path)
-		{
-			// size_t found = path.find_last_of("/\\");
-			// std::string parent = (path.substr(0, found).size() == 0 && path[0] == '/')?"/":path.substr(0, found);
-			// return std::make_tuple(parent, path.substr(found + 1));
-			return std::make_tuple(std::filesystem::path(path).parent_path(), std::filesystem::path(path).filename());
-		}
-
-		int _mkdir(const std::string& path, mode_t mode = 0700)
-		{
-			std::string parent, remainder;
-
-			if (path == "/")
-			{
-
-				return 0;
-			}
-
-			std::tie(parent, remainder) = axon::util::splitpath(path);
-
-			std::cin.get();
-
-			return _mkdir(parent, mode);
-		}
-
 		std::vector<std::string> split(const std::string& str, const char delim)
 		{
 			std::vector<std::string> tokens;
@@ -158,6 +128,31 @@ namespace axon
 			} while (pos < str.length() && prev < str.length());
 
 			return tokens;
+		}
+
+		std::string merge(std::vector<std::string> list, const char delim)
+		{
+			std::string merged = list.empty()?"":std::accumulate(++list.begin(), list.end(), *list.begin(), [delim](auto& a, auto& b) { return a + delim + b; });
+			return merged;
+		}
+
+		std::tuple<std::string, std::string> splitpath(std::string path)
+		{
+			return std::make_tuple(std::filesystem::path(path).parent_path(), std::filesystem::path(path).filename());
+		}
+
+		std::tuple<std::string, std::string> splitbucket(std::string path)
+		{
+			std::string bucket, key = path;
+
+			std::vector<std::string> parts = axon::util::split(path, '/');
+			if (parts.size() >= 2) {
+				bucket = parts[0];
+				parts.erase(parts.begin());
+				key = axon::util::merge(parts, '/');
+			}
+
+			return std::make_tuple(bucket, key);
 		}
 
 		std::string hash(const std::string& word)
@@ -287,7 +282,7 @@ namespace axon
 			return true;
 		}
 
-		bool makedir(const char *dir)
+		bool mkdir(const char *dir)
 		{
 			char tmp[PATH_MAX];
 			char *p = NULL;
@@ -304,14 +299,14 @@ namespace axon
 				if (*p == '/')
 				{
 					*p = 0;
-					if (mkdir(tmp, S_IRWXU) == -1)
+					if (::mkdir(tmp, S_IRWXU) == -1)
 						if (errno != EEXIST)
 							return false;
 					*p = '/';
 				}
 			}
 
-			if (mkdir(tmp, S_IRWXU) == -1)
+			if (::mkdir(tmp, S_IRWXU) == -1)
 				if (errno != EEXIST)
 					return false;
 

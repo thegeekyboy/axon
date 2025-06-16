@@ -43,7 +43,9 @@ namespace axon
 
 		samba::~samba()
 		{
+			if (_fileopen) close();
 			disconnect();
+
 			DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
@@ -133,7 +135,7 @@ namespace axon
 
 		std::string samba::pwd()
 		{
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			return _path;
@@ -143,7 +145,7 @@ namespace axon
 		{
 			std::string dirx, prefix;
 
-			// if (_path.size() <= 2)
+			// if (_path.size() <= 0)
 			// 	throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized"); <- should we do this?
 
 			if (dir.substr(0, 1) == "." || dir.substr(0, 2) == "..")
@@ -194,7 +196,7 @@ namespace axon
 			std::string srcx, destx;
 			std::string parent, remainder;
 
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			if (src[0] == '/')
@@ -236,7 +238,7 @@ namespace axon
 		{
 			std::string targetx;
 
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			if (target[0] == '/')
@@ -261,7 +263,7 @@ namespace axon
 		{
 			long count = 0;
 
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			smb2_rewinddir(_smb2, _dir);
@@ -317,7 +319,7 @@ namespace axon
 			long long filesize = 0, count = 0;
 			uint8_t buffer[MAXBUF];
 
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			if (src[0] == '/')
@@ -370,7 +372,7 @@ namespace axon
 			struct smb2fh *fh;
 			uint8_t buffer[1024];
 
-			if (_path.size() <= 2)
+			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
 
 			if (dest[0] == '/')
@@ -414,5 +416,14 @@ namespace axon
 
 			return filesize;
 		}
+
+		bool samba::open(std::string, std::ios_base::openmode) { return false; };
+		bool samba::close() { return false; };
+
+		bool samba::push(axon::transfer::connection&) { return false; };
+
+		ssize_t samba::read(char*, size_t) { return 0; };
+		ssize_t samba::write(const char*, size_t) { return 0; };
+
 	}
 }

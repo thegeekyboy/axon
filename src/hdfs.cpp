@@ -5,25 +5,35 @@
 
 #include <bzlib.h>
 
+#define AXON_HADOOP_CFG_URI			"dfs.default.uri"
+#define AXON_HADOOP_CFG_LOGLEVEL	"dfs.client.log.severity"
+#define AXON_HADOOP_CFG_PROTECT		"hadoop.rpc.protection"							// can be authentication/?
+#define AXON_HADOOP_CFG_AUTHTYPE	"hadoop.security.authentication"				// can be simple, kerberos (https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/SecureMode.html)
+#define AXON_HADOOP_CFG_AUTHORIZE	"hadoop.security.authorization"					// can be true/false
+#define AXON_HADOOP_CFG_ENCRYPT		"dfs.encrypt.data.transfer"						// can be true/false
+#define AXON_HADOOP_CFG_AUTHALGO	"dfs.encrypt.data.transfer.algorithm"			// can be 3ds
+#define AXON_HADOOP_CFG_CACHEPATH	"hadoop.security.kerberos.ticket.cache.path"	// path to the cache file
+
 namespace axon
 {
 	namespace transfer
 	{
+		hdfs::hdfs(std::string hostname, std::string username, std::string password, uint16_t port):
+		connection(hostname, username, password, port), _builder(NULL), _filesystem(NULL), _fp(NULL)
+		{
+			_builder = hdfsNewBuilder();
+			hdfsBuilderSetForceNewInstance(_builder);
+		};
+
 		hdfs::~hdfs()
 		{
-			disconnect();
+			if (_fileopen) close();
+			// disconnect();
 
 			if (_builder)
 				hdfsFreeBuilder(_builder);
 
 			DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
-		}
-
-		bool hdfs::init()
-		{
-			_builder = hdfsNewBuilder();
-
-			return true;
 		}
 
 		bool hdfs::connect()
@@ -33,17 +43,11 @@ namespace axon
 			if (_filesystem)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] already connected");
 
-			init();
-			hdfsBuilderSetForceNewInstance(_builder);
+			// hdfsBuilderSetForceNewInstance(_builder);
 
 			hdfsBuilderSetNameNode(_builder, _hostname.c_str());
 			hdfsBuilderSetNameNodePort(_builder, _port);
-
-			hdfsBuilderConfSetStr(_builder, "dfs.encrypt.data.transfer", "true");			// when kerberos and secure is on, we must enable this
-			hdfsBuilderConfSetStr(_builder, "dfs.encrypt.data.transfer.algorithm", "3des");	// when kerberos and secure is on, we must enable this
-			hdfsBuilderConfSetStr(_builder, "hadoop.security.authentication", "kerberos");	// TODO: only activate when auth method is KRB
-			hdfsBuilderSetKerbTicketCachePath(_builder, _cache.c_str());
-			// hdfsBuilderSetUserName(_builder, _username.c_str());							// I believe this is optional for kerberos authentication
+			hdfsBuilderSetUserName(_builder, _username.c_str());
 
 			_filesystem = hdfsBuilderConnect(_builder);
 
@@ -329,19 +333,129 @@ namespace axon
 		{
 			switch (key)
 			{
-				case AXON_TRANSFER_HDFS_DOMAIN:
-					_domain = value;
-					return true;
-				case AXON_TRANSFER_HDFS_CACHE:
-					_cache = value;
-					return true;
+				case AXON_TRANSFER_HDFS_DOMAIN: _domain = value; return true;
+
+				case AXON_TRANSFER_HDFS_CACHEPATH: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_CACHEPATH, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_URI: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_URI, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_LOGLEVEL: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_LOGLEVEL, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_PROTECT: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_PROTECT, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_AUTHTYPE: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_AUTHTYPE, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_AUTHORIZE: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_AUTHORIZE, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_AUTHALGO: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_AUTHALGO, value.c_str()); return true;
+				case AXON_TRANSFER_HDFS_ENCRYPT: hdfsBuilderConfSetStr(_builder, AXON_HADOOP_CFG_ENCRYPT, value.c_str()); return true;
 			}
+
 			return false;
 		}
 
 		bool hdfs::set(char, int)
 		{
 			return false;
+		}
+
+		bool hdfs::open(std::string filename, std::ios_base::openmode om)
+		{
+			DBGPRN("[%s] requested file::open() %s to %s", _id.c_str(), filename.c_str(), ((om==std::ios::out)?"write":"read"));
+
+			if (_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
+
+			std::string finalpath;
+
+			if (filename[0] == '/')
+				finalpath = filename;
+			else
+				finalpath = _path + "/" + filename;
+
+			std::vector<std::string> parts = axon::util::split(finalpath, '/');
+
+			if (om & std::ios::out)
+				_fp = hdfsOpenFile(_filesystem, finalpath.c_str(), O_RDONLY, 0, 0, 0);
+			else
+				_fp = hdfsOpenFile(_filesystem, finalpath.c_str(), O_WRONLY|O_CREAT, 0, 0, 0);
+
+			if (!_fp) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file " + finalpath);
+
+			_fileopen = true;
+			_om = om;
+
+			return _fileopen;
+		}
+
+		bool hdfs::close()
+		{
+			DBGPRN("[%s] requested hdfs::close()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			hdfsFlush(_filesystem, _fp);
+			hdfsCloseFile(_filesystem, _fp);
+			_fp = NULL;
+
+			_fileopen = false;
+
+			return !_fileopen;
+		}
+
+		bool hdfs::push(axon::transfer::connection& conn)
+		{
+			DBGPRN("[%s] requested hdfs::push()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			char buffer[MAXBUF];
+			ssize_t size = 0;
+
+			while ((size = this->read(buffer, MAXBUF-1)) > 0)
+				conn.write(buffer, size);
+
+			return true;
+		}
+
+		ssize_t hdfs::read(char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested hdfs::read() => size(%ld)", _id.c_str(), size);
+
+			ssize_t filesize = 0;
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::in))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
+
+			if ((filesize = hdfsRead(_filesystem, _fp, &buffer, size)) > 0)
+				return 0;
+
+			return filesize;
+		}
+
+		ssize_t hdfs::write(const char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested hdfs::write() => size(%ld)", _id.c_str(), size);
+
+			ssize_t rc = 0, remaining = size, filesize = 0;
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::out))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform write operation when file is open for read");
+
+			do {
+
+				if ((rc = hdfsWrite(_filesystem, _fp, (void*) buffer, remaining)) < 0)
+					break;
+
+				buffer += rc;
+				filesize += rc;
+				remaining -= rc;
+
+			} while (remaining > 0);
+
+			return filesize;
 		}
 	}
 }

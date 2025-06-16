@@ -3,9 +3,9 @@ project(examples)
 include_directories(${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include")
 
 #
-list(APPEND EXAMPLES_LIST sftp)
-add_executable (sftp EXCLUDE_FROM_ALL sftp.cpp)
-target_link_libraries (sftp ${PROJECT_NAME_MASTER} ${LIBRARIES})
+list(APPEND EXAMPLES_LIST transfer)
+add_executable (transfer EXCLUDE_FROM_ALL transfer.cpp)
+target_link_libraries (transfer ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
 # list(APPEND EXAMPLES_LIST license)
