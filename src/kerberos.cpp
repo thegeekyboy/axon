@@ -1,5 +1,4 @@
 #include <string>
-#include <iostream>
 
 #include <string.h>
 #include <krb5/krb5.h>

@@ -26,12 +26,12 @@ namespace axon
 			bool mkdir(std::string);
 			int list(const axon::transfer::cb &);
 			int list(std::vector<axon::entry> &);
-			long long copy(std::string, std::string, bool = false);
+			long long copy(std::string, std::string, bool);
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
-			long long get(std::string, std::string, bool = false);
-			long long put(std::string, std::string, bool = false);
+			long long get(std::string, std::string, bool);
+			long long put(std::string, std::string, bool);
 		};
 	}
 }

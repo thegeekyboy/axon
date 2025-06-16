@@ -113,7 +113,6 @@ namespace axon
 						return _pointer;
 					}
 					krb5_principal* getp() {
-						if (_pointer == nullptr) throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "principal not ready");
 						return &_pointer;
 					}
 					std::string name();

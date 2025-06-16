@@ -97,7 +97,7 @@ namespace axon
 			return std::chrono::duration_cast<result_t>(clock_t::now() - ep);
 		}
 
-    static std::string fulldate(std::time_t unixtime)
+		static std::string fulldate(std::time_t unixtime)
 		{
 			std::stringstream ss;
 			std::tm* t = std::gmtime(&unixtime);
@@ -111,14 +111,21 @@ namespace axon
 	{
 		typedef unsigned char BYTE;
 
-		char *trim(char *);
 		unsigned long long bytestoull(const char *, const size_t);
 		std::string bytestodecstring(const char *, const size_t);
-		// int mkdir(const std::string&, mode_t);
-		std::tuple<std::string, std::string> splitpath(std::string);
+
+		char *trim(char *);
+
 		std::vector<std::string> split(const std::string&, const char);
+		std::string merge(std::vector<std::string>, const char);
+
+		std::tuple<std::string, std::string> splitpath(std::string);
+		std::tuple<std::string, std::string> splitbucket(std::string);
+
 		std::string hash(const std::string&);
 		std::string md5(std::string&);
+
+		// int mkdir(const std::string&, mode_t);
 		bool makedir(const char *);
 		bool isdir(const std::string&);
 		bool isfile(const std::string&);
@@ -126,12 +133,16 @@ namespace axon
 		bool exists(const std::string&, const std::string&);
 		bool iswritable(const std::string&);
 		std::tuple<std::string, std::string> magic(std::string&);
+
 		bool execmd(const char *cmd);
+
 		std::string base64_encode(BYTE const* buf, unsigned int bufLen);
 		std::string base64_encode(const std::string &);
 		std::vector<BYTE> base64_decode(std::string const&);
+
 		std::string uuid();
 		double random(double, double);
+
 		void debugprint(const char *, ...);
 		std::string demangle(const char*);
 

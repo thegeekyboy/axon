@@ -94,17 +94,20 @@ namespace axon
 		class sftp : public connection, public session {
 
 			LIBSSH2_SFTP *_sftp;
+			LIBSSH2_SFTP_HANDLE *_hsftp;
+
 			std::mutex _lock;
 
 			bool _connected;
 			bool _is_open;
 
 			bool init();
-			long long _scp_get(std::string, std::string, bool = false);
-			long long _sftp_get(std::string, std::string, bool = false);
+			long long _scp_get(std::string, std::string, bool);
+			long long _sftp_get(std::string, std::string, bool);
 
 		public:
-			sftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { _sftp = NULL; _connected = false; _is_open = false; };
+			sftp(std::string hostname, std::string username, std::string password, uint16_t port): connection(hostname, username, password, port) { _sftp = NULL; _connected = false; _is_open = false; };
+			sftp(std::string hostname, std::string username, std::string password): connection(hostname, username, password) { _sftp = NULL; _connected = false; _is_open = false; };
 			sftp(const sftp& rhs) : connection(rhs) { _sftp = NULL; };
 			~sftp();
 
@@ -116,16 +119,23 @@ namespace axon
 			bool mkdir(std::string);
 			int list(const axon::transfer::cb &);
 			int list(std::vector<entry> &);
-			long long copy(std::string, std::string, bool = false);
+			long long copy(std::string, std::string, bool);
+			long long copy(std::string src, std::string dest) { return copy(src, dest, false); };
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
 			int cb(const struct entry *);
 
-			// bool open(std::string, bool = false);
-			// bool close();
-			long long get(std::string, std::string, bool = false);
-			long long put(std::string, std::string, bool = false);
+			long long get(std::string, std::string, bool);
+			long long put(std::string, std::string, bool);
+
+			bool open(std::string, std::ios_base::openmode);
+			bool close();
+
+			bool push(axon::transfer::connection&);
+
+			ssize_t read(char*, size_t);
+			ssize_t write(const char*, size_t);
 		};
 	}
 }

@@ -213,7 +213,7 @@ namespace axon
 
 		void session::open(std::string host, unsigned short port)
 		{
-			DBGPRN("requested open() to %s :: %d", host.c_str(), port);
+			DBGPRN("requested session::open() to %s :: %d", host.c_str(), port);
 			struct sockaddr_in sin;
 			hostent *record = gethostbyname(host.c_str());
 
@@ -382,7 +382,7 @@ namespace axon
 			else
 				srcx = _path + "/" + src;
 
-			if (!(channel = libssh2_scp_recv(_session, srcx.c_str(), &fileinfo)))
+			if (!(channel = libssh2_scp_recv2(_session, srcx.c_str(), &fileinfo)))
 			{
 				int i = libssh2_session_last_errno(_session);
 
@@ -396,6 +396,12 @@ namespace axon
 				{
 					unsigned long sftperr = libssh2_sftp_last_error(_sftp);
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr));
+				}
+				else {
+					// char *errmsg;
+					// int msglen;
+					// libssh2_session_last_error(_session, &errmsg, &msglen, 0);
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Generic error occured while opening file");
 				}
 			}
 
@@ -533,7 +539,7 @@ namespace axon
 
 		sftp::~sftp()
 		{
-			// close();
+			if (_fileopen) close();
 			disconnect();
 		}
 
@@ -545,11 +551,11 @@ namespace axon
 			if (_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already connected!");
 
-			open(_hostname, _port);
+			session::open(_hostname, _port);
 			if (_mode == AXON_TRANSFER_SSH_PRIVATEKEY)
-				login(_username, _privkey+".pub", _privkey);
+				session::login(_username, _privkey+".pub", _privkey);
 			else
-				login(_username, _password);
+				session::login(_username, _password);
 			init();
 
 			_connected = true;
@@ -824,27 +830,7 @@ namespace axon
 
 			return true;
 		}
-/*
-		bool sftp::open(std::string src, bool compress)
-		{
-			if (_is_open)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] transfer stream already open.");
 
-			_is_open = true;
-
-			return _is_open;
-		}
-
-		bool sftp::close()
-		{
-			if (!_is_open)
-				return _is_open;
-
-			_is_open = false;
-
-			return _is_open;
-		}
-*/
 		long long sftp::get(std::string src, std::string dest, bool compress)
 		{
 			if (_is_open)
@@ -919,6 +905,127 @@ namespace axon
 
 			fclose(fp);
 			libssh2_sftp_close(hsftp);
+
+			return filesize;
+		}
+
+		bool sftp::open(std::string filename, std::ios_base::openmode om)
+		{
+			DBGPRN("[%s] requested file::open() %s to %s", _id.c_str(), filename.c_str(), ((om==std::ios::out)?"write":"read"));
+
+			if (_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
+
+			std::string finalpath;
+
+			if (filename[0] == '/')
+				finalpath = filename;
+			else
+				finalpath = _path + "/" + filename;
+
+			if (om & std::ios::out)
+				_hsftp = libssh2_sftp_open(_sftp, finalpath.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH);
+			else
+				_hsftp = libssh2_sftp_open(_sftp, finalpath.c_str(), LIBSSH2_FXF_READ, 0);
+
+			if (!_hsftp)
+			{
+				int i = libssh2_session_last_errno(_session);
+
+				if (i == LIBSSH2_ERROR_ALLOC)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] internal memory allocation call failed");
+				else if (i == LIBSSH2_ERROR_SOCKET_SEND)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] unable to send data on socket");
+				else if (i == LIBSSH2_ERROR_SOCKET_TIMEOUT)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] timeout while waiting on socket");
+				else if (i == LIBSSH2_ERROR_SFTP_PROTOCOL)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(libssh2_sftp_last_error(_sftp)));
+				else
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] unknown sftp error");
+			}
+
+			_fileopen = true;
+			_om = om;
+
+			return _fileopen;
+		}
+
+		bool sftp::close()
+		{
+			DBGPRN("[%s] requested sftp::close()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			libssh2_sftp_close(_hsftp);
+			_hsftp = NULL;
+			_fileopen = false;
+
+			return !_fileopen;
+		}
+
+		bool sftp::push(axon::transfer::connection& conn)
+		{
+			DBGPRN("[%s] requested sftp::push()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			char buffer[MAXBUF];
+			ssize_t size;
+
+			while ((size = this->read(buffer, MAXBUF-1)) > 0 || size == LIBSSH2_ERROR_EAGAIN)
+				conn.write(buffer, size);
+
+			return true;
+		}
+
+		ssize_t sftp::read(char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested sftp::read() => size(%ld)", _id.c_str(), size);
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::in))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
+
+			ssize_t rc = libssh2_sftp_read(_hsftp, buffer, size);
+
+			if (rc == LIBSSH2_ERROR_EAGAIN)
+				return LIBSSH2_ERROR_EAGAIN;
+			else if (rc == LIBSSH2_ERROR_SFTP_PROTOCOL)
+			{
+				unsigned long sftperr = libssh2_sftp_last_error(_sftp);
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, get_sftp_error_desc(sftperr));
+			}
+
+			return rc;
+		}
+
+		ssize_t sftp::write(const char* buffer, size_t size)
+		{
+			DBGPRN("[%s] requested sftp::write() => size(%ld)", _id.c_str(), size);
+
+			ssize_t rc = 0, remaining = size, filesize = 0;
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::out))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform write operation when file is open for read");
+
+			do {
+				rc = libssh2_sftp_write(_hsftp, buffer, remaining);
+
+				if(rc < 0)
+					break;
+
+				buffer += rc;
+				remaining -= rc;
+				filesize += rc;
+
+			} while (remaining);
 
 			return filesize;
 		}

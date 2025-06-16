@@ -64,7 +64,7 @@ namespace axon
 	struct protocol {
 
 		static const proto_t UNKNOWN = -1;
-		static const proto_t NOTHING = 0; // wip
+		static const proto_t NOTHING = 0; // done
 		static const proto_t FILE = 1; // done
 		static const proto_t SFTP = 2; // done
 		static const proto_t FTP = 3; // done
