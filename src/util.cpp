@@ -14,26 +14,26 @@
 #include <axon/md5.h>
 #include <axon/aes.h>
 
-std::mutex printer_safety;
-
-void RAWDBG(int code, const char *format, ...)
-{
-	std::lock_guard<std::mutex> lock(printer_safety);
-	va_list argptr;
-	char refmt[2048];
-
-	snprintf(refmt, 2047, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
-	va_start(argptr, format);
-	vfprintf(stderr, refmt, argptr);
-	fflush(stderr);
-	va_end(argptr);
-}
-
 namespace axon
 {
+	std::mutex spinlock;
+
 	std::string version()
 	{
 		return VERSION;
+	}
+
+	void debug(FILE *fp, int code, const char *format, ...)
+	{
+		std::lock_guard<std::mutex> lock(spinlock);
+		va_list argptr;
+		char refmt[MAXDBGLEN];
+
+		snprintf(refmt, MAXDBGLEN-1, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
+		va_start(argptr, format);
+		vfprintf(fp, refmt, argptr);
+		fflush(fp);
+		va_end(argptr);
 	}
 
 	namespace util

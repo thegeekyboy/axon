@@ -34,8 +34,9 @@ namespace axon
 
 		void subscription::add(std::string topic)
 		{
-			if (rd_kafka_topic_partition_list_add(_subscription, topic.c_str(), RD_KAFKA_PARTITION_UA) == NULL)
+			if (rd_kafka_topic_partition_list_add(_subscription, topic.c_str(), RD_KAFKA_PARTITION_UA) == NULL) {
 				DBGPRN("null returned!");
+			}
 		}
 
 		int subscription::count()

@@ -23,21 +23,21 @@
 	#define DEBUG 0
 #endif
 
+#include <mutex>
+#define MAXDBGLEN 4096
+
 #if DEBUG == 1
-	#include <mutex>
-	#define DBGPRN(...) RAWDBG(AXON_DEBUG, __VA_ARGS__)
-	#define INFPRN(...) RAWDBG(AXON_INFO, __VA_ARGS__)
-	#define NOTPRN(...) RAWDBG(AXON_NOTICE, __VA_ARGS__)
-	#define WRNPRN(...) RAWDBG(AXON_WARNING, __VA_ARGS__)
-	#define ERRPRN(...) RAWDBG(AXON_ERROR, __VA_ARGS__)
-	extern void RAWDBG(int, const char*, ...);
-	extern std::mutex printer_safety;
+	#define DBGPRN(...) axon::debug(stderr, AXON_DEBUG, __VA_ARGS__)
+	#define INFPRN(...) axon::debug(stderr, AXON_INFO, __VA_ARGS__)
+	#define NOTPRN(...) axon::debug(stderr, AXON_NOTICE, __VA_ARGS__)
+	#define WRNPRN(...) axon::debug(stderr, AXON_WARNING, __VA_ARGS__)
+	#define ERRPRN(...) axon::debug(stderr, AXON_ERROR, __VA_ARGS__)
 #else
-	#define DBGPRN(...)
-	#define INFPRN(...)
-	#define NOTPRN(...)
-	#define WRNPRN(...)
-	#define ERRPRN(...)
+	#define DBGPRN(...) { }
+	#define INFPRN(...) { }
+	#define NOTPRN(...) { }
+	#define WRNPRN(...) { }
+	#define ERRPRN(...) { }
 #endif
 
 // AXON Namespace
@@ -46,6 +46,9 @@ namespace axon
 	typedef int flags_t;
 	typedef int proto_t;
 	typedef int auth_t;
+
+	extern void debug(FILE*, int, const char*, ...);
+	extern std::mutex spinlock;
 
 	std::string version();
 
