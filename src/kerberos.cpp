@@ -337,7 +337,7 @@ namespace axon
 			DBGPRN("[%s] %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
-		void kerberos::print(const int errnum, const int ln)
+		void kerberos::print(const int errnum, [[maybe_unused]] const int ln)
 		{
 			const char *errstr = krb5_get_error_message(_context.get(), errnum);
 

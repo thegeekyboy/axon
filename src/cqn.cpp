@@ -223,7 +223,7 @@ namespace axon {
 
 		std::string cqn::subscribe(std::string topic)
 		{
-			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, std::string rowid, void *) {
+			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, [[maybe_unused]] std::string rowid, void *) {
 				DBGPRN("rowid: %s", rowid.c_str());
 			});
 		}
