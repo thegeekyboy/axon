@@ -73,7 +73,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	axon::database::oracle ora;
 	ora.connect(sid, username, password);
 	axon::stream::cqn source(&ora, "axon_trx");
-	
+
 	source.connect();
 	std::thread th(counter);
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -86,7 +86,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 			DBGPRN("rowid: %s, table: %s", data.rowid.c_str(), data.table.c_str());
 
 			std::string sql = "SELECT * FROM " + data.table + " WHERE ROWID = '" + data.rowid + "'";
-		
+
 			// std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(ora.get_context());
 			// stmt->prepare(sql);
 			// stmt->execute(axon::database::exec_type::select);
@@ -94,7 +94,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 			// axon::database::resultset rs(stmt);
 
 			// return std::make_tuple(data.table, std::make_unique<axon::database::resultset>(stmt));
-			
+
 		}
 	});
 	source.subscribe("SELECT * FROM CPSTXN.CPS_ORDER_REFDATA", [](axon::database::operation, axon::database::change, std::string table, std::string rowid, void *) {

@@ -12,10 +12,12 @@ namespace axon
 
 			bool init();
 			bool login();
+			bool push(axon::transfer::connection&);
 
 		public:
-			ftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) {  };
-			ftp(const ftp& rhs) : connection(rhs) {  };
+			ftp(std::string, std::string, std::string, uint16_t);
+			ftp(std::string, std::string, std::string);
+			ftp(const ftp&);
 			~ftp();
 
 			bool connect();
@@ -27,11 +29,18 @@ namespace axon
 			int list(const axon::transfer::cb &);
 			int list(std::vector<axon::entry> &);
 			long long copy(std::string, std::string, bool);
+			long long copy(std::string, std::string);
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
 			long long get(std::string, std::string, bool);
 			long long put(std::string, std::string, bool);
+
+			bool open(std::string, std::ios_base::openmode);
+			bool close();
+
+			ssize_t read(char*, size_t);
+			ssize_t write(const char*, size_t);
 		};
 	}
 }

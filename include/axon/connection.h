@@ -34,7 +34,7 @@ namespace axon
 				connection(const connection&);
 				~connection();
 
-				virtual bool set(char, std::string) = 0;
+				// virtual bool set(char, std::string) = 0; <- is causing diamond problem, TODO: need to find a solution for this
 
 				virtual bool connect() = 0;
 				virtual bool disconnect() = 0;

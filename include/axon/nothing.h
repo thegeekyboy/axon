@@ -10,9 +10,12 @@ namespace axon
 	{
 		class nothing : public connection {
 
+			bool push(axon::transfer::connection&);
+
 		public:
-			nothing(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
-			nothing(const nothing& rhs) : connection(rhs) {  };
+			nothing(std::string, std::string, std::string, uint16_t);
+			nothing(std::string, std::string, std::string);
+			nothing(const nothing&);
 			~nothing();
 
 			bool set(char, std::string);
@@ -26,6 +29,7 @@ namespace axon
 			int list(const axon::transfer::cb &);
 			int list(std::vector<entry> &);
 			long long copy(std::string, std::string, bool);
+			long long copy(std::string, std::string);
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
@@ -33,6 +37,12 @@ namespace axon
 
 			long long get(std::string, std::string, bool);
 			long long put(std::string, std::string, bool);
+
+			bool open(std::string, std::ios_base::openmode);
+			bool close();
+
+			ssize_t read(char*, size_t);
+			ssize_t write(const char*, size_t);
 		};
 	}
 }

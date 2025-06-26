@@ -12,6 +12,12 @@ namespace axon
 {
 	namespace transfer
 	{
+		bool ftp::push(axon::transfer::connection&) { return false; };
+
+		ftp::ftp(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
+		ftp::ftp(std::string hostname, std::string username, std::string password): connection(hostname, username, password) {  };
+		ftp::ftp(const ftp& rhs) : connection(rhs) {  };
+
 		ftp::~ftp()
 		{
 			disconnect();
@@ -241,6 +247,8 @@ namespace axon
 
 			return 0L;
 		}
+
+		long long ftp::copy(std::string src, std::string dest) { return copy(src, dest, false); };
 
 		bool ftp::ren(std::string from, std::string to)
 		{
@@ -579,5 +587,10 @@ namespace axon
 
 			return 0;
 		}
+		bool ftp::open(std::string, std::ios_base::openmode) { return false; }
+		bool ftp::close() { return false; }
+
+		ssize_t ftp::read(char*, size_t) { return -1; }
+		ssize_t ftp::write(const char*, size_t) { return -1; }
 	}
 }

@@ -24,7 +24,7 @@ int main(int argc, char ** argv)
 	if (argc > 2) filter = argv[2];
 
 	std::unique_ptr<axon::directory::ldap::recordset> rc = ldp.search(dn, filter);
-	
+
 	std::cout<<axon::version()<<"<count: "<<rc->count()<<std::endl;
 
 	while(rc->next()) {
