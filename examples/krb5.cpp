@@ -42,7 +42,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 		std::cout<<"keytab: "<<krb5_keytab<<std::endl;
 		std::cout<<"cache: "<<krb5_cachepath<<std::endl;
 		std::cout<<"cache principal: "<<krb.cachePrincipal()<<std::endl;
-		
+
 		if (!krb.isCacheValid())
 		{
 			std::cout<<"cache has expired"<<std::endl;

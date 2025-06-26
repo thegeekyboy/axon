@@ -8,6 +8,7 @@
 #include <axon/kafka.h>
 #include <axon/util.h>
 // #include <axon/database.h>
+#include <axon/oracle.h>
 #include <axon/scylladb.h>
 
 #include <signal.h>
@@ -54,7 +55,7 @@ void counter(axon::stream::kafka *hook)
 	hook->stop();
 }
 
-void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::scylladb *db)
+void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interface *db)
 {
 	std::string table, op_type;
 
@@ -69,7 +70,7 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::scyllad
 	std::string DEBIT_PARTY_ID, CREDIT_PARTY_ID, REASON_TYPE;
 	char buffer[16] = { 0 };
 	size_t size;
-	
+
 	std::string CHANNEL, ORIGCONVERSATIONID, LINKEDTYPE, LINKEDORDERID, REQUESTER_TYPE, REQUESTER_IDENTIFIER_TYPE, REQUESTER_IDENTIFIER_VALUE, REQUESTER_MNEMORIC, INITIATOR_TYPE, INITIATOR_IDENTIFIER_TYPE, INITIATOR_IDENTIFIER_VALUE, INITIATOR_MNEMONIC, PRIMARY_PARTY_TYPE, THIRDPARTYID, THIRDPARTYIP, ACCESSPOINTIP, THIRDPARTYREQTIME, ERRORCODE, ERRORMESSAGE;
 
 	std::string REFERENCE_KEY, REFERENCE_VALUE;
@@ -188,31 +189,25 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::scyllad
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 {
-	std::string address, username, password, keyspace, bootstrap, schema, consumer;
+	const char *envp;
+	std::string hostname, username, password, schema_registry, domain, ora_sid, krb5_keytab, krb5_cachepath, bootstrap, kafka_consumer_group, scylla_keyspace, proxy;
 
-	for(int i=0;env[i]!=NULL;i++)
-	{
-		auto parts = axon::util::split(env[i], '=');
-
-		if (parts[0] == "AXON_USERNAME")
-			username = parts[1];
-		else if (parts[0] == "AXON_PASSWORD")
-			password = parts[1];
-		else if (parts[0] == "AXON_HOSTNAME")
-			address = parts[1];
-		else if (parts[0] == "AXON_KEYSPACE")
-			keyspace = parts[1];
-		else if (parts[0] == "AXON_BOOTSTRAP")
-			bootstrap = parts[1];
-		else if (parts[0] == "AXON_SCHEMA_REGISTRY")
-			schema = parts[1];
-		else if (parts[0] == "AXON_CONSUMER_GROUP")
-			consumer = parts[1];
-	}
+	if ((envp = std::getenv("http_proxy")) != nullptr) proxy = envp;
+	if ((envp = std::getenv("AXON_DOMAIN")) != nullptr) domain = envp;
+	if ((envp = std::getenv("AXON_ORA_SID")) != nullptr) ora_sid = envp;
+	if ((envp = std::getenv("AXON_USERNAME")) != nullptr) username = envp;
+	if ((envp = std::getenv("AXON_PASSWORD")) != nullptr) password = envp;
+	if ((envp = std::getenv("AXON_HOSTNAME")) != nullptr) hostname = envp;
+	if ((envp = std::getenv("AXON_BOOTSTRAP")) != nullptr) bootstrap = envp;
+	if ((envp = std::getenv("AXON_KRB5_KEYTAB")) != nullptr) krb5_keytab = envp;
+	if ((envp = std::getenv("AXON_KRB5_CACHEPATH")) != nullptr) krb5_cachepath = envp;
+	if ((envp = std::getenv("AXON_SCHEMA_REGISTRY")) != nullptr) schema_registry = envp;
+	if ((envp = std::getenv("AXON_SCYLLA_KEYSPACE")) != nullptr) scylla_keyspace = envp;
+	if ((envp = std::getenv("AXON_KAFKA_CONSUMER_GROUP")) != nullptr) kafka_consumer_group = envp;
 
 	// if (argc <= 2) return 0;
 
-	axon::stream::kafka source(bootstrap, schema, "axon_trx");
+	axon::stream::kafka source(bootstrap, schema_registry, "axon_trx");
 	std::thread th(counter, &source);
 
 	source.add("CPS_ORDERHIS");
@@ -223,10 +218,14 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	signal(SIGINT, stop);
 
 	std::shared_ptr<axon::stream::recordset> rc;
-	axon::database::scylladb db;
 
-	db[AXON_DATABASE_KEYSPACE] = keyspace;
-	db.connect(address, username, password);
+	// axon::database::oracle ora;
+	// ora.connect(ora_sid, username, password);
+	// axon::database::interface &db = ora;
+
+	axon::database::scylladb db;
+	db[AXON_DATABASE_KEYSPACE] = scylla_keyspace;
+	db.connect(hostname, username, password);
 
 	// std::shared_ptr<axon::database::tableinfo> inf = db.getinfo("cps_transaction_normalized");
 	// std::cout<<">> "<<inf->column_exists("credit_party_id")<<std::endl;
@@ -235,8 +234,8 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	{
 		if (rc->is_empty())
 			continue;
-		parse(rc, &db);
-		// rc->print();
+		// parse(rc, &db);
+		rc->print();
 	}
 
 	th.join();

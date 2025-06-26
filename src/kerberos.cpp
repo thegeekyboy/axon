@@ -389,7 +389,7 @@ namespace axon
 		bool kerberos::authenticate(std::string password)
 		{
 			long int retval;
-			
+
 			krb5_get_init_creds_opt options;
 			principal princ(_context);
 			krb5_creds creds = { };

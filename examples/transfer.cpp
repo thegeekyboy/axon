@@ -4,6 +4,7 @@
 
 #include <axon.h>
 #include <axon/util.h>
+#include <axon/log.h>
 
 #include <axon/connection.h>
 
@@ -13,6 +14,9 @@
 #include <axon/file.h>
 #include <axon/hdfs.h>
 #include <axon/s3.h>
+#include <axon/nothing.h>
+#include <axon/ssh.h>
+#include <axon/ftp.h>
 
 #include <axon/kerberos.h>
 
@@ -33,7 +37,19 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 	if ((envp = std::getenv("AXON_SCHEMA_REGISTRY")) != nullptr) schema_registry = envp;
 	if ((envp = std::getenv("AXON_SCYLLA_KEYSPACE")) != nullptr) scylla_keyspace = envp;
 	if ((envp = std::getenv("AXON_KAFKA_CONSUMER_GROUP")) != nullptr) kafka_consumer_group = envp;
-	
+
+	axon::log log;
+	log.print("this is a log test>>");
+	log<<"this";
+	log<<"is";
+	log<<"a";
+	log<<"test "<<1;
+	log<<std::endl;
+
+	log.open("test.log");
+	log.print("this is a log test>>");
+	return 0;
+
 	std::ofstream tempfile("axon_test");
 	for (int i = 0; i < (512*1024*2); i++) tempfile<<(char)('!' + rand()%92);
 	tempfile.close();
@@ -42,8 +58,14 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 		std::vector<axon::entry> v;
 
 		axon::transfer::connection *conn;
-		// axon::transfer::hdfs conn(hostname, username, password, 8020);
+
+		axon::transfer::hdfs xhdfs(hostname, username, password, 8020);
 		axon::transfer::s3 xs3(hostname, username, password);
+		axon::transfer::file xfile(hostname, username, password);
+		axon::transfer::sftp xsftp(hostname, username, password);
+		axon::transfer::nothing xnothing(hostname, username, password);
+		axon::transfer::ftp xftp(hostname, username, password);
+
 		conn = &xs3;
 
 		std::cout<<"hostname: "<<hostname<<", username: "<<username<<", password: "<<password<<std::endl;
@@ -67,21 +89,21 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 			}
 			else
 				std::cout<<"cache is still valid for the given principal"<<std::endl;
-			conn->set(AXON_TRANSFER_HDFS_AUTHTYPE, "kerberos");
-			conn->set(AXON_TRANSFER_HDFS_CACHEPATH, krb5_cachepath);
-			conn->set(AXON_TRANSFER_HDFS_ENCRYPT, "true");
-			conn->set(AXON_TRANSFER_HDFS_AUTHALGO, "3des");
+			xhdfs.set(AXON_TRANSFER_HDFS_AUTHTYPE, "kerberos");
+			xhdfs.set(AXON_TRANSFER_HDFS_CACHEPATH, krb5_cachepath);
+			xhdfs.set(AXON_TRANSFER_HDFS_ENCRYPT, "true");
+			xhdfs.set(AXON_TRANSFER_HDFS_AUTHALGO, "3des");
 		}
 
-		if (proxy.size() > 5) conn->set(AXON_TRANSFER_S3_PROXY, proxy);
+		if (proxy.size() > 5) xs3.set(AXON_TRANSFER_S3_PROXY, proxy);
 
 		// conn->set(AXON_TRANSFER_SSH_USE_SCP, true); // for ssh connector
 
 		// conn->filter(".*2025-05-25-15-5.*");
-		
+
 		conn->connect();
 		// conn->login(); // depricated
-		
+
 		std::cout<<"working directory: "<<conn->pwd()<<std::endl;
 		// conn->chwd("/tmp/");
 		conn->chwd("/uat-bkash-next-sentinel-eventstream/tmp");
@@ -99,7 +121,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 		// conn->copy("/tmp/filename.tar.bz2", "/home/username/filename.tar.bz2");
 		// conn->copy("/tmp/filename.tar.bz2", "/home/username/");
 
-		
+
 		// conn->open("/uat-bkash-sentinel-persona/tmp/axon_test.ren", std::ios::in);
 		// conn->close();
 

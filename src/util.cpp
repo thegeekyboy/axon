@@ -282,7 +282,7 @@ namespace axon
 			return true;
 		}
 
-		bool mkdir(const char *dir)
+		bool makedir(const char *dir)
 		{
 			char tmp[PATH_MAX];
 			char *p = NULL;
@@ -299,14 +299,14 @@ namespace axon
 				if (*p == '/')
 				{
 					*p = 0;
-					if (::mkdir(tmp, S_IRWXU) == -1)
+					if (mkdir(tmp, S_IRWXU) == -1)
 						if (errno != EEXIST)
 							return false;
 					*p = '/';
 				}
 			}
 
-			if (::mkdir(tmp, S_IRWXU) == -1)
+			if (mkdir(tmp, S_IRWXU) == -1)
 				if (errno != EEXIST)
 					return false;
 
