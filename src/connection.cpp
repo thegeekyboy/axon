@@ -10,7 +10,7 @@ namespace axon
 		connection::connection(std::string hostname, std::string username, std::string password, uint16_t port):
 		_id(axon::util::uuid()), _hostname(hostname), _username(username), _password(password), _port(port), _connected(false), _fileopen(false)
 		{
-			DBGPRN("[%s] connection %s class starting.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			const char* r_hostname_ip = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}";
 			const char* r_hostname_fqdn = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$";
@@ -36,7 +36,6 @@ namespace axon
 
 		connection::~connection()
 		{
-			DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
 		bool connection::filter(std::string flt)

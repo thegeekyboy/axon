@@ -139,7 +139,7 @@ namespace axon
 				int ec;
 				if ((ec = amqp_destroy_connection(_connection)) != AMQP_STATUS_OK)
 				{
-					DBGPRN("%s", axon::queue::error::message(ec).c_str());
+					WRNPRN("%s", axon::queue::error::message(ec).c_str());
 				}
 			}
 			amqp_connection_state_t get() {

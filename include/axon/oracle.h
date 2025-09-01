@@ -35,7 +35,7 @@ namespace axon {
 
 			public:
 				environment() {
-
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					_uuid = axon::util::uuid();
 
 					{
@@ -46,24 +46,17 @@ namespace axon {
 
 							if (OCIEnvCreate((OCIEnv **) &handle, OCI_EVENTS|OCI_OBJECT|OCI_THREADED, NULL, NULL, NULL, NULL, 0, NULL) != OCI_SUCCESS)
 								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize environment");
-							DBGPRN("\033[0;31m[%s] environment allocating\033[0m\n", axon::timer::iso8601().c_str());
 						}
 						count++;
 					}
-
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				~environment() {
-
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					if (count == 1)
 					{
-						if (handle != (OCIEnv *) 0) {
-							DBGPRN("\033[0;31m[%s] environment destroying\033[0m\n", axon::timer::iso8601().c_str());
-							OCIHandleFree(handle, (ub4) OCI_HTYPE_ENV);
-						}
+						if (handle != (OCIEnv *) 0) OCIHandleFree(handle, (ub4) OCI_HTYPE_ENV);
 					}
 					count--;
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				OCIEnv *get() {
 
@@ -82,6 +75,7 @@ namespace axon {
 
 			public:
 				error() {
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					axon::database::environment env;
 
 					_retcode = 0;
@@ -90,12 +84,10 @@ namespace axon {
 
 					if (OCIHandleAlloc(env.get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate error object");
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				~error() {
 					if (_pointer != (OCIError *) 0)
 						OCIHandleFree(_pointer, (ub4) OCI_HTYPE_ERROR);
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 
 				bool failed() {
@@ -187,6 +179,7 @@ namespace axon {
 			OCISvcCtx *_pointer;
 			public:
 				context() {
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					axon::database::environment env;
 
 					_pointer = (OCISvcCtx *) 0;
@@ -194,12 +187,10 @@ namespace axon {
 
 					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate context");
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				~context() {
 					if (_pointer != (OCISvcCtx *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SVCCTX);
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				OCISvcCtx *get() {
 					if (_pointer == (OCISvcCtx *) 0)
@@ -215,6 +206,7 @@ namespace axon {
 			OCIServer *_pointer;
 			public:
 				server() {
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					axon::database::environment env;
 
 					_pointer = (OCIServer *) 0;
@@ -222,12 +214,10 @@ namespace axon {
 
 					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate server");
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				~server() {
 					if (_pointer != (OCIServer *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SERVER);
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				OCIServer *get() {
 					if (_pointer == (OCIServer *) 0)
@@ -249,6 +239,7 @@ namespace axon {
 			public:
 				session(axon::database::context &ctx)
 				{
+					axon::timer ctm(__PRETTY_FUNCTION__);
 					axon::database::environment env;
 
 					_pointer = (OCISession *) 0;
@@ -258,13 +249,10 @@ namespace axon {
 
 					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SESSION, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate session");
-
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				~session() {
 					if (_pointer != (OCISession *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SESSION);
-					DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
 				}
 				OCISession *get() {
 					if (_pointer == (OCISession *) 0)

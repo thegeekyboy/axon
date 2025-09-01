@@ -23,13 +23,13 @@ namespace axon
 		return VERSION;
 	}
 
-	void debug(FILE *fp, int code, const char *format, ...)
+	void debug(FILE *fp, std::string filename, int line, std::string func, int code, const char *format, ...)
 	{
 		std::lock_guard<std::mutex> lock(spinlock);
 		va_list argptr;
 		char refmt[MAXDBGLEN];
 
-		snprintf(refmt, MAXDBGLEN-1, "\033[0;%dm[%s] %s\033[0m\n", code, axon::timer::iso8601().c_str(), format);
+		snprintf(refmt, MAXDBGLEN-1, "\033[0;%dm[%s] %s(%d) %s: %s\033[0m\n", code, axon::timer::iso8601().c_str(), filename.c_str(), line, func.c_str(), format);
 		va_start(argptr, format);
 		vfprintf(fp, refmt, argptr);
 		fflush(fp);
@@ -356,6 +356,11 @@ namespace axon
 			return true;
 		}
 
+		bool set_thread_name(pthread_t th, std::string name)
+		{
+			return !pthread_setname_np(th, name.c_str());
+		}
+
 		std::string demangle(const char* mangled)
 		{
 			int status;
@@ -364,7 +369,6 @@ namespace axon
 
 			return result.get() ? std::string(result.get()) : "error occurred";
 		}
-
 
 		static inline bool is_base64(BYTE c)
 		{

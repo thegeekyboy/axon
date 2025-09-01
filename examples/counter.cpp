@@ -41,7 +41,7 @@ void dbg(avro_value_t *avro)
 	}
 }
 
-void parse(axon::stream::recordset *rc)
+void parse(std::shared_ptr<axon::stream::recordset> rc)
 {
 	std::string event_type, screen, msisdn, session, event_date, fingerprint;
 

@@ -13,11 +13,11 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-#define AXON_DEBUG 33
-#define AXON_INFO 34
-#define AXON_NOTICE 36
-#define AXON_WARNING 35
+#define AXON_EMERG 35
 #define AXON_ERROR 31
+#define AXON_WARNING 33
+#define AXON_DEBUG 36
+#define AXON_INFO 34
 
 #ifndef DEBUG
 	#define DEBUG 0
@@ -26,18 +26,25 @@
 #include <mutex>
 #define MAXDBGLEN 4096
 
-#if DEBUG == 1
-	#define DBGPRN(...) axon::debug(stderr, AXON_DEBUG, __VA_ARGS__)
-	#define INFPRN(...) axon::debug(stderr, AXON_INFO, __VA_ARGS__)
-	#define NOTPRN(...) axon::debug(stderr, AXON_NOTICE, __VA_ARGS__)
-	#define WRNPRN(...) axon::debug(stderr, AXON_WARNING, __VA_ARGS__)
-	#define ERRPRN(...) axon::debug(stderr, AXON_ERROR, __VA_ARGS__)
+#define EMRPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_EMERG, __VA_ARGS__)
+#define ERRPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_ERROR, __VA_ARGS__)
+
+#ifdef DEBUG
+	#define DBGPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_DEBUG, __VA_ARGS__)
 #else
 	#define DBGPRN(...) { }
-	#define INFPRN(...) { }
-	#define NOTPRN(...) { }
+#endif
+
+#if DEBUG >= 1
+	#define WRNPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_WARNING, __VA_ARGS__)
+#else
 	#define WRNPRN(...) { }
-	#define ERRPRN(...) { }
+#endif
+
+#if DEBUG >= 2
+	#define INFPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_INFO, __VA_ARGS__)
+#else
+	#define INFPRN(...) { }
 #endif
 
 // AXON Namespace
@@ -47,7 +54,7 @@ namespace axon
 	typedef int proto_t;
 	typedef int auth_t;
 
-	extern void debug(FILE*, int, const char*, ...);
+	extern void debug(FILE *, std::string, int, std::string, int, const char *, ...);
 	extern std::mutex spinlock;
 
 	std::string version();

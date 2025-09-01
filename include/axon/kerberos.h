@@ -107,7 +107,7 @@ namespace axon
 					principal(principal&&) = delete;
 					principal& operator=(principal&&) = delete;
 					~principal() { if (_pointer != nullptr) krb5_free_principal(_context.get(), _pointer); }
-					
+
 					krb5_principal get() {
 						if (_pointer == nullptr) throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "principal not ready");
 						return _pointer;

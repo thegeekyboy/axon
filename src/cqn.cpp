@@ -96,7 +96,7 @@ namespace axon {
 				return OCI_CONTINUE;
 			}
 
-			DBGPRN("Received notification => %d, change count: %d", event_type, count);
+			INFPRN("Received notification => %d, change count: %d", event_type, count);
 
 			for (int i = 0; i < count; i++)
 			{
@@ -120,8 +120,7 @@ namespace axon {
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 				if (table_op & axon::database::change::allrows) {
-
-#if DEBUG == 1
+#if DEBUG > 1
 					if (table_op & axon::database::change::insert)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - insert", table_name, table_op);
 					else if (table_op & axon::database::change::update)

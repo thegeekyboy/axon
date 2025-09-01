@@ -18,7 +18,11 @@ endif ()
 if (CMAKE_BUILD_TYPE MATCHES Debug)
 	message(STATUS "Configuring cmake for Debug build")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
-	add_definitions(-DDEBUG)
+	if (NOT DEBUG)
+		add_definitions(-DDEBUG=0)
+	else ()
+		add_definitions(-DDEBUG=${DEBUG} -pg)
+	endif()
 	# add_compile_options(-fsanitize=address)
 	# add_link_options(-fsanitize=address)
 elseif (CMAKE_BUILD_TYPE MATCHES Release)
@@ -28,7 +32,7 @@ else ()
 	message(STATUS "Unknown build type")
 endif ()
 
-# # detect and set compiler capabilities
+## detect and set compiler capabilities
 include(CheckCXXCompilerFlag)
 
 enable_cxx_compiler_flag_if_supported("-D_GLIBCXX_USE_NANOSLEEP")

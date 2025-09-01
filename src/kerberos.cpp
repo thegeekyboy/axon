@@ -256,7 +256,7 @@ namespace axon
 				INFPRN("name: %s, created: %s", name, axon::timer::fulldate(entry.timestamp).c_str());
 				// DBGPRN("version: %d", entry.key.length);
 				// std::cout<<"++ contents: "<<entry.key.enctype<<std::endl;
-				for (uint16_t i = 0; i < entry.key.length; i++) NOTPRN("%02X ", entry.key.contents[i]);
+				for (uint16_t i = 0; i < entry.key.length; i++) INFPRN("%02X ", entry.key.contents[i]);
 
 				krb5_free_unparsed_name(_context.get(), name);
 				krb5_free_keytab_entry_contents(_context.get(), &entry);

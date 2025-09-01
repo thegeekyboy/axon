@@ -304,6 +304,9 @@ namespace axon
 			if (_path.empty())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Path to file is empty");
 
+			if (!axon::util::iswritable(_path))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "%s to file not writable", _path.c_str());
+
 			if (sqlite3_open(_path.c_str(), &_dbp) != SQLITE_OK)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database (" + _path + ") - " + sqlite3_errmsg(_dbp));
 

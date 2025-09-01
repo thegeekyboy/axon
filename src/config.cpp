@@ -178,7 +178,7 @@ namespace axon
 
 	bool config::load()
 	{
-		DBGPRN("axon::config::load(): %s %s", _filename.c_str(), boost::filesystem::current_path().generic_string().c_str());
+		INFPRN("axon::config::load(): %s %s", _filename.c_str(), boost::filesystem::current_path().generic_string().c_str());
 
 		if (_filename.size() <= 1)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Invalid configuration filename");
@@ -721,46 +721,46 @@ namespace axon
 				{
 					case CONFIG_TYPE_INT:
 						dval = config_setting_get_int(setting);
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %d", level, index, name, dval);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> %d", __PRETTY_FUNCTION__, level, index, name, dval);
 						break;
 					case CONFIG_TYPE_INT64:
 						llval = config_setting_get_int64(setting);
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %lld", level, index, name, llval);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> %lld", __PRETTY_FUNCTION__, level, index, name, llval);
 						break;
 					case CONFIG_TYPE_FLOAT:
 						fval = config_setting_get_float(setting);
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %f", level, index, name, fval);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> %f", __PRETTY_FUNCTION__, level, index, name, fval);
 						break;
 					case CONFIG_TYPE_STRING:
 						const char *sval;
 						if ((sval = config_setting_get_string(setting)) == NULL)
 							continue;
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %s", level, index, name, sval);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> %s", __PRETTY_FUNCTION__, level, index, name, sval);
 						break;
 					case CONFIG_TYPE_BOOL:
 						bval = config_setting_get_bool(setting);
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> %d", level, index, name, bval);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> %d", __PRETTY_FUNCTION__, level, index, name, bval);
 						break;
 					case CONFIG_TYPE_ARRAY:
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [array]", level, index, name);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> [array]", __PRETTY_FUNCTION__, level, index, name);
 						print(setting, level+1);
 						break;
 					case CONFIG_TYPE_LIST:
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [list]", level, index, name);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> [list]", __PRETTY_FUNCTION__, level, index, name);
 						print(setting, level+1);
 						break;
 					case CONFIG_TYPE_GROUP:
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [group]", level, index, name);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> [group]", __PRETTY_FUNCTION__, level, index, name);
 						print(setting, level+1);
 						break;
 					default:
-						DBGPRN("axon::config::print(): Level: %d,  Index: %d - %s <> [unknown]", level, index, name);
+						INFPRN("%s: Level: %d,  Index: %d - %s <> [unknown]", __PRETTY_FUNCTION__, level, index, name);
 						break;
 				}
 			}
 			else
 			{
-				DBGPRN("axon::config::print(): Level: %d,  Index: %d - Unknown", level, index);
+				INFPRN("%s: Level: %d,  Index: %d - Unknown", __PRETTY_FUNCTION__, level, index);
 			}
 		}
 	}

@@ -52,17 +52,14 @@ void counter(axon::stream::kafka *hook)
 		count = 0;
 	}
 
-	hook->stop();
+	// hook->stop();
 }
 
-void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interface *db)
+void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::scylladb &db)
 {
 	std::string table, op_type;
 
 	// std::shared_ptr<axon::database::tableinfo> inf = db->getinfo("cps_transaction_normalized");
-
-	rec->get("table", table);
-	rec->get("op_type", op_type);
 
 	std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_TYPE, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_TYPE, CREDIT_PARTY_MNEMONIC, REQUEST_CURRENCY, ACCOUNT_UNIT_TYPE, CURRENCY, IS_REVERSED, IS_PARTIAL_REVERSED, IS_REVERSING, REMARK, BANK_ACCOUNT_NUMBER, BANK_ACCOUNT_NAME, CONSUMED_BUNDLE;
 	long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0, EXPIRED_TIME = 0, LAST_UPDATED_TIME = 0;
@@ -75,8 +72,10 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interfa
 
 	std::string REFERENCE_KEY, REFERENCE_VALUE;
 
-	if (table == "CPS_TRANS_RECORD-VALUE.CPS_TRANS_RECORD")
+	if (rec->name() == "CPS_TRANS_RECORD")
 	{
+		rec->get("table", table);
+		rec->get("op_type", op_type);
 		rec->get("ORDERID", ORDERID);
 		rec->get("TRANS_STATUS", TRANS_STATUS);
 		rec->get("DEBIT_PARTY_TYPE", DEBIT_PARTY_TYPE);
@@ -114,10 +113,10 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interfa
 
 		const char stmt[] = "UPDATE CPS_TRANSACTION_NORMALIZED SET TRANS_STATUS = :aa, DEBIT_PARTY_TYPE = :ab, DEBIT_PARTY_MNEMONIC = :ac, CREDIT_PARTY_TYPE = :ad, CREDIT_PARTY_MNEMONIC = :ae, REQUEST_CURRENCY = :af, ACCOUNT_UNIT_TYPE = :ag, CURRENCY = :ah, REMARK = :ai, IS_REVERSED = :aj, IS_PARTIAL_REVERSED = :ak, IS_REVERSING = :al, BANK_ACCOUNT_NUMBER = :am, BANK_ACCOUNT_NAME = :an, CONSUMED_BUNDLE = :ao, TRANS_INITATE_TIME = :ap, TRANS_END_TIME = :aq, EXPIRED_TIME = :ar, LAST_UPDATED_TIME = :as, REQUEST_AMOUNT = :at, ORG_AMOUNT = :au, ACTUAL_AMOUNT = :av, FEE = :aw, COMMISSION = :ax, TAX = :ay, DISCOUNT_AMOUNT = :az, REDEEMED_POINT_AMOUNT = :ba, DEBIT_PARTY_ID = :bb, CREDIT_PARTY_ID = :bc, REASON_TYPE = :bd, EXCHANGE_RATE = :be WHERE ORDERID = :bf";
 
-		(*db)<<TRANS_STATUS<<DEBIT_PARTY_TYPE<<DEBIT_PARTY_MNEMONIC<<CREDIT_PARTY_TYPE<<CREDIT_PARTY_MNEMONIC<<REQUEST_CURRENCY<<ACCOUNT_UNIT_TYPE<<CURRENCY<<REMARK<<IS_REVERSED<<IS_PARTIAL_REVERSED<<IS_REVERSING<<BANK_ACCOUNT_NUMBER<<BANK_ACCOUNT_NAME<<CONSUMED_BUNDLE<<TRANS_INITATE_TIME<<TRANS_END_TIME<<EXPIRED_TIME<<LAST_UPDATED_TIME<<REQUEST_AMOUNT<<ORG_AMOUNT<<ACTUAL_AMOUNT<<FEE<<COMMISSION<<TAX<<DISCOUNT_AMOUNT<<REDEEMED_POINT_AMOUNT<<DEBIT_PARTY_ID<<CREDIT_PARTY_ID<<REASON_TYPE<<EXCHANGE_RATE<<ORDERID;
-		db->execute(stmt);
+		db<<TRANS_STATUS<<DEBIT_PARTY_TYPE<<DEBIT_PARTY_MNEMONIC<<CREDIT_PARTY_TYPE<<CREDIT_PARTY_MNEMONIC<<REQUEST_CURRENCY<<ACCOUNT_UNIT_TYPE<<CURRENCY<<REMARK<<IS_REVERSED<<IS_PARTIAL_REVERSED<<IS_REVERSING<<BANK_ACCOUNT_NUMBER<<BANK_ACCOUNT_NAME<<CONSUMED_BUNDLE<<TRANS_INITATE_TIME<<TRANS_END_TIME<<EXPIRED_TIME<<LAST_UPDATED_TIME<<REQUEST_AMOUNT<<ORG_AMOUNT<<ACTUAL_AMOUNT<<FEE<<COMMISSION<<TAX<<DISCOUNT_AMOUNT<<REDEEMED_POINT_AMOUNT<<DEBIT_PARTY_ID<<CREDIT_PARTY_ID<<REASON_TYPE<<EXCHANGE_RATE<<ORDERID;
+		db.execute(stmt);
 	}
-	else if (table == "CPS_ORDERHIS-VALUE.CPS_ORDERHIS")
+	else if (rec->name() == "CPS_ORDERHIS")
 	{
 		size_t size;
 		char buffer[16] = { 0 };
@@ -125,6 +124,8 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interfa
 		long long REQUESTER_ID = 0, INITIATOR_ID = 0, PRIMARY_PARTY_ID = 0;
 		long long SL = 0;
 
+		rec->get("table", table);
+		rec->get("op_type", op_type);
 		rec->get("ORDERID", ORDERID);
 		rec->get("CHANNEL", CHANNEL);
 		rec->get("ORIGCONVERSATIONID", ORIGCONVERSATIONID);
@@ -158,11 +159,13 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interfa
 
 		const char stmt[] = "UPDATE CPS_TRANSACTION_NORMALIZED SET CHANNEL = :aa, ORIGCONVERSATIONID = :ab, LINKEDTYPE = :ac, LINKEDORDERID = :ad, REQUESTER_TYPE = :ae, REQUESTER_IDENTIFIER_TYPE = :af, REQUESTER_IDENTIFIER_VALUE = :ag, REQUESTER_MNEMORIC = :ah, REQUESTER_ID = :ai, SL = :aj WHERE ORDERID = :ak";
 
-		(*db)<<CHANNEL<<ORIGCONVERSATIONID<<LINKEDTYPE<<LINKEDORDERID<<REQUESTER_TYPE<<REQUESTER_IDENTIFIER_TYPE<<REQUESTER_IDENTIFIER_VALUE<<REQUESTER_MNEMORIC<<REQUESTER_ID<<SL<<ORDERID;
-		db->execute(stmt);
+		db<<CHANNEL<<ORIGCONVERSATIONID<<LINKEDTYPE<<LINKEDORDERID<<REQUESTER_TYPE<<REQUESTER_IDENTIFIER_TYPE<<REQUESTER_IDENTIFIER_VALUE<<REQUESTER_MNEMORIC<<REQUESTER_ID<<SL<<ORDERID;
+		db.execute(stmt);
 	}
-	else if (table == "CPS_ORDER_REFDATA-VALUE.CPS_ORDER_REFDATA")
+	else if (rec->name() == "CPS_ORDER_REFDATA")
 	{
+		rec->get("table", table);
+		rec->get("op_type", op_type);
 		rec->get("ORDERID", ORDERID);
 		rec->get("REFERENCE_KEY", REFERENCE_KEY);
 		rec->get("REFERENCE_VALUE", REFERENCE_VALUE);
@@ -172,14 +175,18 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::interfa
 
 		std::string stmt = "UPDATE cps_transaction_normalized SET RK_" + REFERENCE_KEY + " = :aa WHERE ORDERID = :oi";
 
-		try {
-			db->execute("ALTER TABLE cps_transaction_normalized ADD RK_" + REFERENCE_KEY + " TEXT;");
+		std::shared_ptr<axon::database::tableinfo> inf = db.getinfo("cps_transaction_normalized");
+		
 
-			(*db)<<REFERENCE_VALUE<<ORDERID;
-			db->execute(stmt);
-		} catch(axon::exception *e) {
-			std::cout<<e->what()<<std::endl<<stmt<<std::endl;
-		}
+		if (!inf->column_exists("RK_" + REFERENCE_KEY))
+			db.execute("ALTER TABLE cps_transaction_normalized ADD RK_" + REFERENCE_KEY + " TEXT;");
+
+		db<<REFERENCE_VALUE<<ORDERID;
+		db.execute(stmt);
+	}
+	else if (rec->name() == "UAT-USER-FP-STAT-STREAM")
+	{
+		rec->print();
 	}
 
 	// std::cout<<axon::timer::iso8601()<<">>"<<ORDERID<<" ("<<op_type<<") - "<<INITIATOR_MNEMONIC<<std::endl;
@@ -213,11 +220,10 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	source.add("CPS_ORDERHIS");
 	source.add("CPS_ORDER_REFDATA");
 	source.add("CPS_TRANS_RECORD");
+	source.add("UAT-USER-FP-STAT-STREAM");
 	source.subscribe();
 
 	signal(SIGINT, stop);
-
-	std::shared_ptr<axon::stream::recordset> rc;
 
 	// axon::database::oracle ora;
 	// ora.connect(ora_sid, username, password);
@@ -227,18 +233,28 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	db[AXON_DATABASE_KEYSPACE] = scylla_keyspace;
 	db.connect(hostname, username, password);
 
-	// std::shared_ptr<axon::database::tableinfo> inf = db.getinfo("cps_transaction_normalized");
-	// std::cout<<">> "<<inf->column_exists("credit_party_id")<<std::endl;
-
+	std::shared_ptr<axon::stream::recordset> rc;
+	
+	// parse by polling
 	while (running && (rc = std::move(source.next())))
 	{
 		if (rc->is_empty())
 			continue;
-		// parse(rc, &db);
-		rc->print();
+		parse(rc, db);
+		// rc->print();
 	}
 
+	// parse by callback
+	// source.start([&](std::unique_ptr<axon::stream::recordset> rec) {
+	// 	rc = std::move(rec);
+	// 	parse(rc, &db);
+	// 	// rc->print();
+	// });
+
 	th.join();
+
+	source.unsubscribe();
+	source.stop();
 
 	return 0;
 }
