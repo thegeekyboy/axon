@@ -144,6 +144,8 @@ namespace axon
 		std::string uuid();
 		double random(double, double);
 
+		bool set_thread_name(pthread_t, std::string);
+
 		void debugprint(const char *, ...);
 		std::string demangle(const char*);
 

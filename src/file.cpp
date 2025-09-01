@@ -25,8 +25,6 @@ namespace axon
 		{
 			if (_fileopen) close();
 			disconnect();
-
-			DBGPRN("[%s] connection %s class dying.", _id.c_str(), axon::util::demangle(typeid(*this).name()).c_str());
 		}
 
 		bool file::init()

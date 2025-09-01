@@ -20,8 +20,7 @@ namespace axon
 {
 	namespace stream
 	{
-		subscription::subscription(int count):
-			_subscription(NULL)
+		subscription::subscription(int count): _subscription(NULL)
 		{
 			_subscription = rd_kafka_topic_partition_list_new(count);
 		}
@@ -35,7 +34,7 @@ namespace axon
 		void subscription::add(std::string topic)
 		{
 			if (rd_kafka_topic_partition_list_add(_subscription, topic.c_str(), RD_KAFKA_PARTITION_UA) == NULL) {
-				DBGPRN("null returned!");
+				WRNPRN("null returned!");
 			}
 		}
 
@@ -55,15 +54,19 @@ namespace axon
 		{
 			for (int i = 0; i < _subscription->cnt; i++) {
 				rd_kafka_topic_partition_t *p = &_subscription->elems[i];
-				DBGPRN("Topic \"%s\" partition %" PRId32, p->topic, p->partition);
-				if (p->err)
-						printf(" error %s", rd_kafka_err2str(p->err));
-				else {
-						printf(" offset %" PRId64 "", p->offset);
 
-						if (p->metadata_size)
-								printf(" (%d bytes of metadata)",
-										(int)p->metadata_size);
+				DBGPRN("Topic \"%s\" partition %" PRId32, p->topic, p->partition);
+
+				if (p->err)
+				{
+						INFPRN("error %s", rd_kafka_err2str(p->err));
+				}
+				else {
+						INFPRN("offset %" PRId64 "", p->offset);
+
+						if (p->metadata_size) {
+							INFPRN(" (%d bytes of metadata)", (int)p->metadata_size);
+						}
 				}
 				printf("\n");
 			}
@@ -234,18 +237,17 @@ namespace axon
 			return 0;
 		}
 
-		recordset::recordset(axon::stream::serdes &src, rd_kafka_message_t *rkm)
+		recordset::recordset(axon::stream::serdes &src, axon::stream::message &msg)
 		{
 			char error[1024];
 
-			if (rkm)
+			if (msg.get())
 			{
 				_empty = false;
+				_name = msg.name();
 
-				if (serdes_deserialize_avro(src.get(), &_data, NULL, rkm->payload, rkm->len, error, 1024))
+				if (serdes_deserialize_avro(src.get(), &_data, NULL, msg.payload(), msg.size(), error, 1024))
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-
-				rd_kafka_message_destroy(rkm);
 			}
 			else
 				_empty = true;
@@ -264,34 +266,71 @@ namespace axon
 			if (avro_value_to_json(&_data, 1, &as_json))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, std::string("avro_to_json failed: ") + avro_strerror());
 			else {
-				printf("%15s\n", as_json);
+				printf("%s => %15s\n", _name.c_str(), as_json);
 				free(as_json);
 			}
 		}
 
-		kafka::kafka(std::string bootstrap, std::string schema, std::string consumer): 
-			_bootstrap_hosts(bootstrap),
-			_schema_hosts(schema),
-			_consumer(consumer)
+		void kafka::rebalance(rd_kafka_t *rk, rd_kafka_resp_err_t err, rd_kafka_topic_partition_list_t *partitions, [[maybe_unused]]void *opaque)
 		{
-			kconf config;
+			rd_kafka_error_t *error = NULL;
+			rd_kafka_resp_err_t ret_err = RD_KAFKA_RESP_ERR_NO_ERROR;
+			axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
 
-			if (gethostname(_hostname, sizeof(_hostname)))
+			INFPRN("=> Subscribed to %d topic(s), waiting for rebalance and messages...", kinst->count());
+
+			switch (err)
+			{
+				case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
+					for (int i = 0; i < partitions->cnt; i++)
+					{
+						if (partitions->elems[i].partition == 0)
+						{
+							INFPRN("%s rebalanced", partitions->elems[i].topic);
+						}
+					}
+
+					if (!strcmp(rd_kafka_rebalance_protocol(rk), "COOPERATIVE"))
+							error = rd_kafka_incremental_assign(rk, partitions);
+					else
+							ret_err = rd_kafka_assign(rk, partitions);
+					break;
+
+				case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
+					if (!strcmp(rd_kafka_rebalance_protocol(rk), "COOPERATIVE"))
+						error = rd_kafka_incremental_unassign(rk, partitions);
+					else
+						ret_err  = rd_kafka_assign(rk, NULL);
+					break;
+
+				default:
+					ERRPRN("%s", rd_kafka_err2str(err));
+					rd_kafka_assign(rk, NULL);
+					break;
+			}
+
+			if (error) {
+				ERRPRN("incremental assign failure: %s", rd_kafka_error_string(error));
+				rd_kafka_error_destroy(error);
+			} else if (ret_err) {
+				ERRPRN("assign failure: %s", rd_kafka_err2str(ret_err));
+			}
+		}
+
+		void kafka::init(axon::stream::kconf &config)
+		{
+			char hostname[128], error[1024];
+
+			if (gethostname(hostname, sizeof(hostname)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Failed to lookup hostname");
+
+			_id = std::string(hostname) + "-" + std::to_string(getuid()) + "-" + std::to_string(getpid()) + "-" + axon::util::uuid();
+
+			config.set("client.id", _id);
+			config.set("group.id", _consumer);
 
 			_serdes.set("schema.registry.url", _schema_hosts);
 			_serdes.init();
-
-			config.set("client.id", _hostname);
-			config.set("group.id", _consumer);
-			config.set("enable.partition.eof", "false");
-			config.set("enable.auto.commit", "true");
-			config.set("auto.offset.reset", "earliest");
-			config.set("bootstrap.servers", _bootstrap_hosts);
-#if DEBUG == 1
-			config.set("debug", "topic,metadata,feature");
-			// rd_kafka_conf_set_log_cb(config, logger);
-#endif
 
 			if (!(_rk = rd_kafka_new(RD_KAFKA_CONSUMER, config, error, sizeof(error))))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
@@ -306,9 +345,34 @@ namespace axon
 			_counter = 0;
 		}
 
+		kafka::kafka(std::string bootstrap, std::string schema, std::string consumer, axon::stream::kconf config):
+			_bootstrap_hosts(bootstrap),
+			_schema_hosts(schema),
+			_consumer(consumer)
+		{
+			if (config.is_new())
+			{
+				config.set("enable.partition.eof", "false");
+				config.set("enable.auto.commit", "true");
+				config.set("auto.offset.reset", "latest");
+				config.set("bootstrap.servers", _bootstrap_hosts);
+	#if DEBUG >= 3
+				config.set("debug", "topic,metadata,feature");
+				// rd_kafka_conf_set_log_cb(config, logger);
+	#endif
+				rd_kafka_conf_set_rebalance_cb(config, rebalance);
+				rd_kafka_conf_set_opaque(config, this);
+			}
+
+			init(config);
+		}
+
 		kafka::~kafka()
 		{
 			stop();
+
+			if (_rk) rd_kafka_consumer_close(_rk);
+
 			rd_kafka_destroy(_rk);
 		}
 
@@ -321,6 +385,8 @@ namespace axon
 
 		void kafka::subscribe()
 		{
+			rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
+
 			if (!_rk)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kafka connection not initialized");
 
@@ -332,57 +398,66 @@ namespace axon
 			for (std::string &topic : _topic)
 				sb.add(topic.c_str());
 
-			if ((err = rd_kafka_subscribe(_rk, sb)))
+			if ((err = rd_kafka_subscribe(_rk, sb)) != RD_KAFKA_RESP_ERR_NO_ERROR)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, std::string(rd_kafka_err2str(err)));
-
-			DBGPRN("=> Subscribed to %d topic(s), waiting for rebalance and messages...", sb.count());
 
 			_subscribed = true;
 		}
 
-		bool kafka::start(std::function<void(axon::stream::recordset*)> fn)
+		void kafka::unsubscribe()
+		{
+			rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
+
+			if (!_rk)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kafka connection not initialized");
+
+			if (!_subscribed) return;
+
+			if (rd_kafka_unsubscribe(_rk) != RD_KAFKA_RESP_ERR_NO_ERROR)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "there was an error unsubscribing - " + std::string(rd_kafka_err2str(err)));
+
+			_subscribed = false;
+		}
+
+		bool kafka::start(std::function<void(std::unique_ptr<axon::stream::recordset>)> fn)
 		{
 			if (!_subscribed)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "not connected yet!");
 
-			f = fn;
+			_callback = fn;
 			_runnable = true;
 
-			_runner = std::thread([this] () {
+			_runner = std::thread([this, fn] () {
+
+				rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
+				axon::util::set_thread_name(pthread_self(), "axon/kafka/eventloop");
 
 				while (_runnable)
 				{
-					rd_kafka_message_t *rkm;
-
-					if (!(rkm = rd_kafka_consumer_poll(_rk, 300)))
-						continue;
-
-					if (rkm->err)
-					{
-						DBGPRN("=> Consumer error: %d->%s", rkm->err, rd_kafka_message_errstr(rkm));
-						rd_kafka_message_destroy(rkm);
-
-						continue;
-					}
-
 					try {
-						recordset rc(_serdes, rkm);
-						f(&rc);
+						message msg(_rk);
+						std::unique_ptr<axon::stream::recordset> rc = std::make_unique<axon::stream::recordset>(_serdes, msg);
+
+						if (!rc->is_empty()) {
+							fn(std::move(rc));
+							_counter++;
+						}
+						else
+							std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 					} catch(const std::bad_function_call& e) {
 						DBGPRN("%s", e.what());
 					}
 
-					if ((_counter % MIN_COMMIT_COUNT) == 0)
+					if (!_autocommit && _counter > 0 && (_counter % MIN_COMMIT_COUNT) == 0)
 					{
 						INFPRN("%s - rd_kafka_commit() at %d", __PRETTY_FUNCTION__, _counter);
-						err = rd_kafka_commit(_rk, NULL, 0);
-						if (err)
+
+						if ((err = rd_kafka_commit(_rk, NULL, 0)) != RD_KAFKA_RESP_ERR_NO_ERROR)
 						{
-							DBGPRN("=> Consumer error: %s\n", rd_kafka_err2str(err));
+							DBGPRN("=> consumer error: %s\n", rd_kafka_err2str(err));
 						}
 					}
-
-					_counter++;
 				}
 			});
 
@@ -397,14 +472,7 @@ namespace axon
 			if (_runner.joinable())
 				_runner.join();
 
-			if (_subscribed)
-			{
-				rd_kafka_unsubscribe(_rk);
-				_subscribed = false;
-			}
-
-			if (_rk)
-				rd_kafka_consumer_close(_rk);
+			unsubscribe();
 		}
 
 		unsigned long long kafka::counter()
@@ -417,17 +485,12 @@ namespace axon
 			if (_runnable)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid operation while callback active");
 
-			rd_kafka_message_t *rkm = rd_kafka_consumer_poll(_rk, 300);
-
-			if (rkm && rkm->err)
-			{
-				DBGPRN("=> Consumer error: %d->%s", rkm->err, rd_kafka_message_errstr(rkm));
-				rd_kafka_message_destroy(rkm);
-
+			try {
+				message msg(_rk);
+				return std::make_unique<axon::stream::recordset>(_serdes, msg);
+			} catch (axon::exception &e) {
 				return std::unique_ptr<axon::stream::recordset>(nullptr);
 			}
-
-			return std::make_unique<axon::stream::recordset>(_serdes, rkm);
 		}
 	}
 }

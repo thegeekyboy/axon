@@ -425,7 +425,7 @@ namespace axon {
 
 			for (auto &element : vars)
 			{
-				NOTPRN("+ Index: %d of %d, Type Index: %s", index, count, element.type().name());
+				INFPRN("+ Index: %d of %d, Type Index: %s", index, count, element.type().name());
 
 				if (element.type() == typeid(std::vector<std::string>))
 				{

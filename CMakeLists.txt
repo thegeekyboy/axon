@@ -29,7 +29,7 @@ message(STATUS "Starting build process for ${PROJECT_NAME} ${VERSION}")
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
 add_library(${PROJECT_NAME} SHARED "")
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 
 ## cmake helpers
 include (GNUInstallDirs)

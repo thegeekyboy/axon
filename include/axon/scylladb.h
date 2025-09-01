@@ -35,6 +35,7 @@ namespace axon
 			tableinfo(CassSession *session, std::string keyspace, std::string table):
 			sm(session)
 			{
+				axon::timer ctm(__PRETTY_FUNCTION__);
 				if ((_keyspace = cass_schema_meta_keyspace_by_name(sm.get(), keyspace.c_str())) == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get keyspace meta");
 
@@ -42,12 +43,12 @@ namespace axon
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get table meta");
 			}
 			~tableinfo() {
-
 			}
 
 			size_t colcnt() { return cass_table_meta_column_count(_table); }
 			size_t idxcnt() { return cass_table_meta_index_count(_table); }
 			bool column_exists(std::string name) { 
+				axon::timer ctm(__PRETTY_FUNCTION__);
 				return (cass_table_meta_column_by_name(_table, name.c_str()) == NULL)?false:true;
 			}
 			void columns() {
@@ -185,21 +186,21 @@ namespace axon
 
 				prepared() = delete;
 				prepared(future &cf):
-				p(NULL)
+				_pointer(NULL)
 				{
-					p = cass_future_get_prepared(cf.get());
-					if (p == NULL)
+					_pointer = cass_future_get_prepared(cf.get());
+					if (_pointer == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create parpared");
 				};
 
 				~prepared() { 
-					if (p) cass_prepared_free(p);
+					if (_pointer) cass_prepared_free(_pointer);
 				}
 
 				const CassPrepared *get() {
-					if (p == NULL)
+					if (_pointer == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "parpared not ready");
-					return p;
+					return _pointer;
 				}
 
 				operator const CassPrepared*()
@@ -208,7 +209,7 @@ namespace axon
 				}
 
 				private:
-					const CassPrepared *p;
+					const CassPrepared *_pointer;
 			};
 
 			struct statement {
