@@ -5,6 +5,8 @@
 #include <cstring>
 #include <sys/stat.h>
 
+#include <aws/core/Aws.h>
+
 #define MAXBUF 2097152
 
 #ifndef PATH_MAX
@@ -50,7 +52,7 @@
 // AXON Namespace
 namespace axon
 {
-	typedef int flags_t;
+	// typedef int flags_t;
 	typedef int proto_t;
 	typedef int auth_t;
 
@@ -59,53 +61,7 @@ namespace axon
 
 	std::string version();
 
-	struct flags {
-
-		static const flags_t UNKNOWN = -1;
-		static const flags_t DIR = 0;
-		static const flags_t FILE = 1;
-		static const flags_t LINK = 2;
-		static const flags_t CHAR = 3;
-		static const flags_t BLOCK = 4;
-		static const flags_t FIFO = 5;
-		static const flags_t SOCKET = 6;
-	};
-
-	struct protocol {
-
-		static const proto_t UNKNOWN = -1;
-		static const proto_t NOTHING = 0; // done
-		static const proto_t FILE = 1; // done
-		static const proto_t SFTP = 2; // done
-		static const proto_t FTP = 3; // done
-		static const proto_t S3 = 4; // done
-		static const proto_t SAMBA = 5;
-		static const proto_t HDFS = 6; // done
-		static const proto_t AWS = 7; // done
-		static const proto_t SCP = 8; // done
-		static const proto_t DATABASE = 9;
-		static const proto_t KAFKA = 10;
-		static const proto_t HTTP = 11;
-	};
-
-	struct authtype {
-
-		static const auth_t UNKNOWN = -1;
-		static const auth_t PASSWORD = 0;
-		static const auth_t PRIVATEKEY = 1;
-		static const auth_t KERBEROS = 2;
-		static const auth_t NTLM = 3;
-	};
-
-	struct entry {
-
-		std::string name;
-		int type;
-		long long size;
-		flags_t flag;
-		proto_t et;
-		struct stat st;
-	};
+	enum class status: int8_t { unknown = 0, ready = 1, active = 2, disabled = 4 };
 
 	class exception : public std::exception {
 

@@ -15,16 +15,13 @@ namespace axon
 {
 	namespace transfer
 	{
-		std::atomic<int> s3::_instance = 0;
-		std::mutex s3::_lock;
-
 		s3::s3(std::string hostname, std::string username, std::string password, uint16_t port)
-		: connection(hostname, username, password, port)
+		: connection(hostname, username, password, port), _aws(axon::AwsStack())
 		{
 		}
 
 		s3::s3(std::string hostname, std::string username, std::string password)
-		: connection(hostname, username, password)
+		: s3(hostname, username, password, 443)
 		{
 		}
 
@@ -37,16 +34,7 @@ namespace axon
 
 		bool s3::init()
 		{
-			std::lock_guard<std::mutex> guard(_lock);
-
-			if (_instance <= 0)
-			{
-				//_options = new Aws::SDKOptions;
-				Aws::InitAPI(_options);
-				std::this_thread::sleep_for(std::chrono::milliseconds(200));
-			}
-			_instance++;
-
+			// depricated
 			return true;
 		}
 
@@ -68,18 +56,13 @@ namespace axon
 
 		bool s3::connect()
 		{
-			init();
+			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 			Aws::Client::ClientConfiguration cfg;
 			bool useVirtualAdressing = true;
 
-			// TODO:
-			// need to figure out how to disable IMDS query, specially when non-AWS service
-			// provider like minio. for the time export AWS_EC2_METADATA_DISABLED="true" for
-			// environment variable as workaround.
-			// https://github.com/aws/aws-sdk-ruby/issues/2174
-
+			// REF: region details
 			// https://github.com/aws/aws-sdk-cpp/blob/main/src/aws-cpp-sdk-core/include/aws/core/Region.h
 
 			boost::regex flt("^([a-zA-Z]{2,}(\\-|\\_))?[a-zA-Z]{2,4}(\\-|\\_)[a-zA-Z]{2,}(\\-|\\_)[0-9]{1,}$");
@@ -117,16 +100,10 @@ namespace axon
 
 		bool s3::disconnect()
 		{
-			std::lock_guard<std::mutex> guard(_lock);
-
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			if (_connected)
 			{
 				delete _client;
-
-				_instance--;
-				if (_instance <= 0)
-					Aws::ShutdownAPI(_options);
-
 				_connected = false;
 			}
 
@@ -135,6 +112,7 @@ namespace axon
 
 		bool s3::chwd(std::string path)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, path.c_str());
 
 			if (path.size() <= 2)
@@ -167,6 +145,7 @@ namespace axon
 
 		std::string s3::pwd()
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (_path.size() <= 0)
@@ -177,6 +156,7 @@ namespace axon
 
 		bool s3::mkdir(std::string dir)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, dir.c_str());
 			std::string finalpath = (dir[0] == '/') ? dir : _path + "/" + dir;
 
@@ -189,6 +169,7 @@ namespace axon
 		long long s3::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx, destx;
 			long long filesize;
@@ -237,6 +218,7 @@ namespace axon
 
 		bool s3::ren(std::string src, std::string dest)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx, destx;
 			std::string parent, remainder;
@@ -262,6 +244,7 @@ namespace axon
 
 		bool s3::del(std::string target)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, target.c_str());
 			std::string targetx;
 
@@ -330,7 +313,7 @@ namespace axon
 				{
 					struct entry file;
 
-					file.et = axon::protocol::S3;
+					file.proto = axon::protocol::S3;
 					file.flag = axon::flags::FILE;
 					file.size = object.GetSize();
 
@@ -364,6 +347,7 @@ namespace axon
 
 		long long s3::get(std::string src, std::string dest, bool compress)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx;
 			Aws::S3::Model::GetObjectRequest request;
@@ -419,6 +403,7 @@ namespace axon
 
 		long long s3::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			// TODO: Need to implement compress
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
@@ -456,9 +441,8 @@ namespace axon
 
 		bool s3::open(std::string filename, std::ios_base::openmode om)
 		{
-			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, filename.c_str(), ((om==std::ios::out)?"write":"read"));
-
 			axon::timer ctm(__PRETTY_FUNCTION__);
+			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, filename.c_str(), ((om==std::ios::out)?"write":"read"));
 
 			if (_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
@@ -503,6 +487,7 @@ namespace axon
 
 		bool s3::close()
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (!_fileopen)
@@ -531,6 +516,7 @@ namespace axon
 
 		bool s3::push(axon::transfer::connection& conn)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (!_fileopen)
@@ -547,6 +533,7 @@ namespace axon
 
 		ssize_t s3::read(char* buffer, size_t size)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s => size(%ld)", _id.c_str(), __PRETTY_FUNCTION__, size);
 
 			ssize_t filesize = 0;
@@ -569,6 +556,7 @@ namespace axon
 
 		ssize_t s3::write(const char* buffer, size_t size)
 		{
+			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s => size(%ld)", _id.c_str(), __PRETTY_FUNCTION__, size);
 
 			if (!_fileopen)

@@ -122,7 +122,7 @@ namespace axon
 
 					if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(file.name, _filter[0])))
 					{
-						file.et = axon::protocol::HDFS;
+						file.proto = axon::protocol::HDFS;
 						file.name = filename;
 
 						if (hdfsList[i].mKind == kObjectKindFile)

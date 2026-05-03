@@ -3,15 +3,22 @@
 
 #include <axon.h>
 #include <axon/util.h>
-#include <axon/scylladb.h>
-#include <axon/cqn.h>
 
-static bool running = false;
+// #include <axon/scylladb.h>
+
+#include <axon/stream.h>
+
+#include <axon/kinesis.h>
+// #include <axon/kafka.h>
+// #include <axon/cqn.h>
+
+
+static bool canrun = false;
 static unsigned long count = 0;
 
 static void stop (int sig)
 {
-	running = false;
+	canrun = false;
 	fprintf(stderr, "stopping eventloop! received signal: %d\n", sig);
 	fflush(stderr);
 }
@@ -21,8 +28,8 @@ void counter()
 {
 	long tick = axon::timer::epoch();
 
-	running = true;
-	while (running)
+	canrun = true;
+	while (canrun)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -30,7 +37,7 @@ void counter()
 		float tps = count/(tt-tick);
 		tick = tt;
 
-		// std::cout<<"count: "<<count<<", "<<tps<<" rps"<<std::endl;
+		std::cout<<"count: "<<count<<", "<<tps<<" rps"<<std::endl;
 
 		count = 0;
 	}
@@ -38,38 +45,87 @@ void counter()
 	// hook->stop();
 }
 
-void parse(std::shared_ptr<axon::stream::recordset>, axon::database::scylladb*)
+// void parse(std::shared_ptr<axon::stream::recordset>, axon::database::scylladb*)
+// {
+// 	axon::timer ctm(__PRETTY_FUNCTION__);
+// }
+void parse2(std::unique_ptr<axon::recordset> rc)
 {
-	axon::timer ctm(__PRETTY_FUNCTION__);
+	std::cout<<count<<" got a ping()"<<std::endl;
+	count++;
 }
 
-int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
+void parse(std::unique_ptr<axon::recordset> rc)
 {
-	std::string address, username, password, keyspace, bootstrap, schema, consumer, sid;
+	if (rc) std::cout<<*rc<<std::endl;
 
-	for(int i=0;env[i]!=NULL;i++)
-	{
-		auto parts = axon::util::split(env[i], '=');
+	count++;
+}
 
-		if (parts[0] == "AXON_USERNAME")
-			username = parts[1];
-		else if (parts[0] == "AXON_PASSWORD")
-			password = parts[1];
-		else if (parts[0] == "AXON_HOSTNAME")
-			address = parts[1];
-		else if (parts[0] == "AXON_KEYSPACE")
-			keyspace = parts[1];
-		else if (parts[0] == "AXON_BOOTSTRAP")
-			bootstrap = parts[1];
-		else if (parts[0] == "AXON_SCHEMA_REGISTRY")
-			schema = parts[1];
-		else if (parts[0] == "AXON_CONSUMER_GROUP")
-			consumer = parts[1];
-		else if (parts[0] == "AXON_SID")
-			sid = parts[1];
-	}
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unused]] char* env[])
+{
+	const char *envp;
+	std::string hostname, username, password, schema_registry, domain, ora_sid, krb5_keytab, krb5_cachepath, bootstrap, kafka_consumer_group, scylla_keyspace, proxy;
+
+	if ((envp = std::getenv("http_proxy")) != nullptr) proxy = envp;
+	if ((envp = std::getenv("AXON_DOMAIN")) != nullptr) domain = envp;
+	if ((envp = std::getenv("AXON_ORA_SID")) != nullptr) ora_sid = envp;
+	if ((envp = std::getenv("AXON_USERNAME")) != nullptr) username = envp;
+	if ((envp = std::getenv("AXON_PASSWORD")) != nullptr) password = envp;
+	if ((envp = std::getenv("AXON_HOSTNAME")) != nullptr) hostname = envp;
+	if ((envp = std::getenv("AXON_BOOTSTRAP")) != nullptr) bootstrap = envp;
+	if ((envp = std::getenv("AXON_KRB5_KEYTAB")) != nullptr) krb5_keytab = envp;
+	if ((envp = std::getenv("AXON_KRB5_CACHEPATH")) != nullptr) krb5_cachepath = envp;
+	if ((envp = std::getenv("AXON_SCHEMA_REGISTRY")) != nullptr) schema_registry = envp;
+	if ((envp = std::getenv("AXON_SCYLLA_KEYSPACE")) != nullptr) scylla_keyspace = envp;
+	if ((envp = std::getenv("AXON_KAFKA_CONSUMER_GROUP")) != nullptr) kafka_consumer_group = envp;
 
 	// axon::stream::kafka source(bootstrap, schema, "axon_trx");
+
+	signal(SIGINT, stop);
+
+	try {
+		axon::stream::kinesis source(hostname, username, password);
+
+		// source.account() = "354285753755";
+		source.name() = "dse_uat_hyperion_event_consumer";
+		// source.add("customerapp-event-stream", "customerapp-event-stream", parse);
+		
+		source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse);
+		// source.add("non_existing_stream", "non_existing_stream", parse);
+		source.add("uat-next-fp-kinesis-stream", "uat-next-fp-kinesis-stream", parse);
+		// source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse2);
+
+		source.subscribe();
+
+		canrun = true;
+
+		// source.start(parse);
+		// source.start(nullptr);
+		// while (canrun) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		
+		source.start();
+		while (canrun)
+		{
+			parse(source.next());
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+
+		source.stop();
+
+	} catch (axon::exception &e) {
+		std::cerr<<e.what()<<std::endl;
+	}
+
+	// eventloop
+	
+
+
+
+
+	return 0;
+
+/*
 	axon::database::oracle ora;
 	ora.connect(sid, username, password);
 	axon::stream::cqn source(&ora, "axon_trx");
@@ -114,9 +170,9 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	source.start();
 	// std::shared_ptr<axon::database::tableinfo> inf = db.getinfo("cps_transaction_normalized");
 	// std::cout<<">> "<<inf->column_exists("credit_party_id")<<std::endl;
-
+*/
 /*
-	while (running)
+	while (canrun)
 	{
 		// std::unique_ptr<axon::database::resultset> rc = source.next();
 		auto [table, rc] = source.next();
@@ -135,8 +191,8 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 	}
 */
 
-	// running = false;
-	th.join();
+	// canrun = false;
+	// th.join();
 
 	return 0;
 }

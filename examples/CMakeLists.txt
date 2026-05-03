@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
 project(examples)
-include_directories(${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include")
+include_directories(${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include" .)
 
 #
 list(APPEND EXAMPLES_LIST transfer)
@@ -53,12 +53,6 @@ target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 # add_executable (logger EXCLUDE_FROM_ALL logger.cpp)
 # target_link_libraries (logger ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
-
-# streambuf
-# list(APPEND EXAMPLES_LIST stream)
-# add_executable (stream EXCLUDE_FROM_ALL stream.cpp)
-# target_link_libraries (stream ${PROJECT_NAME_MASTER} ${LIBRARIES})
-
 # scylladb
 # list(APPEND EXAMPLES_LIST scylladb)
 # add_executable (scylladb EXCLUDE_FROM_ALL scylladb.cpp)
@@ -66,8 +60,13 @@ target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # kafka
 list(APPEND EXAMPLES_LIST kafka)
-add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp)
+add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp logica.cpp)
 target_link_libraries (kafka ${PROJECT_NAME_MASTER} ${LIBRARIES} boost_json)
+
+# kinesis
+list(APPEND EXAMPLES_LIST kinesis)
+add_executable (kinesis EXCLUDE_FROM_ALL kinesis.cpp)
+target_link_libraries (kinesis ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # stream
 list(APPEND EXAMPLES_LIST stream)

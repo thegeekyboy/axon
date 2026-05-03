@@ -335,7 +335,7 @@ if (SCYLLADB_FOUND)
 endif()
 
 # AWS CPP SDK
-pkg_check_modules(AWSSDK aws-cpp-sdk-s3)
+pkg_check_modules(AWSSDK aws-cpp-sdk-s3 aws-cpp-sdk-kinesis)
 
 if (AWSSDK_FOUND)
 	list(APPEND INCLUDE_DIRS ${AWSSDK_INCLUDEDIR})
@@ -366,6 +366,16 @@ if (RABBITMQ_FOUND)
 	list(APPEND LINK_LIBRARIES ${RABBITMQ_LINK_LIBRARIES})
 	list(APPEND LDFLAGS ${RABBITMQ_LDFLAGS})
 	list(APPEND RPM_DEPENDENCY "librabbitmq")
+endif ()
+
+# hiredis
+pkg_check_modules(HIREDIS REQUIRED hiredis>=1.0.2) 
+
+if (HIREDIS_FOUND)
+	list(APPEND INCLUDE_DIRS ${HIREDIS_INCLUDEDIR})
+	list(APPEND LINK_LIBRARIES ${HIREDIS_LINK_LIBRARIES})
+	list(APPEND LDFLAGS ${HIREDIS_LDFLAGS})
+	list(APPEND RPM_DEPENDENCY "libhiredis")
 endif ()
 
 # libsasl2
@@ -419,7 +429,7 @@ set(BOOST_USE_STATIC_LIBS ON)
 set(BOOST_USE_MULTITHREADED ON)
 set(BOOST_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost REQUIRED COMPONENTS regex iostreams filesystem) 
+find_package(Boost REQUIRED COMPONENTS regex iostreams filesystem json) 
 
 if (BOOST_FOUND)
 		list(APPEND INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
@@ -427,6 +437,7 @@ if (BOOST_FOUND)
 		list(APPEND RPM_DEPENDENCY "boost-regex")
 		list(APPEND RPM_DEPENDENCY "boost-iostreams")
 		list(APPEND RPM_DEPENDENCY "boost-filesystem")
+		list(APPEND RPM_DEPENDENCY "boost-json")
 else (NOT BOOST_FOUND)
 		message(FATAL_ERROR "boost: could not detect/find the required libraries, cannot continue!")
 endif ()
