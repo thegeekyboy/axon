@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <variant>
 
@@ -6,6 +7,7 @@
 
 #include <axon.h>
 #include <axon/kafka.h>
+#include <axon/redis.h>
 #include <axon/util.h>
 // #include <axon/database.h>
 #include <axon/oracle.h>
@@ -13,19 +15,174 @@
 
 #include <signal.h>
 
-extern "C" {
-	#include <avro.h>
-	#include <libserdes/serdes.h>
-	#include <libserdes/serdes-avro.h>
+#include "entity.h"
+// #include "exprtk.hpp"
+#include "logica.h"
+
+class transaction_type_code {
+
+	typedef struct {
+		uint32_t REASON_TYPE_ID;
+		uint16_t TRX_TYPE_CODE;
+		std::string TRX_TYPE_DESC;
+	} trx_type_map;
+
+	std::vector<trx_type_map> _data;
+
+	bool _load_file(std::string filename) {
+		std::ifstream file(filename);
+		std::string line;
+
+		if (!file) return false;
+
+		while (std::getline(file, line))
+		{
+			std::stringstream ss(line);
+			std::string field;
+			trx_type_map t;
+
+			// REASON_TYPE_ID
+			std::getline(ss, field, ',');
+			t.REASON_TYPE_ID = std::stoi(field);
+
+			// TRX_TYPE_CODE
+			std::getline(ss, field, ',');
+			t.TRX_TYPE_CODE = std::stoi(field);
+
+			// TRX_TYPE_DESC
+			std::getline(ss, t.TRX_TYPE_DESC, ',');
+
+			_data.push_back(t);
+		}
+		return true;
+	};
+	
+	public:
+
+		transaction_type_code(std::string filename) {
+			if (_load_file(filename)) std::sort(_data.begin(), _data.end(), [](const trx_type_map& lhs, const trx_type_map& rhs) { return lhs.TRX_TYPE_DESC < rhs.TRX_TYPE_DESC; });
+		}
+
+		trx_type_map *find(uint32_t id) {
+			auto it = std::find_if(_data.begin(), _data.end(), [id](const trx_type_map& u) {
+				return u.REASON_TYPE_ID == id;
+			});
+
+			if (it != _data.end()) return std::addressof(*it);
+
+			return nullptr;
+		}
+
+		std::string name(uint32_t id) {
+			if (auto elm = find(id)) return elm->TRX_TYPE_DESC;
+			return std::string();
+		}
+
+		uint16_t code(uint32_t id) {
+			if (auto elm = find(id)) return elm->TRX_TYPE_CODE;
+			return 0;
+		}
+		
+		trx_type_map &get(size_t index) {
+			if (index < _data.size()) return _data[index];
+			throw std::invalid_argument("index out of range");
+		}
+
+		size_t size() { return _data.size(); }
+		void print() {
+			for (const auto& elm : _data) {
+				std::cout<<elm.REASON_TYPE_ID<<","<<elm.TRX_TYPE_CODE<<","<<elm.TRX_TYPE_DESC<<std::endl;
+			}
+		}
+};
+
+std::shared_ptr<transaction_type_code> typemaps;
+
+Stats query(axon::cache::redis &redis, uint64_t identity_id, uint8_t wsize = 24)
+{
+	static int TYPES[5] = { 1000, 1001, 1002, 1003, 1009 };
+	std::time_t hour = std::time(nullptr);//(std::time(nullptr) % 3600);
+	std::string key;
+
+	Stats st;
+
+	// std::cout<<std::time(nullptr)<<std::endl;
+
+	// for (size_t i = 0; i < typemaps->size(); i++)
+	for ( auto &tc: TYPES)
+	{
+		// uint16_t tc = typemaps->get(i).TRX_TYPE_CODE;
+		std::time_t hts = hour;
+
+		redis.pipeline_begin();
+		for (int i = 0; i <= wsize; i++)
+		{
+			std::tm tm_buf {};
+
+			localtime_r(&hts, &tm_buf);
+			char hour_str[16];
+			std::strftime(hour_str, sizeof(hour_str), "%Y%m%d%H", &tm_buf);
+
+			key = "entity:" + std::to_string(identity_id) + ":" + std::to_string(tc) + ":" + hour_str;
+			redis.pipeline_hgetall(key);
+			hts -= 3600;
+		}
+
+		std::vector<axon::cache::reply> response = redis.pipeline_run();
+
+		for (auto &r : response)
+		{
+			if (r.ok() && !r.is_null() && r->type == REDIS_REPLY_ARRAY && r->elements > 0)
+			{
+				printf("total fields: %zu\n", r->elements / 2);
+
+				for (size_t i = 0; i + 1 < r->elements; i += 2)
+				{
+					std::string_view field(r->element[i]->str,   r->element[i]->len);
+					std::string_view value(r->element[i+1]->str, r->element[i+1]->len);
+
+					printf("  field=%-12.*s  value=%.*s\n",
+						(int)field.size(), field.data(),
+						(int)value.size(), value.data());
+
+					switch (tc)
+					{
+						case 1000:
+							if (field == "count") st.ci+=axon::util::str_to_num<long>(value);
+							if (field == "sum") st.ci_sum+=axon::util::str_to_num<long>(value);
+							break;
+						case 1001:
+							if (field == "count") st.co+=axon::util::str_to_num<long>(value);
+							if (field == "sum") st.co_sum+=axon::util::str_to_num<long>(value);
+							break;
+						case 1002:
+							if (field == "count") st.p2p+=axon::util::str_to_num<long>(value);
+							if (field == "sum") st.p2p_sum+=axon::util::str_to_num<long>(value);
+							break;
+						case 1003:
+							if (field == "count") st.pay+=axon::util::str_to_num<long>(value);
+							if (field == "sum") st.pay_sum+=axon::util::str_to_num<long>(value);
+							break;
+						case 1009:
+							if (field == "count") st.bill+=axon::util::str_to_num<long>(value);
+							if (field == "sum") st.bill_sum+=axon::util::str_to_num<long>(value);
+							break;
+					}
+				}
+			}
+		}
+	}
+
+	return st;
 }
 
-#include <cassandra.h>
-#include <dse.h>
-
-typedef std::variant<std::nullptr_t, std::string, double, int64_t, int, bool> avt;
-
+/// globals
 static bool running = false;
 static unsigned long count = 0;
+static long delta = 0;
+
+std::shared_ptr<cache> memcache;
+///
 
 static void stop (int sig)
 {
@@ -34,167 +191,204 @@ static void stop (int sig)
 	fflush(stderr);
 }
 
-void counter(axon::stream::kafka *hook)
+static void reload (int sig)
+{
+	running = false;
+	fprintf(stderr, "stopping eventloop! received signal: %d\n", sig);
+	fflush(stderr);
+}
+
+void counter([[maybe_unused]] axon::stream::kafka *hook)
 {
 	long tick = axon::timer::epoch();
 
 	running = true;
 	while (running)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 
 		long tt = axon::timer::epoch();
 		float tps = count/(tt-tick);
 		tick = tt;
+		long apt = (count)?delta/count:0;
 
-		std::cout<<"count: "<<count<<", "<<tps<<" rps"<<std::endl;
+		std::cout<<"count: "<<count<<", "<<tps<<" rps, id count: "<<memcache->size()<<", memory: "<<memcache->memory()<<", apt: "<<apt<<std::endl;
 
 		count = 0;
+		delta = 0;
 	}
 
 	// hook->stop();
 }
 
-void parse(std::shared_ptr<axon::stream::recordset> rec, axon::database::scylladb &db)
+void parse(std::shared_ptr<axon::stream::recordset> rec, axon::cache::redis &redis)
 {
+	axon::timer ctm(__PRETTY_FUNCTION__);
 	std::string table, op_type;
 
 	// std::shared_ptr<axon::database::tableinfo> inf = db->getinfo("cps_transaction_normalized");
 
-	std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_TYPE, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_TYPE, CREDIT_PARTY_MNEMONIC, REQUEST_CURRENCY, ACCOUNT_UNIT_TYPE, CURRENCY, IS_REVERSED, IS_PARTIAL_REVERSED, IS_REVERSING, REMARK, BANK_ACCOUNT_NUMBER, BANK_ACCOUNT_NAME, CONSUMED_BUNDLE;
-	long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0, EXPIRED_TIME = 0, LAST_UPDATED_TIME = 0;
-	long long REQUEST_AMOUNT = 0, ORG_AMOUNT = 0, ACTUAL_AMOUNT = 0, FEE = 0, COMMISSION = 0, TAX = 0, DISCOUNT_AMOUNT = 0, REDEEMED_POINT_AMOUNT = 0, EXCHANGE_RATE = 0;
-	std::string DEBIT_PARTY_ID, CREDIT_PARTY_ID, REASON_TYPE;
+	// std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_TYPE, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_TYPE, CREDIT_PARTY_MNEMONIC, REQUEST_CURRENCY, ACCOUNT_UNIT_TYPE, CURRENCY, IS_REVERSED, IS_PARTIAL_REVERSED, IS_REVERSING, REMARK, BANK_ACCOUNT_NUMBER, BANK_ACCOUNT_NAME, CONSUMED_BUNDLE;
+	// long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0, EXPIRED_TIME = 0, LAST_UPDATED_TIME = 0, REASON_TYPE = 0;
+	// long long REQUEST_AMOUNT = 0, ORG_AMOUNT = 0, ACTUAL_AMOUNT = 0, FEE = 0, COMMISSION = 0, TAX = 0, DISCOUNT_AMOUNT = 0, REDEEMED_POINT_AMOUNT = 0, EXCHANGE_RATE = 0;
+	// std::string CHANNEL, ORIGCONVERSATIONID, LINKEDTYPE, LINKEDORDERID, REQUESTER_TYPE, REQUESTER_IDENTIFIER_TYPE, REQUESTER_IDENTIFIER_VALUE, REQUESTER_MNEMORIC, INITIATOR_TYPE, INITIATOR_IDENTIFIER_TYPE, INITIATOR_IDENTIFIER_VALUE, INITIATOR_MNEMONIC, PRIMARY_PARTY_TYPE, THIRDPARTYID, THIRDPARTYIP, ACCESSPOINTIP, THIRDPARTYREQTIME, ERRORCODE, ERRORMESSAGE;
+	
+	uint8_t IS_REVERSED;
+	uint64_t DEBIT_PARTY_ID = 0, CREDIT_PARTY_ID = 0;
+	long ACTUAL_AMOUNT = 0, REASON_TYPE = 0, ORG_AMOUNT = 0, FEE = 0, COMMISSION = 0;
+	long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0;
+	std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_MNEMONIC;
+
+	std::string sbuf;
 	char buffer[16] = { 0 };
 	size_t size;
-
-	std::string CHANNEL, ORIGCONVERSATIONID, LINKEDTYPE, LINKEDORDERID, REQUESTER_TYPE, REQUESTER_IDENTIFIER_TYPE, REQUESTER_IDENTIFIER_VALUE, REQUESTER_MNEMORIC, INITIATOR_TYPE, INITIATOR_IDENTIFIER_TYPE, INITIATOR_IDENTIFIER_VALUE, INITIATOR_MNEMONIC, PRIMARY_PARTY_TYPE, THIRDPARTYID, THIRDPARTYIP, ACCESSPOINTIP, THIRDPARTYREQTIME, ERRORCODE, ERRORMESSAGE;
 
 	std::string REFERENCE_KEY, REFERENCE_VALUE;
 
 	if (rec->name() == "CPS_TRANS_RECORD")
 	{
-		rec->get("table", table);
-		rec->get("op_type", op_type);
+		// rec->get("table", table);
+		// rec->get("op_type", op_type);
 		rec->get("ORDERID", ORDERID);
 		rec->get("TRANS_STATUS", TRANS_STATUS);
-		rec->get("DEBIT_PARTY_TYPE", DEBIT_PARTY_TYPE);
+		// rec->get("DEBIT_PARTY_TYPE", DEBIT_PARTY_TYPE);
 		rec->get("DEBIT_PARTY_MNEMONIC", DEBIT_PARTY_MNEMONIC); std::replace(DEBIT_PARTY_MNEMONIC.begin(), DEBIT_PARTY_MNEMONIC.end(), '\'', '*');
-		rec->get("CREDIT_PARTY_TYPE", CREDIT_PARTY_TYPE);
+		// rec->get("CREDIT_PARTY_TYPE", CREDIT_PARTY_TYPE);
 		rec->get("CREDIT_PARTY_MNEMONIC", CREDIT_PARTY_MNEMONIC);
-		rec->get("REQUEST_CURRENCY", REQUEST_CURRENCY);
-		rec->get("ACCOUNT_UNIT_TYPE", ACCOUNT_UNIT_TYPE);
-		rec->get("CURRENCY", CURRENCY);
-		rec->get("REMARK", REMARK);
-		rec->get("IS_REVERSED", IS_REVERSED);
-		rec->get("IS_PARTIAL_REVERSED", IS_PARTIAL_REVERSED);
-		rec->get("IS_REVERSING", IS_REVERSING);
-		rec->get("BANK_ACCOUNT_NUMBER", BANK_ACCOUNT_NUMBER);
-		rec->get("BANK_ACCOUNT_NAME", BANK_ACCOUNT_NAME);
-		rec->get("CONSUMED_BUNDLE", CONSUMED_BUNDLE);
+		// rec->get("REQUEST_CURRENCY", REQUEST_CURRENCY);
+		// rec->get("ACCOUNT_UNIT_TYPE", ACCOUNT_UNIT_TYPE);
+		// rec->get("CURRENCY", CURRENCY);
+		// rec->get("REMARK", REMARK);
+		rec->get("IS_REVERSED", sbuf); IS_REVERSED = axon::util::str_to_num<uint8_t>(sbuf);
+		// rec->get("IS_PARTIAL_REVERSED", IS_PARTIAL_REVERSED);
+		// rec->get("IS_REVERSING", IS_REVERSING);
+		// rec->get("BANK_ACCOUNT_NUMBER", BANK_ACCOUNT_NUMBER);
+		// rec->get("BANK_ACCOUNT_NAME", BANK_ACCOUNT_NAME);
+		// rec->get("CONSUMED_BUNDLE", CONSUMED_BUNDLE);
 
 		rec->get("TRANS_INITATE_TIME", TRANS_INITATE_TIME);
 		rec->get("TRANS_END_TIME", TRANS_END_TIME);
-		rec->get("EXPIRED_TIME", EXPIRED_TIME);
-		rec->get("LAST_UPDATED_TIME", LAST_UPDATED_TIME);
-		rec->get("REQUEST_AMOUNT", REQUEST_AMOUNT);
+		// rec->get("EXPIRED_TIME", EXPIRED_TIME);
+		// rec->get("LAST_UPDATED_TIME", LAST_UPDATED_TIME);
+		// rec->get("REQUEST_AMOUNT", REQUEST_AMOUNT);
 		rec->get("ORG_AMOUNT", ORG_AMOUNT);
 		rec->get("ACTUAL_AMOUNT", ACTUAL_AMOUNT);
 		rec->get("FEE", FEE);
 		rec->get("COMMISSION", COMMISSION);
-		rec->get("TAX", TAX);
-		rec->get("DISCOUNT_AMOUNT", DISCOUNT_AMOUNT);
-		rec->get("REDEEMED_POINT_AMOUNT", REDEEMED_POINT_AMOUNT);
+		// rec->get("TAX", TAX);
+		// rec->get("DISCOUNT_AMOUNT", DISCOUNT_AMOUNT);
+		// rec->get("REDEEMED_POINT_AMOUNT", REDEEMED_POINT_AMOUNT);
 
-		if ((size = rec->get("DEBIT_PARTY_ID", buffer, 8)) > 0) DEBIT_PARTY_ID = std::to_string(axon::util::bytestoull(buffer, size));
-		if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = std::to_string(axon::util::bytestoull(buffer, size));
-		if ((size = rec->get("REASON_TYPE", buffer, 8)) > 0) REASON_TYPE = std::to_string(axon::util::bytestoull(buffer, size));
-		if ((size = rec->get("EXCHANGE_RATE", buffer, 8)) > 0) EXCHANGE_RATE = axon::util::bytestoull(buffer, size);
+		if ((size = rec->get("DEBIT_PARTY_ID", buffer, 8)) > 0) DEBIT_PARTY_ID = axon::util::bytes_to_ull(buffer, size);
+		if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = axon::util::bytestoull(buffer, size);
+		if ((size = rec->get("REASON_TYPE", buffer, 8)) > 0) REASON_TYPE = axon::util::bytestoull(buffer, size);
+		// if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = std::to_string(axon::util::bytestoull(buffer, size));
+		// if ((size = rec->get("EXCHANGE_RATE", buffer, 8)) > 0) EXCHANGE_RATE = axon::util::bytestoull(buffer, size);
+	
+		// std::cout<<axon::timer::fulldate(TRANS_INITATE_TIME)<<">>"<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<std::endl;
+		// std::cout<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<" => "<<DEBIT_PARTY_ID<<"::"<<CREDIT_PARTY_ID<<std::endl;
+		// std::cout<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<" => "<<typemaps->name(REASON_TYPE)<<std::endl;
 
-		const char stmt[] = "UPDATE CPS_TRANSACTION_NORMALIZED SET TRANS_STATUS = :aa, DEBIT_PARTY_TYPE = :ab, DEBIT_PARTY_MNEMONIC = :ac, CREDIT_PARTY_TYPE = :ad, CREDIT_PARTY_MNEMONIC = :ae, REQUEST_CURRENCY = :af, ACCOUNT_UNIT_TYPE = :ag, CURRENCY = :ah, REMARK = :ai, IS_REVERSED = :aj, IS_PARTIAL_REVERSED = :ak, IS_REVERSING = :al, BANK_ACCOUNT_NUMBER = :am, BANK_ACCOUNT_NAME = :an, CONSUMED_BUNDLE = :ao, TRANS_INITATE_TIME = :ap, TRANS_END_TIME = :aq, EXPIRED_TIME = :ar, LAST_UPDATED_TIME = :as, REQUEST_AMOUNT = :at, ORG_AMOUNT = :au, ACTUAL_AMOUNT = :av, FEE = :aw, COMMISSION = :ax, TAX = :ay, DISCOUNT_AMOUNT = :az, REDEEMED_POINT_AMOUNT = :ba, DEBIT_PARTY_ID = :bb, CREDIT_PARTY_ID = :bc, REASON_TYPE = :bd, EXCHANGE_RATE = :be WHERE ORDERID = :bf";
+		// std::cout<<TRANS_STATUS<<"<::>"<<IS_REVERSED<<"<::>"<<DEBIT_PARTY_ID<<"<::>"<<CREDIT_PARTY_ID<<"<::>"<<ACTUAL_AMOUNT<<"<::>"<<REASON_TYPE<<"<::>"<<ORG_AMOUNT<<"<::>"<<FEE<<"<::>"<<COMMISSION<<"<::>"<<TRANS_INITATE_TIME<<"<::>"<<TRANS_END_TIME<<"<::>"<<ORDERID<<"<::>"<<DEBIT_PARTY_MNEMONIC<<"<::>"<<CREDIT_PARTY_MNEMONIC<<std::endl;
 
-		db<<TRANS_STATUS<<DEBIT_PARTY_TYPE<<DEBIT_PARTY_MNEMONIC<<CREDIT_PARTY_TYPE<<CREDIT_PARTY_MNEMONIC<<REQUEST_CURRENCY<<ACCOUNT_UNIT_TYPE<<CURRENCY<<REMARK<<IS_REVERSED<<IS_PARTIAL_REVERSED<<IS_REVERSING<<BANK_ACCOUNT_NUMBER<<BANK_ACCOUNT_NAME<<CONSUMED_BUNDLE<<TRANS_INITATE_TIME<<TRANS_END_TIME<<EXPIRED_TIME<<LAST_UPDATED_TIME<<REQUEST_AMOUNT<<ORG_AMOUNT<<ACTUAL_AMOUNT<<FEE<<COMMISSION<<TAX<<DISCOUNT_AMOUNT<<REDEEMED_POINT_AMOUNT<<DEBIT_PARTY_ID<<CREDIT_PARTY_ID<<REASON_TYPE<<EXCHANGE_RATE<<ORDERID;
-		db.execute(stmt);
-	}
-	else if (rec->name() == "CPS_ORDERHIS")
-	{
-		size_t size;
-		char buffer[16] = { 0 };
-		long ENDTIME = 0, ACCESSPOINTREQTIME = 0;
-		long long REQUESTER_ID = 0, INITIATOR_ID = 0, PRIMARY_PARTY_ID = 0;
-		long long SL = 0;
+		uint16_t typecode = typemaps->code(REASON_TYPE);
 
-		rec->get("table", table);
-		rec->get("op_type", op_type);
-		rec->get("ORDERID", ORDERID);
-		rec->get("CHANNEL", CHANNEL);
-		rec->get("ORIGCONVERSATIONID", ORIGCONVERSATIONID);
-		rec->get("LINKEDTYPE", LINKEDTYPE);
-		rec->get("LINKEDORDERID", LINKEDORDERID);
+		/*
+		try {
+			entity *ptr = nullptr;
 
-		rec->get("REQUESTER_ID", REQUESTER_ID);
-		rec->get("REQUESTER_TYPE", REQUESTER_TYPE);
-		rec->get("REQUESTER_IDENTIFIER_TYPE", REQUESTER_IDENTIFIER_TYPE);
-		rec->get("REQUESTER_IDENTIFIER_VALUE", REQUESTER_IDENTIFIER_VALUE);
-		rec->get("REQUESTER_MNEMORIC", REQUESTER_MNEMORIC);
+			if (!(ptr = memcache->find(DEBIT_PARTY_ID))) {
+				ptr = memcache->push(DEBIT_PARTY_ID);
+			}
 
-		if ((size = rec->get("INITIATOR_ID", buffer, 8)) > 0) INITIATOR_ID = axon::util::bytestoull(buffer, size);
-		rec->get("INITIATOR_TYPE", INITIATOR_TYPE);
-		rec->get("INITIATOR_IDENTIFIER_TYPE", INITIATOR_IDENTIFIER_TYPE);
-		rec->get("INITIATOR_IDENTIFIER_VALUE", INITIATOR_IDENTIFIER_VALUE);
-		rec->get("INITIATOR_MNEMONIC", INITIATOR_MNEMONIC);
-		// INITIATOR_ORG_SHORTCODE
+			
+		} catch (const std::invalid_argument& e) {
+		}
+		*/
 
-		if ((size = rec->get("PRIMARY_PARTY_ID", buffer, 8)) > 0) PRIMARY_PARTY_ID = axon::util::bytestoull(buffer, size);
-		rec->get("PRIMARY_PARTY_TYPE", PRIMARY_PARTY_TYPE);
-
-		rec->get("THIRDPARTYID", THIRDPARTYID);
-		rec->get("THIRDPARTYIP", THIRDPARTYIP);
-		rec->get("ACCESSPOINTIP", ACCESSPOINTIP);
-		rec->get("THIRDPARTYREQTIME", THIRDPARTYREQTIME);
-		rec->get("ACCESSPOINTREQTIME", ACCESSPOINTREQTIME);
-
-		rec->get("ERRORCODE", ERRORCODE);
-		rec->get("ERRORMESSAGE", ERRORMESSAGE);
-
-		const char stmt[] = "UPDATE CPS_TRANSACTION_NORMALIZED SET CHANNEL = :aa, ORIGCONVERSATIONID = :ab, LINKEDTYPE = :ac, LINKEDORDERID = :ad, REQUESTER_TYPE = :ae, REQUESTER_IDENTIFIER_TYPE = :af, REQUESTER_IDENTIFIER_VALUE = :ag, REQUESTER_MNEMORIC = :ah, REQUESTER_ID = :ai, SL = :aj WHERE ORDERID = :ak";
-
-		db<<CHANNEL<<ORIGCONVERSATIONID<<LINKEDTYPE<<LINKEDORDERID<<REQUESTER_TYPE<<REQUESTER_IDENTIFIER_TYPE<<REQUESTER_IDENTIFIER_VALUE<<REQUESTER_MNEMORIC<<REQUESTER_ID<<SL<<ORDERID;
-		db.execute(stmt);
-	}
-	else if (rec->name() == "CPS_ORDER_REFDATA")
-	{
-		rec->get("table", table);
-		rec->get("op_type", op_type);
-		rec->get("ORDERID", ORDERID);
-		rec->get("REFERENCE_KEY", REFERENCE_KEY);
-		rec->get("REFERENCE_VALUE", REFERENCE_VALUE);
-
-		std::replace(REFERENCE_KEY.begin(), REFERENCE_KEY.end(), ' ', '_');
-		std::replace(REFERENCE_KEY.begin(), REFERENCE_KEY.end(), '.', '_');
-
-		std::string stmt = "UPDATE cps_transaction_normalized SET RK_" + REFERENCE_KEY + " = :aa WHERE ORDERID = :oi";
-
-		std::shared_ptr<axon::database::tableinfo> inf = db.getinfo("cps_transaction_normalized");
+		time_t epochSec = TRANS_INITATE_TIME / 1000;
+    	struct tm *t = localtime(&epochSec);
+		std::string key;
+	    char buf[11];
 		
+		strftime(buf, sizeof(buf), "%Y%m%d%H", t);
 
-		if (!inf->column_exists("RK_" + REFERENCE_KEY))
-			db.execute("ALTER TABLE cps_transaction_normalized ADD RK_" + REFERENCE_KEY + " TEXT;");
+		// if (typecode > 1)
+		// {
+		// 	key = "entity:" + std::to_string(DEBIT_PARTY_ID) + ":" + std::to_string(typecode) + ":" + buf;
 
-		db<<REFERENCE_VALUE<<ORDERID;
-		db.execute(stmt);
+		// 	redis.pipeline_begin();
+		// 	redis.pipeline_hincrby(key, "count", 1);
+		// 	redis.pipeline_hincrby(key, "sum", ACTUAL_AMOUNT);
+		// 	redis.pipeline_expire(key, 262800);   // 73hr TTL — auto-expiry
+		// 	redis.pipeline_commit();
+
+		// 	Stats st = query(redis, DEBIT_PARTY_ID, 6);
+
+		// 	std::cout<<DEBIT_PARTY_ID<<"+>CI:"<<st.ci<<
+		// }
+
+		// {
+		// 	axon::timer ctm(__PRETTY_FUNCTION__);
+
+		// 	exprtk::symbol_table<double> symbol_table;
+		// 	double aa = ACTUAL_AMOUNT/100, ir = IS_REVERSED;
+			
+		// 	symbol_table.add_variable("TRX_TYPE_CODE", typecode);
+		// 	symbol_table.add_variable("ACTUAL_AMOUNT", aa);
+		// 	symbol_table.add_variable("IS_REVERSED", ir);
+
+		// 	exprtk::expression<double> expression;
+		// 	expression.register_symbol_table(symbol_table);
+
+		// 	exprtk::parser<double> parser;
+		// 	parser.compile("ACTUAL_AMOUNT >= 2190.94 and TRX_TYPE_CODE = 1000", expression);
+
+		// 	double result = expression.value();
+		// 	delta += ctm.now();
+		// }
+
+		{
+			axon::logica::Transaction txn;
+
+			std::strncpy(txn.orderid, ORDERID.data(), sizeof(txn.orderid) - 1);
+			txn.trans_status = 1;
+			txn.trans_initate_time = TRANS_INITATE_TIME;
+			txn.trans_end_time = TRANS_END_TIME;
+			txn.debit_party_id = DEBIT_PARTY_ID;
+			std::strncpy(txn.debit_party_mnemonic,  DEBIT_PARTY_MNEMONIC.data(), sizeof(txn.debit_party_mnemonic) - 1);
+			txn.credit_party_id = CREDIT_PARTY_ID;
+			std::strncpy(txn.credit_party_mnemonic, CREDIT_PARTY_MNEMONIC.data(), sizeof(txn.credit_party_mnemonic) - 1);
+			txn.reason_type = REASON_TYPE;
+			txn.type_code = typecode;
+			txn.org_amount = ORG_AMOUNT/100;
+			txn.actual_amount = ACTUAL_AMOUNT/100;
+			txn.fee = FEE/100;
+			txn.commission = COMMISSION/100;
+			txn.is_reversed = IS_REVERSED;
+
+			char expression[256] = "actual_amount >= 2190.94 and type_code == 1002";
+
+			try {
+				auto ast = axon::logica::compile(expression);
+				bool answer = axon::logica::Evaluator::eval(*ast, txn);
+
+				// if (answer) std::cout<<TRANS_STATUS<<"<::>"<<IS_REVERSED<<"<::>"<<DEBIT_PARTY_ID<<"<::>"<<CREDIT_PARTY_ID<<"<::>"<<ACTUAL_AMOUNT<<"<::>"<<REASON_TYPE<<"<::>"<<ORG_AMOUNT<<"<::>"<<FEE<<"<::>"<<COMMISSION<<"<::>"<<TRANS_INITATE_TIME<<"<::>"<<TRANS_END_TIME<<"<::>"<<ORDERID<<"<::>"<<DEBIT_PARTY_MNEMONIC<<"<::>"<<CREDIT_PARTY_MNEMONIC<<std::endl;
+			} catch (const axon::logica::ParseError& e) {
+				std::cout << "PARSE ERROR: " << e.what() << "\n";
+			} catch (const axon::logica::EvalError& e) {
+				std::cout << "EVAL  ERROR: " << e.what() << "\n";
+			}
+		}
+
+		// if (result) std::cout<<REASON_TYPE<<"<>"<<DEBIT_PARTY_ID<<"::"<<typecode<<"::"<<aa<<std::endl;
 	}
-	else if (rec->name() == "UAT-USER-FP-STAT-STREAM")
-	{
-		rec->print();
-	}
 
-	// std::cout<<axon::timer::iso8601()<<">>"<<ORDERID<<" ("<<op_type<<") - "<<INITIATOR_MNEMONIC<<std::endl;
-
+	delta += ctm.now();
 	count++;
 }
 
-int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
+int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
 {
 	const char *envp;
 	std::string hostname, username, password, schema_registry, domain, ora_sid, krb5_keytab, krb5_cachepath, bootstrap, kafka_consumer_group, scylla_keyspace, proxy;
@@ -214,47 +408,61 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], char* env[])
 
 	// if (argc <= 2) return 0;
 
-	axon::stream::kafka source(bootstrap, schema_registry, "axon_trx");
+	typemaps = std::make_shared<transaction_type_code>("/home/amirul.islam/axon/examples/DWD_TRX_TYPE_MAP.csv");
+	memcache = std::make_shared<cache>();
+
+	axon::stream::kafka source(bootstrap, schema_registry, "hyperion");
+
+	axon::cache::redis redis;
+
+	// axon::cache::redis redis("10.82.30.32", 6379);
+	// redis.login("sentinel", "??");
+
 	std::thread th(counter, &source);
 
-	source.add("CPS_ORDERHIS");
-	source.add("CPS_ORDER_REFDATA");
+	// source.add("CPS_ORDERHIS");
+	// source.add("CPS_ORDER_REFDATA");
 	source.add("CPS_TRANS_RECORD");
-	source.add("UAT-USER-FP-STAT-STREAM");
+	// source.add("UAT-USER-FP-STAT-STREAM");
 	source.subscribe();
 
 	signal(SIGINT, stop);
+	signal(SIGHUP, reload);
 
 	// axon::database::oracle ora;
 	// ora.connect(ora_sid, username, password);
 	// axon::database::interface &db = ora;
 
-	axon::database::scylladb db;
-	db[AXON_DATABASE_KEYSPACE] = scylla_keyspace;
-	db.connect(hostname, username, password);
+	// axon::database::scylladb db;
+	// db[AXON_DATABASE_KEYSPACE] = scylla_keyspace;
+	// db.connect(hostname, username, password);
 
 	std::shared_ptr<axon::stream::recordset> rc;
 	
 	// parse by polling
+	/*
 	while (running && (rc = std::move(source.next())))
 	{
 		if (rc->is_empty())
 			continue;
-		parse(rc, db);
-		// rc->print();
+		// parse(rc, db);
+		parse(rc);
 	}
+	*/
 
 	// parse by callback
-	// source.start([&](std::unique_ptr<axon::stream::recordset> rec) {
-	// 	rc = std::move(rec);
-	// 	parse(rc, &db);
-	// 	// rc->print();
-	// });
+	source.start([&](std::unique_ptr<axon::stream::recordset> rec) {
+		rc = std::move(rec);
+		parse(rc, redis);
+		// rc->print();
+	});
 
 	th.join();
 
-	source.unsubscribe();
+	// source.unsubscribe();
 	source.stop();
+
+	// memcache->print();
 
 	return 0;
 }

@@ -248,7 +248,7 @@ namespace axon
 						struct entry file;
 
 						file.name = e->d_name;
-						file.et = axon::protocol::FILE;
+						file.proto = axon::protocol::FILE;
 
 						switch(d_type)
 						{
@@ -287,7 +287,7 @@ namespace axon
 
 						fstatat(_fd, e->d_name, &st, 0);
 						file.size = st.st_size;
-						file.st = st;
+						file.stats = st;
 
 						count++;
 						cbfn(file);

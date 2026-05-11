@@ -715,7 +715,7 @@ namespace axon
 								file.flag = axon::flags::FILE;
 							}
 
-							file.et = axon::protocol::SFTP;
+							file.proto = axon::protocol::SFTP;
 							count++;
 
 							cbfn(file);

@@ -399,7 +399,7 @@ namespace axon
 
 								e.name = axon::util::trim(ftpl.name);
 								e.size = ftpl.size;
-								e.et = axon::protocol::FTP;
+								e.proto = axon::protocol::FTP;
 
 								cbfn(e);
 						}

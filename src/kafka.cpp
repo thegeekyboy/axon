@@ -275,7 +275,7 @@ namespace axon
 		{
 			rd_kafka_error_t *error = NULL;
 			rd_kafka_resp_err_t ret_err = RD_KAFKA_RESP_ERR_NO_ERROR;
-			axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
+			// axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
 
 			INFPRN("=> Subscribed to %d topic(s), waiting for rebalance and messages...", kinst->count());
 
@@ -413,6 +413,8 @@ namespace axon
 
 			if (!_subscribed) return;
 
+			rd_kafka_commit(_rk, NULL, 0 /*sync*/);  // commit before unsubscribing
+
 			if (rd_kafka_unsubscribe(_rk) != RD_KAFKA_RESP_ERR_NO_ERROR)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "there was an error unsubscribing - " + std::string(rd_kafka_err2str(err)));
 
@@ -443,7 +445,7 @@ namespace axon
 							_counter++;
 						}
 						else
-							std::this_thread::sleep_for(std::chrono::milliseconds(100));
+							std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
 					} catch(const std::bad_function_call& e) {
 						DBGPRN("%s", e.what());
@@ -457,6 +459,7 @@ namespace axon
 						{
 							DBGPRN("=> consumer error: %s\n", rd_kafka_err2str(err));
 						}
+						_counter = 0;
 					}
 				}
 			});

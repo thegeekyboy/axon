@@ -277,7 +277,7 @@ namespace axon
 
 					file.name = ent->name;
 					file.size = ent->st.smb2_size;
-					file.et = axon::protocol::SAMBA;
+					file.proto = axon::protocol::SAMBA;
 
 					switch (ent->st.smb2_type)
 					{

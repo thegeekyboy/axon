@@ -38,18 +38,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 	if ((envp = std::getenv("AXON_SCYLLA_KEYSPACE")) != nullptr) scylla_keyspace = envp;
 	if ((envp = std::getenv("AXON_KAFKA_CONSUMER_GROUP")) != nullptr) kafka_consumer_group = envp;
 
-	axon::log log;
-	log.print("this is a log test>>");
-	log<<"this";
-	log<<"is";
-	log<<"a";
-	log<<"test "<<1;
-	log<<std::endl;
-
-	log.open("test.log");
-	log.print("this is a log test>>");
-	return 0;
-
 	std::ofstream tempfile("axon_test");
 	for (int i = 0; i < (512*1024*2); i++) tempfile<<(char)('!' + rand()%92);
 	tempfile.close();
@@ -61,16 +49,18 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 
 		axon::transfer::hdfs xhdfs(hostname, username, password, 8020);
 		axon::transfer::s3 xs3(hostname, username, password);
-		axon::transfer::file xfile(hostname, username, password);
-		axon::transfer::sftp xsftp(hostname, username, password);
-		axon::transfer::nothing xnothing(hostname, username, password);
-		axon::transfer::ftp xftp(hostname, username, password);
+		// axon::transfer::file xfile(hostname, username, password);
+		// axon::transfer::sftp xsftp(hostname, username, password);
+		// axon::transfer::nothing xnothing(hostname, username, password);
+		// axon::transfer::ftp xftp(hostname, username, password);
 
+		// conn = &xs3;
 		conn = &xs3;
 
 		std::cout<<"hostname: "<<hostname<<", username: "<<username<<", password: "<<password<<std::endl;
 
-		if (false) { // if we need kerberos authentication
+		if (false) // if we need kerberos authentication
+		{ 
 			axon::authentication::kerberos krb(krb5_keytab, krb5_cachepath, domain, username);
 
 			std::cout<<"domain: "<<domain<<", keytab: "<<krb5_keytab<<", ccache: "<<krb5_cachepath<<std::endl;
@@ -106,17 +96,17 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 
 		std::cout<<"working directory: "<<conn->pwd()<<std::endl;
 		// conn->chwd("/tmp/");
-		conn->chwd("/uat-bkash-next-sentinel-eventstream/tmp");
+		conn->chwd("/uat-bkash-next-sentinel-eventstream/2025/09/");
 		// conn->mkdir("/tmp/axon");
 		// conn->chwd("/tmp/axon");
 
 		// conn->get("README.md", "README.md.bz2", true); // depricated
-		conn->put("axon_test");
-		conn->copy("axon_test", "axon_text.copy");
-		conn->ren("axon_test", "/uat-bkash-sentinel-persona/tmp/axon_test.ren");
-		conn->del("axon_text.copy");
-		conn->del("/uat-bkash-sentinel-persona/tmp/axon_test.ren");
-/*
+		// conn->put("axon_test");
+		// conn->copy("axon_test", "axon_text.copy");
+		// conn->ren("axon_test", "/uat-bkash-sentinel-persona/tmp/axon_test.ren");
+		// conn->del("axon_text.copy");
+		// conn->del("/uat-bkash-sentinel-persona/tmp/axon_test.ren");
+
 
 		// conn->copy("/tmp/filename.tar.bz2", "/home/username/filename.tar.bz2");
 		// conn->copy("/tmp/filename.tar.bz2", "/home/username/");
@@ -125,7 +115,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 		// conn->open("/uat-bkash-sentinel-persona/tmp/axon_test.ren", std::ios::in);
 		// conn->close();
 
-		// conn->filter(".*2025-05-25-15-5.*");
+		conn->filter(".*2025-09-11.*");
 		if (conn->list(v))
 		{
 			for (auto &elm : v)
@@ -141,7 +131,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]] char* argv[], [[maybe_unused
 			}
 			std::cout<<"+++ total elements list = "<<v.size()<<std::endl;
 		}
-*/
+
 		// conn->put("axon_test", "axon_test_get");
 
 		// axon::transfer::file conn2(hostname, "amirul.islam", password);

@@ -7,6 +7,13 @@
 #include <iomanip>
 #include <mutex>
 
+#include <cstdint>
+#include <string_view>
+#include <charconv>
+#include <stdexcept>
+#include <system_error>
+#include <type_traits>
+
 #include <axon.h>
 
 namespace axon
@@ -100,17 +107,38 @@ namespace axon
 
 		static std::string fulldate(std::time_t unixtime)
 		{
-			std::stringstream ss;
-			std::tm* t = std::gmtime(&unixtime);
-			ss << std::put_time(t, "%Y-%m-%d %I:%M:%S %p");
+			std::stringstream oss;
+			std::tm* t = std::localtime(&unixtime);
+			oss << std::put_time(t, "%Y-%m-%d %I:%M:%S %p");
 
-			return ss.str();
+			return oss.str();
+		}
+
+		static std::string fulldate(long long epoch_ms)
+		{
+			auto tp = std::chrono::system_clock::time_point{ std::chrono::milliseconds{epoch_ms} };
+
+			// Convert to time_t for localtime (drops sub-second precision)
+			std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+
+			// Extract millisecond remainder
+			long long ms = epoch_ms % 1000;
+
+			std::ostringstream oss;
+			oss << std::put_time(std::localtime(&tt), "%Y-%m-%dT%H:%M:%S")
+				<< '.'
+				<< std::setfill('0') << std::setw(3) << ms
+				<< 'Z';
+
+			return oss.str();
 		}
 	};
 
 	namespace util
 	{
 		typedef unsigned char BYTE;
+
+		unsigned long long bytes_to_ull(const char*, size_t);
 
 		unsigned long long bytestoull(const char *, const size_t);
 		std::string bytestodecstring(const char *, const size_t);
@@ -145,14 +173,10 @@ namespace axon
 		double random(double, double);
 
 		bool set_thread_name(pthread_t, std::string);
+		void rm_thread(std::vector<std::thread>&, std::thread::id);
 
 		void debugprint(const char *, ...);
 		std::string demangle(const char*);
-
-		std::string protoname(axon::proto_t);
-		axon::proto_t protoid(std::string&);
-		std::string authname(axon::auth_t);
-		axon::auth_t authid(std::string&);
 
 		template <typename T>
 		uint16_t count(std::vector<T> value)
@@ -178,6 +202,26 @@ namespace axon
 			}
 
 			return cnt;
+		}
+
+		template <typename T>
+		inline T str_to_num(std::string_view sv)
+		{
+			static_assert(std::is_integral_v<T>, "T must be an integral type");
+
+			T result{};
+			auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
+
+			if (ec == std::errc::invalid_argument)
+				throw std::invalid_argument(std::string("non-numeric input '") + std::string(sv) + "'");
+
+			if (ec == std::errc::result_out_of_range)
+				throw std::overflow_error(std::string("value '") + std::string(sv) + "' out of range for type (max=" + std::to_string(std::numeric_limits<T>::max()) + ")");
+
+			if (ptr != sv.data() + sv.size())
+				throw std::invalid_argument(std::string("trailing non-numeric characters in '") + std::string(sv) + "'");
+
+			return result;
 		}
 	}
 }

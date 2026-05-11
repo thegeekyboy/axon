@@ -33,7 +33,6 @@ namespace axon
 	{
 		class s3 : public connection {
 
-			Aws::SDKOptions _options;
 			Aws::S3::S3Client *_client;
 
 			std::unique_ptr<Aws::S3::Model::GetObjectOutcome> _getobject;
@@ -43,8 +42,7 @@ namespace axon
 
 			std::string _endpoint, _proxy;
 
-			static std::atomic<int> _instance;
-			static std::mutex _lock;
+			axon::AwsStack _aws;
 
 			bool init();
 			bool push(axon::transfer::connection&);
@@ -52,7 +50,7 @@ namespace axon
 		public:
 			s3(std::string, std::string, std::string, uint16_t);
 			s3(std::string, std::string, std::string);
-			s3(const s3& rhs) : connection(rhs) {  };
+			s3(const s3& rhs): connection(rhs) {  };
 			~s3();
 
 			bool set(char, std::string);
