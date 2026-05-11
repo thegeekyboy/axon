@@ -6,19 +6,27 @@ ENDIF()
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-set(PROJECT_NAME "axon" CACHE INTERNAL "axon")
+set(PROJECT_NAME "axon")
 set(PROJECT_NAME_MASTER ${PROJECT_NAME})
+
+# Detect if we are being used as a submodule inside another project.
+# CMAKE_SOURCE_DIR points to the top-level project's source dir; if it differs
+# from our own source dir, we are a subdirectory/submodule, not the top-level build.
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(AXON_IS_SUBPROJECT ON)
+    message(STATUS "axon: building as subproject (submodule mode)")
+endif()
 
 # version extraction
 execute_process(
-	COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d\",$1,$2,$3)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
-	OUTPUT_VARIABLE VERSION
+    COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d\",$1,$2,$3)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
+    OUTPUT_VARIABLE VERSION
 )
 execute_process(
-	COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d-%d\",$1,$2,$3,$4)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
-	OUTPUT_VARIABLE FULL_VERSION
+    COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d-%d\",$1,$2,$3,$4)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
+    OUTPUT_VARIABLE FULL_VERSION
 )
-string(REGEX MATCH "([0-9]*)\.([0-9]*)\.([0-9]*)\-([0-9]*)" _ ${FULL_VERSION})
+string(REGEX MATCH "([0-9]*)\\.([0-9]*)\\.([0-9]*)\\-([0-9]*)" _ ${FULL_VERSION})
 set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
 set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
@@ -35,7 +43,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVE
 include (GNUInstallDirs)
 
 if (UNIX)
-	include (CheckFunctionExists)
+    include (CheckFunctionExists)
 endif (UNIX)
 
 ## cmake sub configs
@@ -43,23 +51,30 @@ include (macros)
 include (compiler)
 include (definitions)
 include (dependencies)
+
+if(NOT AXON_IS_SUBPROJECT)
+    include (packaging)
+endif()
 include (targets)
-include (packaging)
 
 ## project files
 add_subdirectory(src)
-add_subdirectory(examples)
-add_subdirectory(experiment)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} "${CMAKE_BINARY_DIR}/include")
+if(NOT AXON_IS_SUBPROJECT)
+    add_subdirectory(examples)
+    add_subdirectory(experiment)
+endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} "${CMAKE_CURRENT_BINARY_DIR}/include")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
 target_link_options(${PROJECT_NAME} PUBLIC ${LDFLAGS})
 
-## installs
-configure_file(extras/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
-
-install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/)
-install(FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+## installs (only when axon is the top-level project)
+if(NOT AXON_IS_SUBPROJECT)
+    configure_file(extras/${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
+    install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/)
+    install(FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+endif()
