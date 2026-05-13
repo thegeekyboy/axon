@@ -22,10 +22,12 @@ execute_process(
     COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d\",$1,$2,$3)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
     OUTPUT_VARIABLE VERSION
 )
+
 execute_process(
     COMMAND bash "-c" "awk -F'[.-]' '{printf(\"%d.%d.%d-%d\",$1,$2,$3,$4)}' ${CMAKE_CURRENT_SOURCE_DIR}/version"
     OUTPUT_VARIABLE FULL_VERSION
 )
+
 string(REGEX MATCH "([0-9]*)\\.([0-9]*)\\.([0-9]*)\\-([0-9]*)" _ ${FULL_VERSION})
 set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -36,8 +38,14 @@ message(STATUS "Starting build process for ${PROJECT_NAME} ${VERSION}")
 
 project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyperion" LANGUAGES C CXX)
 
-add_library(${PROJECT_NAME} SHARED "")
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+## build as static library to link with target when added as submodule
+if(AXON_IS_SUBPROJECT)
+	add_library(${PROJECT_NAME} STATIC "")
+else()
+	message(STATUS "Building static ${PROJECT_NAME} ${VERSION} library")
+	add_library(${PROJECT_NAME} SHARED "")
+	set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+endif()
 
 ## cmake helpers
 include (GNUInstallDirs)
@@ -68,7 +76,7 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} "${CMAKE_CURRENT_BINARY_DIR}/include")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LINK_LIBRARIES})
 target_link_options(${PROJECT_NAME} PUBLIC ${LDFLAGS})
 
 ## installs (only when axon is the top-level project)

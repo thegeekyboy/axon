@@ -417,6 +417,12 @@ else (NOT LDAP_FOUND)
 	endif ()
 endif ()
 
+# libcrypt
+find_library(CRYPT_LIB crypt)
+if(CRYPT_LIB)
+	list(APPEND LINK_LIBRARIES ${CRYPT_LIB})
+endif()
+
 # Java Native Interface
 # find_package(JNI REQUIRED)
 # if (JNI_FOUND)
