@@ -240,7 +240,6 @@ namespace axon
 			krb5_keytab_entry entry = { };
 
 			if ((retval = krb5_kt_start_seq_get(_context.get(), _pointer, &cursor)))
-				// return found;
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot start iterate over keytab cursor - " + krb_errno_to_str(retval));
 
 			DBGPRN("searching: %s", princ.c_str());

@@ -265,6 +265,9 @@ namespace axon
 			if(stat(path.c_str(), &info ) != 0)
 				return false;
 
+			if (access(path.c_str(), R_OK) != 0)
+				return false;
+
 			return true;
 		}
 
