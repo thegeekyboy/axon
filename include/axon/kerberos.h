@@ -46,7 +46,7 @@ namespace axon
 				public:
 					keytab() = delete;
 					keytab(context &ctx, std::string ktfile): _pointer(nullptr), _context(ctx) {
-						// if (!axon::util::exists(ktfile)) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file is not accessible");
+						if (!axon::util::exists(ktfile)) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "keytab file %s is not accessible", ktfile.c_str());
 						if (krb5_kt_resolve(ctx.get(), ktfile.c_str(), &_pointer)) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize context");
 					}
 					keytab(keytab&&) = delete;
