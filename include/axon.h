@@ -100,6 +100,42 @@ namespace axon
 		};
 	};
 
+	template<typename T, typename = void>
+	struct has_c_str : std::false_type {};
+
+	template<typename T>
+	struct has_c_str<T, std::void_t<decltype(std::declval<T>().c_str())>> : std::true_type {};
+
+	template<typename T>
+	decltype(auto) printable(T&& t)
+	{
+		if constexpr (has_c_str<std::decay_t<T>>::value)
+			return t.c_str();
+		else
+			return std::forward<T>(t);
+	}
+
+	template<typename... Args>
+	static void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
+	{
+		std::lock_guard<std::mutex> lock(axon::spinlock);
+		char refmt[MAXDBGLEN], buf[32], out[40];
+		struct tm tm_info;
+
+		const auto now = std::chrono::system_clock::now();
+		const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
+		const std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+		localtime_r(&t, &tm_info);
+
+		strftime(buf, sizeof(buf), "%FT%T", &tm_info);
+		snprintf(out, sizeof(out), "%s.%03ld", buf, ms);
+
+		snprintf(refmt, MAXDBGLEN - 1, "\033[0;%dm[%s] %s(%d) %s: %s\033[0m\n", code, out, filename, line, func, format);
+		fprintf(fp, refmt, printable(std::forward<Args>(args))...);
+		fflush(fp);
+	}
+
 	struct timer {
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> _start, _end;
@@ -118,8 +154,7 @@ namespace axon
 
 		~timer()
 		{
-			_end = std::chrono::high_resolution_clock::now();
-			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start);
 			INFPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
 		}
 
@@ -217,31 +252,6 @@ namespace axon
 			return out;
 		}
 	};
-
-	template<typename T, typename = void>
-	struct has_c_str : std::false_type {};
-
-	template<typename T>
-	struct has_c_str<T, std::void_t<decltype(std::declval<T>().c_str())>> : std::true_type {};
-
-	template<typename T>
-	decltype(auto) printable(T&& t)
-	{
-		if constexpr (has_c_str<std::decay_t<T>>::value)
-			return t.c_str();
-		else
-			return std::forward<T>(t);
-	}
-
-	template<typename... Args>
-	static void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
-	{
-		std::lock_guard<std::mutex> lock(axon::spinlock);
-		char refmt[MAXDBGLEN];
-		snprintf(refmt, MAXDBGLEN - 1, "\033[0;%dm[%s] %s(%d) %s: %s\033[0m\n", code, axon::timer::iso8601().c_str(), filename, line, func, format);
-		fprintf(fp, refmt, printable(std::forward<Args>(args))...);
-		fflush(fp);
-	}
 }
 
 #endif
