@@ -17,12 +17,12 @@ namespace axon {
 		struct topic {
 
 			protected:
-			
+
 			std::string id;
 			axon::status stats;
-			
+
 			public:
-			
+
 			// generic
 			std::string name;
 			std::string target;
@@ -33,7 +33,7 @@ namespace axon {
 			std::any data2;
 
 			axon::stream::cbfn callback;
-			
+
 			topic(): id(axon::util::uuid()), stats(axon::status::unknown), callback(nullptr) { };
 		};
 
@@ -47,7 +47,7 @@ namespace axon {
 				uint16_t _port;
 
 				bool _runnable, _running, _connected, _subscribed;
-				
+
 				std::vector<topic> _topic;
 
 				std::thread _runner, _daemon;

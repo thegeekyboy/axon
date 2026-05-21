@@ -56,7 +56,7 @@ namespace axon
 	typedef int proto_t;
 	typedef int auth_t;
 
-	extern void debug(FILE *, std::string, int, std::string, int, const char *, ...);
+	// extern void debug(FILE *, std::string, int, std::string, int, const char *, ...);
 	extern std::mutex spinlock;
 
 	std::string version();
@@ -99,6 +99,149 @@ namespace axon
 			return _msg;
 		};
 	};
+
+	struct timer {
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> _start, _end;
+		std::vector<long> _laps;
+		std::string _name;
+
+		timer(const char *name):_name(name)
+		{
+			_start = std::chrono::high_resolution_clock::now();
+		}
+
+		timer(std::string &name):_name(name)
+		{
+			_start = std::chrono::high_resolution_clock::now();
+		}
+
+		~timer()
+		{
+			_end = std::chrono::high_resolution_clock::now();
+			auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			INFPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
+		}
+
+		long now()
+		{
+			_end = std::chrono::high_resolution_clock::now();
+			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			return microseconds.count();
+		}
+
+		void reset()
+		{
+			_start = std::chrono::high_resolution_clock::now();
+			_laps.clear();
+		}
+
+		void lap()
+		{
+			auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start);
+			_laps.push_back(elapsed.count());
+		}
+
+		template <
+			class result_t   = std::chrono::milliseconds,
+			class clock_t    = std::chrono::steady_clock,
+			class duration_t = std::chrono::milliseconds
+		>
+		static auto since(std::chrono::time_point<clock_t, duration_t> const& start)
+		{
+			return std::chrono::duration_cast<result_t>(clock_t::now() - start);
+		}
+
+		static std::string iso8601()
+		{
+			const auto now       = std::chrono::system_clock::now();
+			const auto ms        = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
+			const std::time_t t  = std::chrono::system_clock::to_time_t(now);
+
+			struct tm tm_info;
+			localtime_r(&t, &tm_info);
+
+			char buf[32], out[40];
+
+			strftime(buf, sizeof(buf), "%FT%T", &tm_info);
+			snprintf(out, sizeof(out), "%s.%03ld", buf, ms);
+
+			return out;
+		}
+
+		static long epoch()
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		}
+
+		static long diff(const long ep)
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() - ep;
+		}
+
+		template <
+			class result_t   = std::chrono::milliseconds,
+			class clock_t	= std::chrono::steady_clock,
+			class duration_t = std::chrono::milliseconds
+		>
+		static auto diff(const std::chrono::time_point<std::chrono::high_resolution_clock> ep)
+		{
+			return std::chrono::duration_cast<result_t>(clock_t::now() - ep);
+		}
+
+		static std::string fulldate(std::time_t unixtime)
+		{
+			struct tm tm_info;
+			localtime_r(&unixtime, &tm_info);
+
+			char buf[32];
+			strftime(buf, sizeof(buf), "%Y-%m-%d %I:%M:%S %p", &tm_info);
+			return buf;
+		}
+
+		static std::string fulldate(long long epoch_ms)
+		{
+			auto tp = std::chrono::system_clock::time_point{std::chrono::milliseconds{epoch_ms}};
+			std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+			long long ms   = epoch_ms % 1000;
+
+			struct tm tm_info;
+			localtime_r(&tt, &tm_info);
+
+			char buf[32];
+			strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm_info);
+
+			char out[40];
+			snprintf(out, sizeof(out), "%s.%03lldZ", buf, ms);
+
+			return out;
+		}
+	};
+
+	template<typename T, typename = void>
+	struct has_c_str : std::false_type {};
+
+	template<typename T>
+	struct has_c_str<T, std::void_t<decltype(std::declval<T>().c_str())>> : std::true_type {};
+
+	template<typename T>
+	decltype(auto) printable(T&& t)
+	{
+		if constexpr (has_c_str<std::decay_t<T>>::value)
+			return t.c_str();
+		else
+			return std::forward<T>(t);
+	}
+
+	template<typename... Args>
+	static void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
+	{
+		std::lock_guard<std::mutex> lock(axon::spinlock);
+		char refmt[MAXDBGLEN];
+		snprintf(refmt, MAXDBGLEN - 1, "\033[0;%dm[%s] %s(%d) %s: %s\033[0m\n", code, axon::timer::iso8601().c_str(), filename, line, func, format);
+		fprintf(fp, refmt, printable(std::forward<Args>(args))...);
+		fflush(fp);
+	}
 }
 
 #endif

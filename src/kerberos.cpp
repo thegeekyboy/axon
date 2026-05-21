@@ -252,9 +252,9 @@ namespace axon
 				if (princ == name)
 					found = true;
 
-				INFPRN("name: %s, created: %s", name, axon::timer::fulldate(entry.timestamp).c_str());
-				// DBGPRN("version: %d", entry.key.length);
-				// std::cout<<"++ contents: "<<entry.key.enctype<<std::endl;
+				INFPRN("name: %s, created: %s", name, axon::timer::fulldate((time_t)(uint32_t)(entry.timestamp)).c_str());
+				DBGPRN("key count: %d", entry.key.length);
+
 				for (uint16_t i = 0; i < entry.key.length; i++) INFPRN("%02X ", entry.key.contents[i]);
 
 				krb5_free_unparsed_name(_context.get(), name);
@@ -301,7 +301,7 @@ namespace axon
 					found = true;
 
 				INFPRN("sprinc = %s, sName = %s, cprinc = %s, cName = %s", sprinc.c_str(), sName, cprinc.c_str(), cName);
-				INFPRN("server: %s, client: %s, now: %s, expire: %s", sName, cName, axon::timer::fulldate(now).c_str(), axon::timer::fulldate(creds.times.endtime).c_str());
+				INFPRN("server: %s, client: %s, now: %s, expire: %s", sName, cName, axon::timer::fulldate(now).c_str(), axon::timer::fulldate((time_t)(uint32_t)(creds.times.endtime)).c_str());
 
 				krb5_free_unparsed_name(_context.get(), sName);
 				krb5_free_unparsed_name(_context.get(), cName);

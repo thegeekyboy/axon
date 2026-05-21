@@ -11,7 +11,7 @@ namespace axon {
 		std::string _id, _name, _sdata;
 
 		boost::json::value _data;
-		
+
 		public:
 
 			bool get_bool(std::string);
@@ -46,9 +46,9 @@ namespace axon {
 			recordset() = delete;
 			recordset(const recordset&) = delete;
 			recordset& operator=(const recordset&) = delete;
-			
+
 			~recordset();
-			
+
 			recordset(const unsigned char*);
 			recordset(std::string);
 
@@ -56,10 +56,10 @@ namespace axon {
 			bool is_empty() { return _empty; };
 			std::string name() { return _name; };
 			void name(std::string val) { _name = val; };
-			
+
 			void print();
 			std::ostream& print(std::ostream&);
-			
+
 			friend std::ostream& operator<<(std::ostream& os, axon::recordset& rc) { return rc.print(os); };
 	};
 };

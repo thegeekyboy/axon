@@ -66,7 +66,7 @@ namespace axon
 			std::memcpy(&result, bytes, size);
 
 			return __builtin_bswap64(result);
-	    }
+		}
 
 		unsigned long long bytestoull(const char *bcd, const size_t size)
 		{
@@ -385,7 +385,7 @@ namespace axon
 		void rm_thread(std::vector<std::thread> &tl, std::thread::id id)
 		{
 			std::lock_guard<std::mutex> lock(thmtx);
-			
+
 			auto iter = std::find_if(tl.begin(), tl.end(), [=](std::thread &t) { return (t.get_id() == id); });
 			if (iter != tl.end())
 			{

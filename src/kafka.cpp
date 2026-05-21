@@ -275,10 +275,11 @@ namespace axon
 		{
 			rd_kafka_error_t *error = NULL;
 			rd_kafka_resp_err_t ret_err = RD_KAFKA_RESP_ERR_NO_ERROR;
-			// axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
 
+#if DEBUG >= 2
+			axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
 			INFPRN("=> Subscribed to %d topic(s), waiting for rebalance and messages...", kinst->count());
-
+#endif
 			switch (err)
 			{
 				case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
