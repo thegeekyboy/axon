@@ -4,7 +4,7 @@
 namespace axon {
 
 	namespace stream {
-		
+
 		interface::interface(std::string hostname, std::string username, std::string password, uint16_t port):
 		_id(axon::util::uuid()), _hostname(hostname), _username(username), _password(password), _port(port), _runnable(false), _running(false), _connected(false), _subscribed(false)
 		{

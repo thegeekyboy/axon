@@ -34,7 +34,7 @@ namespace axon {
 
 			if (boost::regex_match(arn, c_pattern)) return axon::stream::ARN::CONSUMER;
 			else if (boost::regex_match(arn, s_pattern)) return axon::stream::ARN::STREAM;
-			
+
 			return axon::stream::ARN::UNKNOWN;
 		}
 
@@ -47,7 +47,7 @@ namespace axon {
 				bool _status;
 				size_t _size;
 				Aws::String _id, _name, _iterator;
-				
+
 				public:
 					axon::stream::cbfn callback;
 
@@ -66,7 +66,7 @@ namespace axon {
 
 				partition() = delete;
 				partition& operator= (const partition&) = delete;
-				
+
 				partition(std::string id, std::string iterator): id(id), iterator(iterator), _id(axon::util::uuid()) { };
 				partition(const partition& lhs): id(lhs.id), iterator(lhs.iterator), _id(axon::util::uuid()) { };
 
@@ -78,7 +78,7 @@ namespace axon {
 
 				std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
 				std::vector<partition> _partition;
-				
+
 				std::string _id, _name, _arn;
 				bool _ready, _sync, _busy;
 				axon::stream::cbfn _callback;
@@ -109,7 +109,7 @@ namespace axon {
 			};
 
 			class consumer {
-			
+
 				std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
 
 				std::string _name;
@@ -136,7 +136,7 @@ namespace axon {
 
 					std::string attach(axon::stream::kinesis::stream&);
 					std::string attach(std::string);
-					
+
 					bool detach(axon::stream::kinesis::stream&);
 					bool detach(std::string);
 					void detach();
@@ -159,7 +159,7 @@ namespace axon {
 
 			void _stop() override;
 			std::unique_ptr<axon::recordset> get();
-			
+
 			public:
 				kinesis(std::string, std::string, std::string);
 				kinesis(std::string, std::string, std::string, uint16_t);

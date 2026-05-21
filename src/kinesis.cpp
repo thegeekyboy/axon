@@ -73,13 +73,13 @@ namespace axon {
 			for (const auto& shard : outcome.GetResult().GetShards())
 			{
 				Aws::Kinesis::Model::GetShardIteratorRequest getShardIteratorRequest;
-						
+
 				getShardIteratorRequest.SetStreamARN(arn);
 				getShardIteratorRequest.SetShardId(shard.GetShardId());
 				getShardIteratorRequest.SetShardIteratorType(Aws::Kinesis::Model::ShardIteratorType::LATEST);
-				
+
 				Aws::Kinesis::Model::GetShardIteratorOutcome getShardIteratorOutcome = _client->GetShardIterator(getShardIteratorRequest);
-				
+
 				if (!getShardIteratorOutcome.IsSuccess())
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, getShardIteratorOutcome.GetError().GetMessage());
 
@@ -96,7 +96,7 @@ namespace axon {
 			DBGPRN("%s %s stream creating", _id.c_str(), _name.c_str());
 
 			if (name.empty()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "stream name cannot be empty");
-			
+
 			_arn = _get_stream_arn(name);
 			if (!_arn.empty()) {
 				_partition = get_stream_partitions(_arn);
@@ -158,7 +158,7 @@ namespace axon {
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			Aws::Kinesis::Model::RegisterStreamConsumerRequest request;
-		
+
 			request.SetStreamARN(arn);
 			request.SetConsumerName(name);
 
@@ -217,7 +217,7 @@ namespace axon {
 				return {};
 
 			const Aws::Vector<Aws::Kinesis::Model::Consumer> consumers = outcome.GetResult().GetConsumers();
-			
+
 			for (const auto& consumer : consumers)
 			{
 				DBGPRN("arn: %s", consumer.GetConsumerARN().c_str());
@@ -231,7 +231,7 @@ namespace axon {
 		_client(client), _name(name), _fanout(fanout), _ready(false), _count(0)
 		{
 			boost::regex pattern("^[A-Za-z0-9_.-]{1,128}$");
-			
+
 			if (!boost::regex_match(name, pattern)) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid consumer name");
 			if (client == nullptr) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "shared client not valid");
 		}
@@ -262,7 +262,7 @@ namespace axon {
 			else if (boost::regex_match(arn, s_pattern))
 			{
 				retarn = _get_consumer_arn(arn, _name);
-				
+
 				if (retarn.empty()) retarn = attach(_client, arn, _name);
 
 				if (!_is_attached(retarn)) {
@@ -333,7 +333,7 @@ namespace axon {
 
 		void kinesis::_stop()
 		{
-			
+
 		}
 
 		std::unique_ptr<axon::recordset> kinesis::get()
@@ -363,7 +363,7 @@ namespace axon {
 				if (proxy.size() > 1) cfg.proxyPort = std::stoi(proxy[1]);
 				cfg.proxyScheme = Aws::Http::Scheme::HTTP;
 			}
-			
+
 			_client = std::make_shared<Aws::Kinesis::KinesisClient>(auth, cfg);
 
 			Aws::Kinesis::Model::ListStreamsRequest listStreamsRequest;
@@ -373,7 +373,7 @@ namespace axon {
 
 			if (!outcome.IsSuccess())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] " + outcome.GetError().GetMessage());
-			
+
 			_connected = true;
 			_streams.reserve(10);
 		}
@@ -386,7 +386,7 @@ namespace axon {
 		kinesis::~kinesis()
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
-			
+
 			if (_connected) {
 				_consumer->detach();
 				_connected = false;

@@ -74,10 +74,7 @@ namespace axon
 		AwsStack() {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			std::lock_guard<std::mutex> guard(_lock);
-			
-			int cnt = _instance;
 
-			DBGPRN("instance in use: %d", cnt);
 			if (_instance <= 0)
 			{
 				// TODO:
