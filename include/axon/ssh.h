@@ -9,7 +9,7 @@
 #define AXON_TRANSFER_SSH_MODE       0x0001
 #define AXON_TRANSFER_SSH_PRIVATEKEY 0x0002
 #define AXON_TRANSFER_SSH_USE_SCP    0x0004
-#define AXON_TRANSFER_SSH_PORT       0x0004
+#define AXON_TRANSFER_SSH_PORT       0x0008
 
 namespace axon
 {
@@ -26,18 +26,17 @@ namespace axon
 
 		class channel
 		{
-			friend class session;
 			LIBSSH2_CHANNEL* _channel;
 
-			channel(LIBSSH2_CHANNEL* c)	{ _channel = c; }
-
 		public:
+			channel() = delete;
 			channel(LIBSSH2_SESSION*);
 			~channel();
 
+			LIBSSH2_CHANNEL* get() const { return _channel; };
+
 			void request_pty();
 			void request_pty(std::string term);
-			LIBSSH2_CHANNEL* get() { return _channel; };
 		};
 
 		class fingerprint
@@ -61,7 +60,6 @@ namespace axon
 
 		class session
 		{
-			friend class channel;
 			int _sock;
 			int _rc;
 
@@ -88,7 +86,6 @@ namespace axon
 			fingerprint get_host_fingerprint();
 			void login(std::string username, std::string password); //throw(axon::exception);
 			void login(std::string username, std::string pubkey, std::string privkey); //throw(axon::exception);
-			channel* open_channel();
 		};
 
 		class sftp : public connection, public session {

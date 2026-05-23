@@ -77,7 +77,7 @@ namespace axon
 			else if (sftperr == LIBSSH2_FX_LINK_LOOP)
 				return "LIBSSH2_FX_LINK_LOOP";
 
-			return nullptr; // Dont know if this is the right thing to do! Might cause unknown behavior?
+			return "Unknown SFTP error";
 		}
 
 		channel::channel(LIBSSH2_SESSION* session)
@@ -321,18 +321,6 @@ namespace axon
 			}
 		}
 
-		channel* session::open_channel()
-		{
-			LIBSSH2_CHANNEL* _channel;
-			// TODO Check the return value for the specific error.
-			if (!(_channel = libssh2_channel_open_session(this->_session)))
-			{
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Could not open channel");
-			}
-			channel* c = new channel(_channel);
-			return c;
-		}
-
 		void session::set(int prop, auth_methods_t mode)
 		{
 			if (prop == AXON_TRANSFER_SSH_MODE)
@@ -371,7 +359,7 @@ namespace axon
 		{
 			DBGPRN("[%s] requested sftp::_scp_get() = %s", _id.c_str(), src.c_str());
 			LIBSSH2_CHANNEL *channel;
-			char FILEBUF[MAXBUF];
+			char FILEBUF[axon::MAX_BUFFER_SIZE];
 			long long filesize = 0;
 			struct stat fileinfo;
 
@@ -421,8 +409,8 @@ namespace axon
 
 				while (filesize < fileinfo.st_size)
 				{
-					memset(FILEBUF, '\0', MAXBUF);
-					int rc = libssh2_channel_read(channel, FILEBUF, MAXBUF);
+					memset(FILEBUF, '\0', axon::MAX_BUFFER_SIZE);
+					int rc = libssh2_channel_read(channel, FILEBUF, axon::MAX_BUFFER_SIZE - 1);
 
 					if (rc > 0)
 					{
@@ -451,7 +439,7 @@ namespace axon
 			DBGPRN("[%s] requested sftp::_sftp_get() of %s", _id.c_str(), src.c_str());
 			std::lock_guard<std::mutex> lock(_lock);
 			LIBSSH2_SFTP_HANDLE *hsftp;
-			char FILEBUF[MAXBUF];
+			char FILEBUF[axon::MAX_BUFFER_SIZE];
 			unsigned long long filesize = 0;
 
 			std::string srcx, destx, temp;
@@ -502,7 +490,7 @@ namespace axon
 
 			do {
 
-				int rc = libssh2_sftp_read(hsftp, FILEBUF, MAXBUF);
+				int rc = libssh2_sftp_read(hsftp, FILEBUF, axon::MAX_BUFFER_SIZE - 1);
 
 				if (rc > 0)
 				{
@@ -849,19 +837,22 @@ namespace axon
 			std::lock_guard<std::mutex> lock(_lock);
 			LIBSSH2_SFTP_HANDLE *hsftp;
 			std::string destx, temp;
-			char *BUFPTR, FILEBUF[MAXBUF];
+			char *BUFPTR, FILEBUF[axon::MAX_BUFFER_SIZE];
 			int rc;
 			unsigned long long filesize = 0;
 			size_t sb;
-			FILE *fp;
 
 			if (dest[0] == '/')
 				destx = dest;
 			else
 				destx = _path + "/" + dest;
 
-			if (!(fp = fopen(src.c_str(), "rb")))
+			auto fp_guard = std::unique_ptr<FILE, decltype(&fclose)>(fopen(src.c_str(), "rb"), &fclose);
+
+			if (!fp_guard)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
+
+			FILE* fp = fp_guard.get();
 
 			if (!(hsftp = libssh2_sftp_open(_sftp, destx.c_str(), LIBSSH2_FXF_WRITE|LIBSSH2_FXF_CREAT|LIBSSH2_FXF_TRUNC, LIBSSH2_SFTP_S_IRUSR|LIBSSH2_SFTP_S_IWUSR|LIBSSH2_SFTP_S_IRGRP|LIBSSH2_SFTP_S_IROTH)))
 			{
@@ -883,7 +874,7 @@ namespace axon
 
 			do {
 
-				sb = fread(FILEBUF, 1, MAXBUF, fp);
+				sb = fread(FILEBUF, 1, axon::MAX_BUFFER_SIZE - 1, fp);
 				if (sb <= 0) {
 					break;
 				}
@@ -903,7 +894,6 @@ namespace axon
 
 			} while (rc > 0);
 
-			fclose(fp);
 			libssh2_sftp_close(hsftp);
 
 			return filesize;
@@ -971,10 +961,10 @@ namespace axon
 			if (!_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
 
-			char buffer[MAXBUF];
+			char buffer[axon::MAX_BUFFER_SIZE];
 			ssize_t size;
 
-			while ((size = this->read(buffer, MAXBUF-1)) > 0 || size == LIBSSH2_ERROR_EAGAIN)
+			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0 || size == LIBSSH2_ERROR_EAGAIN)
 				conn.write(buffer, size);
 
 			return true;
