@@ -49,9 +49,9 @@ add_executable (mail EXCLUDE_FROM_ALL mail.cpp)
 target_link_libraries (mail ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 #
-# list(APPEND EXAMPLES_LIST logger)
-# add_executable (logger EXCLUDE_FROM_ALL logger.cpp)
-# target_link_libraries (logger ${PROJECT_NAME_MASTER} ${LIBRARIES})
+list(APPEND EXAMPLES_LIST log)
+add_executable (log EXCLUDE_FROM_ALL log.cpp)
+target_link_libraries (log ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # scylladb
 # list(APPEND EXAMPLES_LIST scylladb)

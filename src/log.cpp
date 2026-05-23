@@ -10,7 +10,7 @@ namespace axon
 	{
 		char filename[PATH_MAX];
 
-		sprintf(filename, "%s/%s", _path.c_str(), _filename.c_str());
+		snprintf(filename, PATH_MAX - 1, "%s/%s", _path.c_str(), _filename.c_str());
 
 		_ofs.open(filename, std::ofstream::out | std::ofstream::app);
 
@@ -52,7 +52,11 @@ namespace axon
 
 		_level = level::info;
 		_filename = "";
-		_path = get_current_dir_name();
+
+		char* cwd = get_current_dir_name();
+
+		_path = cwd;
+		free(cwd);
 
 		return true;
 	}
@@ -78,7 +82,7 @@ namespace axon
 
 		char fullpath[PATH_MAX];
 
-		sprintf(fullpath, "%s/%s", _path.c_str(), _filename.c_str());
+		snprintf(fullpath, PATH_MAX - 1, "%s/%s", _path.c_str(), _filename.c_str());
 
 		if ((code = stat(fullpath, &s)) == 0)
 		{
@@ -139,7 +143,10 @@ namespace axon
 
 	log& log::operator<<(bool value)
 	{
-		_ss<<value;
+		if (value)
+			_ss<<"true";
+		else
+			_ss<<"false";
 
 		return *this;
 	}
@@ -207,6 +214,9 @@ namespace axon
 			_ofs<<oss.rdbuf()<<_ss.rdbuf();
 		else
 			fprintf(stderr, "%s%s", oss.str().c_str(), _ss.str().c_str());
+
+		_ss.str("");
+		_ss.clear();
 
 		return *this;
 	}

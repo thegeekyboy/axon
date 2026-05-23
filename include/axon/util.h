@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <mutex>
+#include <thread>
 
 #include <cstdint>
 #include <string_view>
@@ -61,17 +62,6 @@ namespace axon
 
 		void debugprint(const char *, ...);
 		std::string demangle(const char*);
-
-		template <typename T>
-		uint16_t count(std::vector<T> value)
-		{
-			uint16_t cnt = 0;
-
-			for ([[maybe_unused]] T &elem : value)
-				cnt++;
-
-			return cnt;
-		}
 
 		template <typename T>
 		uint16_t count(std::va_list list, const T first)

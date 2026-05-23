@@ -40,9 +40,10 @@ project(${PROJECT_NAME} VERSION ${VERSION} DESCRIPTION "helper library for hyper
 
 ## build as static library to link with target when added as submodule
 if(AXON_IS_SUBPROJECT)
+	message(STATUS "Building static ${PROJECT_NAME} ${VERSION} library")
 	add_library(${PROJECT_NAME} STATIC "")
 else()
-	message(STATUS "Building static ${PROJECT_NAME} ${VERSION} library")
+	message(STATUS "Building shared ${PROJECT_NAME} ${VERSION} library")
 	add_library(${PROJECT_NAME} SHARED "")
 	set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 endif()

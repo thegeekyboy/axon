@@ -1,13 +1,11 @@
 #ifndef AXON_MASTER_H_
 #define AXON_MASTER_H_
 
+#include <mutex>
+#include <vector>
 #include <string>
 #include <cstring>
 #include <sys/stat.h>
-
-#include <aws/core/Aws.h>
-
-#define MAXBUF 2097152
 
 #ifndef PATH_MAX
 	#define PATH_MAX 260
@@ -25,25 +23,24 @@
 	#define DEBUG 0
 #endif
 
-#include <mutex>
 #define MAXDBGLEN 4096
 
 #define EMRPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_EMERG, __VA_ARGS__)
 #define ERRPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_ERROR, __VA_ARGS__)
 
-#ifdef DEBUG
+#if DEBUG >= 1
 	#define DBGPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_DEBUG, __VA_ARGS__)
 #else
 	#define DBGPRN(...) { }
 #endif
 
-#if DEBUG >= 1
+#if DEBUG >= 2
 	#define WRNPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_WARNING, __VA_ARGS__)
 #else
 	#define WRNPRN(...) { }
 #endif
 
-#if DEBUG >= 2
+#if DEBUG >= 3
 	#define INFPRN(...) axon::debug(stderr, __FILENAME__, __LINE__, __PRETTY_FUNCTION__, AXON_INFO, __VA_ARGS__)
 #else
 	#define INFPRN(...) { }
@@ -52,11 +49,7 @@
 // AXON Namespace
 namespace axon
 {
-	// typedef int flags_t;
-	typedef int proto_t;
-	typedef int auth_t;
-
-	// extern void debug(FILE *, std::string, int, std::string, int, const char *, ...);
+	constexpr std::size_t MAX_BUFFER_SIZE = 2097152;
 	extern std::mutex spinlock;
 
 	std::string version();
@@ -83,7 +76,7 @@ namespace axon
 		exception(const char* filename, int linenum, const std::string& source, const std::string& message) { make_message(filename, linenum, source, message); };
 		template<typename... Args> exception(const char* filename, int linenum, const std::string& source, const std::string& format, Args... args) {
 			char output[4096];
-			snprintf(output, 4096, format.c_str(), args...);
+			snprintf(output, 4095, format.c_str(), args...);
 			make_message(filename, linenum, source, output);
 		}
 
@@ -116,7 +109,7 @@ namespace axon
 	}
 
 	template<typename... Args>
-	static void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
+	void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
 	{
 		std::lock_guard<std::mutex> lock(axon::spinlock);
 		char refmt[MAXDBGLEN], buf[32], out[40];
@@ -139,15 +132,15 @@ namespace axon
 	struct timer {
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> _start, _end;
-		std::vector<long> _laps;
+		std::vector<int64_t> _laps;
 		std::string _name;
 
-		timer(const char *name):_name(name)
+		timer(const char *name): _name(name)
 		{
 			_start = std::chrono::high_resolution_clock::now();
 		}
 
-		timer(std::string &name):_name(name)
+		timer(const std::string &name): _name(name)
 		{
 			_start = std::chrono::high_resolution_clock::now();
 		}
@@ -158,10 +151,9 @@ namespace axon
 			INFPRN("%s ran for %ldμs", _name.c_str(), microseconds.count());
 		}
 
-		long now()
+		long now() const
 		{
-			_end = std::chrono::high_resolution_clock::now();
-			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start);
+			std::chrono::microseconds microseconds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _start);
 			return microseconds.count();
 		}
 

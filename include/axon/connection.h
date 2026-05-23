@@ -2,6 +2,7 @@
 #define AXON_CONNECTION_H_
 
 #include <boost/regex.hpp>
+#include <aws/core/Aws.h>
 
 #include <axon/util.h>
 
@@ -59,9 +60,9 @@ namespace axon
 	};
 
 	std::string protoname(axon::protocol);
-	axon::protocol protoid(std::string&);
+	axon::protocol protoid(const std::string&);
 	std::string authname(axon::authtype);
-	axon::authtype authid(std::string&);
+	axon::authtype authid(const std::string&);
 
 	class AwsStack {
 
@@ -112,7 +113,7 @@ namespace axon
 				std::string _hostname, _username, _password;
 				std::string _path;
 				uint16_t _port;
-				axon::proto_t _proto;
+				axon::protocol _proto;
 
 				bool _connected, _fileopen;
 				std::ios_base::openmode _om;

@@ -470,11 +470,11 @@ namespace axon
 			tsock.init();
 			tsock.open(pasvhost, pasvport);
 
-			char buf[MAXBUF];
+			char buf[axon::MAX_BUFFER_SIZE];
 			long long rc;
 			long long szx = 0;
 
-			while ((rc = tsock.read(buf, MAXBUF)) >= 0)
+			while ((rc = tsock.read(buf, axon::MAX_BUFFER_SIZE - 1)) >= 0)
 			{
 				fwrite(buf, rc, 1, fp);
 				szx += rc;
@@ -551,11 +551,11 @@ namespace axon
 			tsock.open(pasvhost, pasvport);
 
 			int rc, sb;
-			char flb[MAXBUF+1];
+			char flb[axon::MAX_BUFFER_SIZE];
 
 			do {
 
-				if ((sb = fread(flb, 1, MAXBUF, fp)) <= 0)
+				if ((sb = fread(flb, 1, axon::MAX_BUFFER_SIZE - 1, fp)) <= 0)
 					break;
 
 				rc = tsock.write((const char *) flb, sb);

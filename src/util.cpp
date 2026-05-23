@@ -24,19 +24,6 @@ namespace axon
 		return VERSION;
 	}
 
-	void debug(FILE *fp, std::string filename, int line, std::string func, int code, const char *format, ...)
-	{
-		std::lock_guard<std::mutex> lock(spinlock);
-		va_list argptr;
-		char refmt[MAXDBGLEN];
-
-		snprintf(refmt, MAXDBGLEN-1, "\033[0;%dm[%s] %s(%d) %s: %s\033[0m\n", code, axon::timer::iso8601().c_str(), filename.c_str(), line, func.c_str(), format);
-		va_start(argptr, format);
-		vfprintf(fp, refmt, argptr);
-		fflush(fp);
-		va_end(argptr);
-	}
-
 	namespace util
 	{
 		static const std::string base64_chars =
@@ -277,7 +264,7 @@ namespace axon
 
 			if (path.size())
 			{
-				sprintf(fname, "%s/%s", path.c_str(), filename.c_str());
+				snprintf(fname, PATH_MAX - 1, "%s/%s", path.c_str(), filename.c_str());
 				if (access(fname, F_OK) != -1)
 					return true;
 				else
@@ -352,16 +339,12 @@ namespace axon
 		bool execmd(const char *cmd)
 		{
 			FILE *fp;
-			char final[PATH_MAX], ch;
-			std::stringstream ss;
+			char final[PATH_MAX];
 
-			sprintf(final, "%s 2>&1", cmd);
+			snprintf(final, PATH_MAX, "%s 2>&1", cmd);
 
-			if((fp = popen(final, "w")) == NULL)
+			if((fp = popen(final, "r")) == NULL)
 				return false;
-
-			while((ch = fgetc(fp)) != EOF)
-				ss<<ch;
 
 			pclose(fp);
 
@@ -538,8 +521,8 @@ namespace axon
 
 		double random(double lower, double upper)
 		{
-			std::random_device rd;
-			std::mt19937 mt(rd());
+			static std::random_device rd;
+			static std::mt19937 mt(rd());
 			std::uniform_real_distribution<double> dist(lower, upper);
 
 			return dist(mt);

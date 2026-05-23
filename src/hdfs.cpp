@@ -158,10 +158,10 @@ namespace axon
 			else
 				srcx = _path + "/" + src;
 
-			if (src[0] == '/')
-				srcx = src;
+			if (dest[0] == '/')
+				destx = dest;
 			else
-				srcx = _path + "/" + src;
+				destx = _path + "/" + dest;
 
 			auto [path, filename] = axon::util::splitpath(srcx);
 
@@ -210,7 +210,7 @@ namespace axon
 		{
 			DBGPRN("[%s] requested hdfs::get() = %s", _id.c_str(), src.c_str());
 			long long filesize = 0, rc = 0;
-			char FILEBUF[MAXBUF];
+			char FILEBUF[axon::MAX_BUFFER_SIZE];
 			FILE *fp;
 			hdfsFile file;
 			std::string srcx;
@@ -249,7 +249,7 @@ namespace axon
 			}
 
 			do {
-				rc = hdfsRead(_filesystem, file, &FILEBUF, MAXBUF);
+				rc = hdfsRead(_filesystem, file, &FILEBUF, axon::MAX_BUFFER_SIZE - 1);
 
 				if (rc == -1)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] read error from remote");
@@ -290,11 +290,10 @@ namespace axon
 			// TODO: Need to implement compress
 			DBGPRN("[%s] requested put() = %s", _id.c_str(), src.c_str());
 			std::string destx, temp;
-			char FILEBUF[MAXBUF];
+			char FILEBUF[axon::MAX_BUFFER_SIZE];
 			long rc, wc;
 			unsigned long long filesize = 0;
 
-			FILE *fp;
 			hdfsFile file;
 
 			if (dest[0] == '/')
@@ -302,15 +301,19 @@ namespace axon
 			else
 				destx = _path + "/" + dest;
 
-			if (!(fp = fopen(src.c_str(), "rb")))
+			auto fp_guard = std::unique_ptr<FILE, decltype(&fclose)>(fopen(src.c_str(), "rb"), &fclose);
+
+			if (!fp_guard)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] Cannot open source file '" + src + "'");
+
+			FILE *fp = fp_guard.get();
 
 			if (!(file = hdfsOpenFile(_filesystem, destx.c_str(), O_WRONLY|O_CREAT, 0, 0, 0)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot open file - " + hdfsGetLastError());
 
 			do {
 
-				rc = fread(FILEBUF, 1, MAXBUF, fp);
+				rc = fread(FILEBUF, 1, axon::MAX_BUFFER_SIZE - 1, fp);
 
 				if (rc <= 0)
 					break;
@@ -318,9 +321,10 @@ namespace axon
 				if ((wc = hdfsWrite(_filesystem, file, (void*) FILEBUF, rc)) != rc)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not write to hdfs - " + hdfsGetLastError());
 
+				filesize += wc;
+
 			} while (rc > 0);
 
-			fclose(fp);
 			hdfsFlush(_filesystem, file);
 			hdfsCloseFile(_filesystem, file);
 
@@ -368,9 +372,9 @@ namespace axon
 			std::vector<std::string> parts = axon::util::split(finalpath, '/');
 
 			if (om & std::ios::out)
-				_fp = hdfsOpenFile(_filesystem, finalpath.c_str(), O_RDONLY, 0, 0, 0);
-			else
 				_fp = hdfsOpenFile(_filesystem, finalpath.c_str(), O_WRONLY|O_CREAT, 0, 0, 0);
+			else
+				_fp = hdfsOpenFile(_filesystem, finalpath.c_str(), O_RDONLY, 0, 0, 0);
 
 			if (!_fp) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] error opening file " + finalpath);
 
@@ -403,10 +407,10 @@ namespace axon
 			if (!_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
 
-			char buffer[MAXBUF];
+			char buffer[axon::MAX_BUFFER_SIZE];
 			ssize_t size = 0;
 
-			while ((size = this->read(buffer, MAXBUF-1)) > 0)
+			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
 				conn.write(buffer, size);
 
 			return true;

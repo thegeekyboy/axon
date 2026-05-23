@@ -260,7 +260,7 @@ namespace axon
 		if (_simple.size() < 2)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "mail body cannot be empty");
 
-		if (axon::util::count(_to) <= 0 || _from.size() < 2)
+		if (_to.size() <= 0 || _from.size() < 2)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "from and/or to cannot be empty");
 
 		_socket.writeline("MAIL FROM: " + _from);
@@ -287,10 +287,10 @@ namespace axon
 
 		_socket.writeline("From: " + _from);
 
-		if (axon::util::count(_to) > 0)
+		if (_to.size() > 0)
 			_socket.writeline("To: " + final_to);
 
-		if (axon::util::count(_cc) > 0)
+		if (_cc.size() > 0)
 			_socket.writeline("Cc: " + final_cc);
 
 		_socket.writeline("Subject: " + _subject);

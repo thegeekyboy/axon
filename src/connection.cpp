@@ -60,11 +60,9 @@ namespace axon
 				return "axon::protocol::UNKNOWN";
 				break;
 		}
-
-		return "axon::protocol::UNKNOWN";
 	}
 
-	axon::protocol protoid(std::string& name)
+	axon::protocol protoid(const std::string& name)
 	{
 		if (name == "NOTHING" || name == "AXON::PROTOCOL::NOTHING")
 			return axon::protocol::NOTHING;
@@ -122,7 +120,7 @@ namespace axon
 		return "axon::protocol::UNKNOWN";
 	}
 
-	axon::authtype authid(std::string& name)
+	axon::authtype authid(const std::string& name)
 	{
 		if (name == "PASSWORD" || name == "AXON::AUTHTYPE::PASSWORD")
 			return axon::authtype::PASSWORD;

@@ -39,7 +39,7 @@ namespace axon
 			int bzerr;
 			unsigned int inbyte, outbyte;
 			size_t filesize = 0, szr, szw;
-			unsigned char FILEBUF[MAXBUF];
+			unsigned char FILEBUF[axon::MAX_BUFFER_SIZE];
 			std::string srcx;
 
 			FILE *fps, *fpd;
@@ -80,7 +80,7 @@ namespace axon
 
 			do {
 
-				if ((szr = fread(FILEBUF, 1, MAXBUF, fps)) > 0)
+				if ((szr = fread(FILEBUF, 1, axon::MAX_BUFFER_SIZE, fps)) > 0)
 				{
 					if (compress)
 					{
@@ -224,7 +224,7 @@ namespace axon
 		int file::list(const axon::transfer::cb &cbfn)
 		{
 			struct linux_dirent *e;
-			char buf[MAXBUF], d_type;
+			char buf[axon::MAX_BUFFER_SIZE], d_type;
 			long nread, count = 0;
 
 			if (_path.size() <= 0 && _fd != -1)
@@ -232,7 +232,7 @@ namespace axon
 
 			while (true)
 			{
-				nread = syscall(SYS_getdents, _fd, buf, MAXBUF);
+				nread = syscall(SYS_getdents, _fd, buf, axon::MAX_BUFFER_SIZE - 1);
 
 				if (nread == -1 || nread == 0)
 					break;
@@ -393,10 +393,10 @@ namespace axon
 			if (!_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
 
-			char buffer[MAXBUF];
+			char buffer[axon::MAX_BUFFER_SIZE];
 			ssize_t size = 0;
 
-			while ((size = this->read(buffer, MAXBUF-1)) > 0)
+			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
 				conn.write(buffer, size);
 
 			return true;

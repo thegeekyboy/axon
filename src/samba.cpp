@@ -317,7 +317,7 @@ namespace axon
 			std::string srcx;
 			struct smb2fh *fh;
 			long long filesize = 0, count = 0;
-			uint8_t buffer[MAXBUF];
+			uint8_t buffer[axon::MAX_BUFFER_SIZE];
 
 			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
@@ -350,7 +350,7 @@ namespace axon
 				compressor.push(boost::iostreams::bzip2_compressor());
 			compressor.push(file);
 
-			while ((count = smb2_pread(_smb2, fh, buffer, MAXBUF, filesize)) > 0)
+			while ((count = smb2_pread(_smb2, fh, buffer, axon::MAX_BUFFER_SIZE - 1, filesize)) > 0)
 			{
 				compressor.write(reinterpret_cast<char*>(&buffer), count);
 				filesize += count;
