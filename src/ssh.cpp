@@ -355,7 +355,7 @@ namespace axon
 		}
 
 		// sftp class declaration
-		long long sftp::_scp_get(std::string src, std::string dest, bool compress)
+		off_t sftp::_scp_get(std::string src, std::string dest, bool compress)
 		{
 			DBGPRN("[%s] requested sftp::_scp_get() = %s", _id.c_str(), src.c_str());
 			LIBSSH2_CHANNEL *channel;
@@ -434,7 +434,7 @@ namespace axon
 			return filesize;
 		}
 
-		long long sftp::_sftp_get(std::string src, std::string dest, bool compress)
+		off_t sftp::_sftp_get(std::string src, std::string dest, bool compress)
 		{
 			DBGPRN("[%s] requested sftp::_sftp_get() of %s", _id.c_str(), src.c_str());
 			std::lock_guard<std::mutex> lock(_lock);
@@ -643,7 +643,7 @@ namespace axon
 			return true;
 		}
 
-		int sftp::list(const axon::transfer::cb &cbfn)
+		size_t sftp::list(const axon::transfer::cb &cbfn)
 		{
 			DBGPRN("[%s] requested sftp::list to %s", _id.c_str(), _path.c_str());
 			std::lock_guard<std::mutex> lock(_lock);
@@ -720,12 +720,12 @@ namespace axon
 			return count;
 		}
 
-		int sftp::list(std::vector<entry> &vec)
+		size_t sftp::list(std::vector<entry> &vec)
 		{
 			return list([&vec](const axon::entry &e) mutable { vec.push_back(e); });
 		}
 
-		long long sftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t sftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			DBGPRN("[%s] requested sftp::cp = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
@@ -819,7 +819,7 @@ namespace axon
 			return true;
 		}
 
-		long long sftp::get(std::string src, std::string dest, bool compress)
+		off_t sftp::get(std::string src, std::string dest, bool compress)
 		{
 			if (_is_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] data transfer stream already active.");
@@ -830,7 +830,7 @@ namespace axon
 			return this->_sftp_get(src, dest, compress);
 		}
 
-		long long sftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t sftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			DBGPRN("[%s] requested sftp::put() = %s", _id.c_str(), src.c_str());

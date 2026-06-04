@@ -240,11 +240,13 @@ namespace axon
 
 			long socks::write(const char *buf, size_t len)
 			{
-				size_t sent = 0, remain = len;
+				ssize_t sent = 0, remain = len;
 
 				do
 				{
-					sent = send(_fd, buf, remain, 0);
+					if ((sent = send(_fd, buf, remain, 0)) < 0)
+						continue;
+
 					remain -= sent;
 				} while (remain > 0 && sent > 0);
 

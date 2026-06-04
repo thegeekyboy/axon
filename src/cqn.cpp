@@ -260,7 +260,7 @@ namespace axon {
 				if (!data.empty) {
 					DBGPRN("rowid: %s, table: %s", data.rowid.c_str(), data.table.c_str());
 
-					std::string sql = "SELECT * FROM " + data.table + " WHERE ROWID = '" + data.rowid + "'";
+					std::string sql = "SELECT * FROM " + data.table + " WHERE ROWID = '" + data.rowid + "'"; // TODO: change to bind variable to avoid SQL Injection possibilities
 
 					std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(*_oracle->get_context());
 					stmt->prepare(sql);

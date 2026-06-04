@@ -32,13 +32,13 @@ namespace axon
 			return true;
 		}
 
-		long long file::copy(std::string src, std::string dest, bool compress)
+		off_t file::copy(std::string src, std::string dest, bool compress)
 		{
 			DBGPRN("[%s] requested file::copy() src = %s, dest = %s", _id.c_str(), src.c_str(), dest.c_str());
 
 			int bzerr;
 			unsigned int inbyte, outbyte;
-			size_t filesize = 0, szr, szw;
+			size_t filesize = { 0 }, szr = { 0 }, szw = { 0 };
 			unsigned char FILEBUF[axon::MAX_BUFFER_SIZE];
 			std::string srcx;
 
@@ -221,7 +221,7 @@ namespace axon
 			return false;
 		}
 
-		int file::list(const axon::transfer::cb &cbfn)
+		size_t file::list(const axon::transfer::cb &cbfn)
 		{
 			struct linux_dirent *e;
 			char buf[axon::MAX_BUFFER_SIZE], d_type;
@@ -300,12 +300,12 @@ namespace axon
 			return count;
 		}
 
-		int file::list(std::vector<axon::entry> &vec)
+		size_t file::list(std::vector<axon::entry> &vec)
 		{
 			return list([&](const axon::entry &e) mutable { vec.push_back(e); });
 		}
 
-		long long file::get(std::string src, std::string dest, bool compress)
+		off_t file::get(std::string src, std::string dest, bool compress)
 		{
 			std::string srcx, destx;
 
@@ -323,7 +323,7 @@ namespace axon
 			return copy(srcx, destx, compress); // return size
 		}
 
-		long long file::put(std::string src, std::string dest, bool compress)
+		off_t file::put(std::string src, std::string dest, bool compress)
 		{
 			std::string srcx, destx;
 

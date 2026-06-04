@@ -93,10 +93,10 @@ namespace axon
 			 *	>0 = success code
 			 */
 
-			short int mml::exec(std::string cmd, std::vector<std::string> *vec, unsigned short int timeout, const std::function <int (std::string, short int&)>& cb)
+			short int mml::exec(std::string cmd, std::vector<std::string> *vec, unsigned short int timeout, const std::function <int (std::string, short int)>& cb)
 			{
-				short int retval = -1;
-				bool running = true, looping = true, finished = false;
+				std::atomic<short int> retval = -1;
+				std::atomic<bool> running = true, looping = true, finished = false;
 				std::thread timeth;
 
 				_sock.writeline(cmd);
@@ -157,7 +157,7 @@ namespace axon
 								}
 							} else {
 
-								if (cb(resp, retval))
+								if (cb(resp,  static_cast<short int>(retval)))
 								{
 									finished = true;
 									break;

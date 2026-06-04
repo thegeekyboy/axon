@@ -104,7 +104,7 @@ namespace axon
 			return true;
 		}
 
-		int hdfs::list(const axon::transfer::cb &cbfn)
+		size_t hdfs::list(const axon::transfer::cb &cbfn)
 		{
 			DBGPRN("[%s] requested hdfs::list()", _id.c_str());
 			int fileCount = 0;
@@ -117,11 +117,12 @@ namespace axon
 			{
 				for (int i = 0; i < fileCount; i++)
 				{
-					struct entry file;
 					auto [path, filename] = axon::util::splitpath(hdfsList[i].mName);
 
-					if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(file.name, _filter[0])))
+					if (_filter.size() == 0 || (_filter.size() > 0 && regex_match(filename, _filter[0])))
 					{
+						struct entry file;
+
 						file.proto = axon::protocol::HDFS;
 						file.name = filename;
 
@@ -142,12 +143,12 @@ namespace axon
 			return true;
 		}
 
-		int hdfs::list(std::vector<entry> &vec)
+		size_t hdfs::list(std::vector<entry> &vec)
 		{
 			return list([&vec](const axon::entry &e) mutable { vec.push_back(e); });
 		}
 
-		long long hdfs::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t hdfs::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			DBGPRN("[%s] requested hdfs::copy() = %s, %s", _id.c_str(), src.c_str(), dest.c_str());
@@ -206,7 +207,7 @@ namespace axon
 			return 0;
 		}
 
-		long long hdfs::get(std::string src, std::string dest, bool compress)
+		off_t hdfs::get(std::string src, std::string dest, bool compress)
 		{
 			DBGPRN("[%s] requested hdfs::get() = %s", _id.c_str(), src.c_str());
 			long long filesize = 0, rc = 0;
@@ -285,7 +286,7 @@ namespace axon
 			return filesize;
 		}
 
-		long long hdfs::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t hdfs::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			DBGPRN("[%s] requested put() = %s", _id.c_str(), src.c_str());
@@ -428,7 +429,7 @@ namespace axon
 			if (!(_om & std::ios::in))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
 
-			if ((filesize = hdfsRead(_filesystem, _fp, &buffer, size)) > 0)
+			if ((filesize = hdfsRead(_filesystem, _fp, buffer, size)) <= 0)
 				return 0;
 
 			return filesize;

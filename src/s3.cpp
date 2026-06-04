@@ -137,7 +137,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not change directory - " + bucket + " " + err.GetMessage());
 			}
 
-			_path = (path[path.size()] = '/')?path:path+"/";
+			_path = (path[path.size()] == '/')?path:path+"/";
 
 
 			return false;
@@ -166,7 +166,7 @@ namespace axon
 			return true;
 		}
 
-		long long s3::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t s3::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			axon::timer ctm(__PRETTY_FUNCTION__);
@@ -278,7 +278,7 @@ namespace axon
 			return true;
 		}
 
-		int s3::list(const axon::transfer::cb &cbfn)
+		size_t s3::list(const axon::transfer::cb &cbfn)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			long count = 0;
@@ -337,7 +337,7 @@ namespace axon
 			return count;
 		}
 
-		int s3::list(std::vector<axon::entry> &vec)
+		size_t s3::list(std::vector<axon::entry> &vec)
 		{
 			return list([&](const axon::entry &e) mutable {
 
@@ -345,7 +345,7 @@ namespace axon
 			});
 		}
 
-		long long s3::get(std::string src, std::string dest, bool compress)
+		off_t s3::get(std::string src, std::string dest, bool compress)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
@@ -401,7 +401,7 @@ namespace axon
 			return filesize;
 		}
 
-		long long s3::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t s3::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			axon::timer ctm(__PRETTY_FUNCTION__);
 			// TODO: Need to implement compress

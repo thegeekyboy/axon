@@ -170,7 +170,7 @@ namespace axon
 			return true;
 		}
 
-		long long samba::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t samba::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			std::string srcx, destx;
@@ -259,7 +259,7 @@ namespace axon
 			return true;
 		}
 
-		int samba::list(const axon::transfer::cb &cbfn)
+		size_t samba::list(const axon::transfer::cb &cbfn)
 		{
 			long count = 0;
 
@@ -305,14 +305,14 @@ namespace axon
 			return count;
 		}
 
-		int samba::list(std::vector<axon::entry> &vec)
+		size_t samba::list(std::vector<axon::entry> &vec)
 		{
 			return list([&](const axon::entry &e) mutable {
 				vec.push_back(e);
 			});
 		}
 
-		long long samba::get(std::string src, std::string dest, bool compress)
+		off_t samba::get(std::string src, std::string dest, bool compress)
 		{
 			std::string srcx;
 			struct smb2fh *fh;
@@ -364,13 +364,13 @@ namespace axon
 			return filesize;
 		}
 
-		long long samba::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t samba::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
 			std::string destx;
 			long long filesize = 0, count, rc;
 			struct smb2fh *fh;
-			uint8_t buffer[1024];
+			uint8_t buffer[axon::MAX_BUFFER_SIZE];
 
 			if (_path.size() <= 0)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
@@ -400,7 +400,7 @@ namespace axon
 
 			while (true)
 			{
-				input.read (reinterpret_cast<char*>(&buffer), 1024);
+				input.read (reinterpret_cast<char*>(&buffer), axon::MAX_BUFFER_SIZE - 1);
 
 				if ((count = input.gcount()) <= 0)
 					break;
@@ -417,13 +417,13 @@ namespace axon
 			return filesize;
 		}
 
-		bool samba::open(std::string, std::ios_base::openmode) { return false; };
-		bool samba::close() { return false; };
+		bool samba::open(std::string, std::ios_base::openmode) { return false; }; // TODO: not yet implementd or donno how to do it
+		bool samba::close() { return false; }; // TODO: not yet implementd or donno how to do it
 
-		bool samba::push(axon::transfer::connection&) { return false; };
+		bool samba::push(axon::transfer::connection&) { return false; }; // TODO: not yet implementd or donno how to do it
 
-		ssize_t samba::read(char*, size_t) { return 0; };
-		ssize_t samba::write(const char*, size_t) { return 0; };
+		ssize_t samba::read(char*, size_t) { return 0; }; // TODO: not yet implementd or donno how to do it
+		ssize_t samba::write(const char*, size_t) { return 0; }; // TODO: not yet implementd or donno how to do it
 
 	}
 }

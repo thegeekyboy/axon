@@ -105,6 +105,8 @@ namespace axon {
 
 			if (port == 0)
 				_port = 389;
+			else
+				_port = port;
 
 			if (dn.size() <= 3)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid distinguished name (dn)");

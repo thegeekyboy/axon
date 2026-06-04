@@ -26,15 +26,15 @@ namespace axon
 			bool chwd(std::string);
 			std::string pwd();
 			bool mkdir(std::string);
-			int list(const axon::transfer::cb &);
-			int list(std::vector<axon::entry> &);
-			long long copy(std::string, std::string, bool);
-			long long copy(std::string, std::string);
+			size_t list(const axon::transfer::cb &);
+			size_t list(std::vector<axon::entry> &);
+			off_t copy(std::string, std::string, bool);
+			off_t copy(std::string, std::string);
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
-			long long get(std::string, std::string, bool);
-			long long put(std::string, std::string, bool);
+			off_t get(std::string, std::string, bool);
+			off_t put(std::string, std::string, bool);
 
 			bool open(std::string, std::ios_base::openmode);
 			bool close();

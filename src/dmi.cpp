@@ -55,9 +55,7 @@ namespace axon
 			}
 
 			if ((p = (u8 *) malloc(length)) == NULL)
-			{
 				return NULL;
-			}
 
 			do {
 				r = read(fd, p + r2, length - r2);
@@ -132,11 +130,11 @@ namespace axon
 			if ((p = malloc(len)) == NULL)
 				return NULL;
 
-		#ifdef _SC_PAGESIZE
+#ifdef _SC_PAGESIZE
 			mmoffset = base % sysconf(_SC_PAGESIZE);
-		#else
+#else
 			mmoffset = base % getpagesize();
-		#endif /* _SC_PAGESIZE */
+#endif /* _SC_PAGESIZE */
 
 			mmp = mmap(NULL, mmoffset + len, PROT_READ, MAP_SHARED, fd, base - mmoffset);
 
@@ -433,7 +431,7 @@ namespace axon
 			{
 				char *addrp = strchr(linebuf, '=');
 
-				*(addrp++) = '\0';
+				if (addrp) *(addrp++) = '\0';
 
 				if (strcmp(linebuf, "SMBIOS3") == 0 || strcmp(linebuf, "SMBIOS") == 0)
 				{

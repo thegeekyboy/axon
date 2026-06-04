@@ -388,7 +388,7 @@ namespace axon {
 			axon::timer ctm(__PRETTY_FUNCTION__);
 
 			if (_connected) {
-				_consumer->detach();
+				if (_consumer) _consumer->detach();
 				_connected = false;
 			}
 
@@ -432,11 +432,9 @@ namespace axon {
 
 			_daemon = std::thread([this] {
 
-				//std::vector<std::thread> th; <- cannot remember why I put this here
-
-				while (th.size())
+				while (this->th.size())
 				{
-					for (std::thread& t : th)
+					for (std::thread& t : this->th)
 					{
 						if (t.joinable()) {
 							t.join();
@@ -447,7 +445,7 @@ namespace axon {
 
 				while (_runnable)
 				{
-
+					// TODO: more codes needs to go here. this is incompleate
 				}
 			});
 
