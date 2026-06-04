@@ -30,7 +30,7 @@ namespace axon {
 	{
 		long value;
 
-		if (_empty || _data.at(name).kind() != boost::json::kind::null)
+		if (_empty || _data.at(name).kind() == boost::json::kind::null)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "recordset is either empty or value is null");
 
 		if (_data.at(name).kind() != boost::json::kind::int64)
@@ -50,7 +50,7 @@ namespace axon {
 	{
 		double value;
 
-		if (_empty || _data.at(name).kind() != boost::json::kind::null)
+		if (_empty || _data.at(name).kind() == boost::json::kind::null)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "recordset is either empty or value is null");
 
 		if (_data.at(name).kind() != boost::json::kind::double_)
@@ -65,7 +65,7 @@ namespace axon {
 	{
 		std::string value;
 
-		if (_empty || _data.at(name).kind() != boost::json::kind::null)
+		if (_empty || _data.at(name).kind() == boost::json::kind::null)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "recordset is either empty or value is null");
 
 		if (_data.at(name).kind() != boost::json::kind::string)

@@ -139,17 +139,17 @@ namespace axon
 				virtual bool chwd(std::string) = 0;
 				virtual std::string pwd() = 0;
 				virtual bool mkdir(std::string) = 0;
-				virtual int list(const cb &) = 0;
-				virtual int list(std::vector<axon::entry> &) = 0;
-				virtual long long copy(std::string, std::string, bool) = 0;
-				virtual long long copy(std::string, std::string) = 0;
+				virtual size_t list(const cb &) = 0;
+				virtual size_t list(std::vector<axon::entry> &) = 0;
+				virtual off_t copy(std::string, std::string, bool) = 0;
+				virtual off_t copy(std::string, std::string) = 0;
 				virtual bool ren(std::string, std::string) = 0;
 				virtual bool del(std::string) = 0;
 
-				virtual long long get(std::string, std::string, bool) = 0;
-				virtual long long put(std::string, std::string, bool) = 0;
-				virtual long long put(std::string src, std::string dest) final { return put(src, dest, false); };
-				virtual long long put(std::string src) final { return put(src, src, false); };
+				virtual off_t get(std::string, std::string, bool) = 0;
+				virtual off_t put(std::string, std::string, bool) = 0;
+				virtual off_t put(std::string src, std::string dest) final { return put(src, dest, false); };
+				virtual off_t put(std::string src) final { return put(src, src, false); };
 
 				virtual bool open(std::string, std::ios_base::openmode) = 0;
 				virtual bool close() = 0;

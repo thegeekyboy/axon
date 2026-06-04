@@ -225,7 +225,7 @@ namespace axon
 			return true;
 		}
 
-		long long ftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t ftp::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: implement remote system copy function
 			// TODO: implement compression on remote
@@ -246,7 +246,7 @@ namespace axon
 			return 0L;
 		}
 
-		long long ftp::copy(std::string src, std::string dest) { return copy(src, dest, false); };
+		off_t ftp::copy(std::string src, std::string dest) { return copy(src, dest, false); };
 
 		bool ftp::ren(std::string from, std::string to)
 		{
@@ -333,12 +333,12 @@ namespace axon
 			return false;
 		}
 
-		int ftp::list(std::vector<axon::entry> &vec)
+		size_t ftp::list(std::vector<axon::entry> &vec)
 		{
 			return list([&](const axon::entry &e) mutable { vec.push_back(e); });
 		}
 
-		int ftp::list(const axon::transfer::cb &cbfn)
+		size_t ftp::list(const axon::transfer::cb &cbfn)
 		{
 			char pasvhost[16];
 			unsigned char v[6];
@@ -426,7 +426,7 @@ namespace axon
 			return true;
 		}
 
-		long long ftp::get(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t ftp::get(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compression
 			char pasvhost[16];
@@ -501,7 +501,7 @@ namespace axon
 			return szx;
 		}
 
-		long long ftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
+		off_t ftp::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: need to implement compression
 			unsigned char v[6];

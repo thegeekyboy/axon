@@ -600,8 +600,11 @@ namespace axon
 
 			if (settingstype == CONFIG_TYPE_ARRAY)
 			{
-				if ((retval = config_setting_get_int_elem(setting, index)) == 0)
+				int count = config_setting_length(setting);
+				if (count <= 0 || count <= index)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Unexpected error while reading parameter '" + path + "'");
+
+				retval = config_setting_get_int_elem(setting, index); // if still there is an error, not sure how to detect it
 			}
 			else
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Config parameter '" + path + "' is of unsupported type (" + std::to_string(settingstype) + ")");

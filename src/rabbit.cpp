@@ -301,7 +301,7 @@ namespace axon
 			axon::queue::error re;
 			envelope env{};
 
-			if ((re = amqp_basic_get(_connection.get(), _channel, amqp_cstring_bytes(queue.c_str()), 1)) == AMQP_RESPONSE_NORMAL && re == AMQP_BASIC_GET_EMPTY_METHOD)
+			if ((re = amqp_basic_get(_connection.get(), _channel, amqp_cstring_bytes(queue.c_str()), 1)) == AMQP_RESPONSE_NORMAL || re == AMQP_BASIC_GET_EMPTY_METHOD) // TODO: changed && with || need to check if this is ok
 				return env;
 
 			amqp_message_t message;

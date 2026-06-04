@@ -24,10 +24,10 @@ namespace axon
 				short int exec(std::string cmd) { return exec(cmd, NULL, 5, nullptr); }
 				short int exec(std::string cmd, std::vector<std::string> *vec) { return exec(cmd, vec, 5, nullptr); }
 				short int exec(std::string cmd, unsigned short int timeout) { return exec(cmd, NULL, timeout, nullptr); }
-				short int exec(std::string cmd, const std::function<int(std::string, short int&)> &cb) { return exec( cmd, NULL, 5, cb); }
+				short int exec(std::string cmd, const std::function<int(std::string, short int)> &cb) { return exec( cmd, NULL, 5, cb); }
 				short int exec(std::string cmd, std::vector<std::string> *vec, unsigned short int timeout) { return exec(cmd, vec, timeout, nullptr); }
 
-				short int exec(std::string, std::vector<std::string> *, unsigned short int, const std::function<int(std::string, short int&)> &);
+				short int exec(std::string, std::vector<std::string> *, unsigned short int, const std::function<int(std::string, short int)> &);
 
 			public:
 

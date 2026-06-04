@@ -99,8 +99,8 @@ namespace axon
 			bool _is_open;
 
 			bool init();
-			long long _scp_get(std::string, std::string, bool);
-			long long _sftp_get(std::string, std::string, bool);
+			off_t _scp_get(std::string, std::string, bool);
+			off_t _sftp_get(std::string, std::string, bool);
 
 		public:
 			sftp(std::string hostname, std::string username, std::string password, uint16_t port): connection(hostname, username, password, port) { _sftp = NULL; _connected = false; _is_open = false; };
@@ -114,17 +114,17 @@ namespace axon
 			bool chwd(std::string);
 			std::string pwd();
 			bool mkdir(std::string);
-			int list(const axon::transfer::cb &);
-			int list(std::vector<entry> &);
-			long long copy(std::string, std::string, bool);
-			long long copy(std::string src, std::string dest) { return copy(src, dest, false); };
+			size_t list(const axon::transfer::cb &);
+			size_t list(std::vector<entry> &);
+			off_t copy(std::string, std::string, bool);
+			off_t copy(std::string src, std::string dest) { return copy(src, dest, false); };
 			bool ren(std::string, std::string);
 			bool del(std::string);
 
 			int cb(const struct entry *);
 
-			long long get(std::string, std::string, bool);
-			long long put(std::string, std::string, bool);
+			off_t get(std::string, std::string, bool);
+			off_t put(std::string, std::string, bool);
 
 			bool open(std::string, std::ios_base::openmode);
 			bool close();

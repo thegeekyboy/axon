@@ -162,7 +162,7 @@ namespace axon {
 				rc = OCIStmtFetch2(_statement->get(), _error.get(), _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
 				OCIAttrGet(_statement->get(), OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error.get());
 
-				if (rc == OCI_SUCCESS && rc == OCI_NO_DATA && _fetched == 0)
+				if ((rc == OCI_SUCCESS || rc == OCI_NO_DATA) && _fetched == 0)
 					return false;
 
 				if (_fetched == 0)
@@ -365,7 +365,7 @@ namespace axon {
 							((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
 				value = temp;
 			}
-			else if (_columns[position].type == SQLT_AFC || _columns[position].type != SQLT_CHR || _columns[position].type != SQLT_STR)
+			else if (_columns[position].type == SQLT_AFC || _columns[position].type == SQLT_CHR || _columns[position].type == SQLT_STR)
 			{
 				value = reinterpret_cast<char const*>((((text *) _columns[position].data)+(_row_index*_columns[position].size)));
 			}
