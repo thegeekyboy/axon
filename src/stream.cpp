@@ -8,15 +8,15 @@ namespace axon {
 		interface::interface(std::string hostname, std::string username, std::string password, uint16_t port):
 		_id(axon::util::uuid()), _hostname(hostname), _username(username), _password(password), _port(port), _runnable(false), _running(false), _connected(false), _subscribed(false)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			const char* r_hostname_ip = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}";
 			const char* r_hostname_fqdn = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$";
 			const char* r_username_p = "^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$";
 
-			boost::regex regex_ipaddr(r_hostname_ip);
-			boost::regex regex_fqdn(r_hostname_fqdn);
-			boost::regex regex_username(r_username_p);
+			static const boost::regex regex_ipaddr(r_hostname_ip);
+			static const boost::regex regex_fqdn(r_hostname_fqdn);
+			static const boost::regex regex_username(r_username_p);
 
 			if (!boost::regex_match(hostname, regex_ipaddr) && !boost::regex_match(hostname, regex_fqdn))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "wrong hostname/ip address format");

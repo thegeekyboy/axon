@@ -1,6 +1,9 @@
 #ifndef AXON_FTP_H_
 #define AXON_FTP_H_
 
+#include <initializer_list>
+#include <string>
+
 namespace axon
 {
 	namespace transfer
@@ -13,6 +16,8 @@ namespace axon
 			bool init();
 			bool login();
 			bool push(axon::transfer::connection&);
+
+			std::string _wait_for(const std::string &cmd, std::initializer_list<std::string> expected, std::initializer_list<std::string> errors);
 
 		public:
 			ftp(std::string, std::string, std::string, uint16_t);

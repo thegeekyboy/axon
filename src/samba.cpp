@@ -106,7 +106,7 @@ namespace axon
 			if (path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path");
 
-			if (path.substr(0, 1) == "." || path.substr(0, 2) == ".." || path.substr(0, 1) != "/")
+			if (path[0] == '.' || (path.size() >= 2 && path[0] == '.' && path[1] == '.') || path[0] != '/')
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] relative path not supported");
 
 			// TODO: implement relative path
@@ -141,22 +141,22 @@ namespace axon
 			return _path;
 		}
 
-		bool samba::mkdir(std::string dir)
+		bool samba::mkdir(std::string path)
 		{
-			std::string dirx, prefix;
+			std::string pathx, prefix;
 
 			// if (_path.size() <= 0)
 			// 	throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized"); <- should we do this?
 
-			if (dir.substr(0, 1) == "." || dir.substr(0, 2) == "..")
+			if (path[0] == '.' || (path.size() >= 2 && path[0] == '.' && path[1] == '.'))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] relative path not supported");
 
-			if (dir[0] == '/')
-				dirx = dir;
+			if (path[0] == '/')
+				pathx = path;
 			else
-				dirx = _path + "/" + dir;
+				pathx = _path + "/" + path;
 
-			std::vector<std::string> parts = axon::util::split(dirx, '/');
+			std::vector<std::string> parts = axon::util::split(pathx, '/');
 
 			if (parts[0] != _share)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] changing share from " + _share + " to " + parts[0] + " is not supported after connect");

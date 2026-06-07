@@ -145,9 +145,9 @@ namespace axon
 			const char* r_hostname_fqdn = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$";
 			const char* r_username_p = "^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$";
 
-			boost::regex regex_ipaddr(r_hostname_ip);
-			boost::regex regex_fqdn(r_hostname_fqdn);
-			boost::regex regex_username(r_username_p);
+			static const boost::regex regex_ipaddr(r_hostname_ip);
+			static const boost::regex regex_fqdn(r_hostname_fqdn);
+			static const boost::regex regex_username(r_username_p);
 
 			if (!boost::regex_match(hostname, regex_ipaddr) && !boost::regex_match(hostname, regex_fqdn))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname/ip address format");

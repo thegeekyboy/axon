@@ -10,10 +10,6 @@ namespace axon
 {
 	namespace cache
 	{
-		/* ═══════════════════════════════════════════════════════════
-		   internal helpers
-		   ═══════════════════════════════════════════════════════════ */
-
 		axon::cache::reply redis::_command(const char *fmt, ...)
 		{
 			if (!_ctx || !_connected)
@@ -57,10 +53,6 @@ namespace axon
 
 			return axon::cache::reply(r);
 		}
-
-		/* ═══════════════════════════════════════════════════════════
-		   construction / connection
-		   ═══════════════════════════════════════════════════════════ */
 
 		redis::redis() {}
 
@@ -132,10 +124,6 @@ namespace axon
 			return r.ok() && _ctx && !_ctx->err;
 		}
 
-		/* ═══════════════════════════════════════════════════════════
-		   generic key operations
-		   ═══════════════════════════════════════════════════════════ */
-
 		bool redis::exists(std::string_view key)
 		{
 			auto r = _command("EXISTS %b", key.data(), key.size());
@@ -160,10 +148,6 @@ namespace axon
 			return r.ok() ? r->integer : -2LL;
 		}
 
-		/* ═══════════════════════════════════════════════════════════
-		   string operations
-		   ═══════════════════════════════════════════════════════════ */
-
 		bool redis::set(std::string_view key, std::string_view value, int ex)
 		{
 			axon::cache::reply r = ex > 0
@@ -184,10 +168,6 @@ namespace axon
 			auto r = _command("INCRBY %b %lld", key.data(), key.size(), by);
 			return r.ok() ? r->integer : 0LL;
 		}
-
-		/* ═══════════════════════════════════════════════════════════
-		   hash operations
-		   ═══════════════════════════════════════════════════════════ */
 
 		bool redis::hset(std::string_view key, std::string_view field, std::string_view value)
 		{
@@ -248,10 +228,6 @@ namespace axon
 			return result;
 		}
 
-		/* ═══════════════════════════════════════════════════════════
-		   pipeline
-		   ═══════════════════════════════════════════════════════════ */
-
 		void redis::pipeline_begin()
 		{
 			if (_pipeline_depth > 0)
@@ -293,21 +269,22 @@ namespace axon
 		{
 			_append("EXPIRE %b %d", key.data(), key.size(), seconds);
 		}
-
+/*
 		void redis::pipeline_commit()
 		{
 			for (int i = 0; i < _pipeline_depth; ++i)
 			{
 				auto r = _collect();
-				/* replies are discarded — errors are silently swallowed
-				   to match fire-and-forget pipeline semantics.
-				   If you need per-command error checking, use the
-				   non-pipeline methods instead.                         */
+
+				// replies are discarded — errors are silently swallowed
+				// to match fire-and-forget pipeline semantics.
+				// If you need per-command error checking, use the
+				// non-pipeline methods instead.
 				(void) r;
 			}
 			_pipeline_depth = 0;
 		}
-
+*/
 		std::vector<axon::cache::reply> redis::pipeline_run()
 		{
 			std::vector<reply> replystack;
@@ -319,16 +296,6 @@ namespace axon
 			_pipeline_depth = 0;
 			return replystack;
 		}
-		/*{
-			std::vector<axon::cache::reply> replystack;
-			replystack.reserve(_pipeline_depth);
-
-			for (int i = 0; i < _pipeline_depth; ++i)
-				replystack.push_back(_collect());
-
-			_pipeline_depth = 0;
-			return replystack;
-		}*/
 
 	} // namespace cache
 } // namespace axon

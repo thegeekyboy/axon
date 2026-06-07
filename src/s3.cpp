@@ -56,7 +56,7 @@ namespace axon
 
 		bool s3::connect()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 			Aws::Client::ClientConfiguration cfg;
@@ -85,7 +85,7 @@ namespace axon
 				cfg.proxyScheme = Aws::Http::Scheme::HTTP;
 			}
 
-			_client = new Aws::S3::S3Client(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
+			_client = std::make_shared<Aws::S3::S3Client>(auth, cfg, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAdressing);
 
 			auto outcome = _client->ListBuckets();
 
@@ -100,10 +100,11 @@ namespace axon
 
 		bool s3::disconnect()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
+
 			if (_connected)
 			{
-				delete _client;
+				_client.reset();
 				_connected = false;
 			}
 
@@ -112,13 +113,13 @@ namespace axon
 
 		bool s3::chwd(std::string path)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, path.c_str());
 
 			if (path.size() <= 2)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] invalid path");
 
-			if (path.substr(0, 1) == "." || path.substr(0, 2) == "..")
+			if (path[0] == '.' || (path.size() >= 2 && path[0] == '.' && path[1] == '.'))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] relative path not supported");
 
 			// TODO: implement relative path
@@ -145,7 +146,7 @@ namespace axon
 
 		std::string s3::pwd()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (_path.size() <= 0)
@@ -156,7 +157,7 @@ namespace axon
 
 		bool s3::mkdir(std::string dir)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, dir.c_str());
 			std::string finalpath = (dir[0] == '/') ? dir : _path + "/" + dir;
 
@@ -169,7 +170,7 @@ namespace axon
 		off_t s3::copy(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
 			// TODO: Need to implement compress
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx, destx;
 			long long filesize;
@@ -218,7 +219,7 @@ namespace axon
 
 		bool s3::ren(std::string src, std::string dest)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx, destx;
 			std::string parent, remainder;
@@ -244,7 +245,7 @@ namespace axon
 
 		bool s3::del(std::string target)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s", _id.c_str(), __PRETTY_FUNCTION__, target.c_str());
 			std::string targetx;
 
@@ -280,7 +281,7 @@ namespace axon
 
 		size_t s3::list(const axon::transfer::cb &cbfn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			long count = 0;
 			bool done = false;
 
@@ -347,7 +348,7 @@ namespace axon
 
 		off_t s3::get(std::string src, std::string dest, bool compress)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			std::string srcx;
 			Aws::S3::Model::GetObjectRequest request;
@@ -403,7 +404,7 @@ namespace axon
 
 		off_t s3::put(std::string src, std::string dest, [[maybe_unused]] bool compress)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			// TODO: Need to implement compress
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, src.c_str(), dest.c_str());
 			// TODO: https://stackoverflow.com/questions/59526181/multipart-upload-s3-using-aws-c-sdk
@@ -441,18 +442,13 @@ namespace axon
 
 		bool s3::open(std::string filename, std::ios_base::openmode om)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s = %s to %s", _id.c_str(), __PRETTY_FUNCTION__, filename.c_str(), ((om==std::ios::out)?"write":"read"));
 
 			if (_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
 
-			std::string finalpath;
-
-			if (filename[0] == '/')
-				finalpath = filename;
-			else
-				finalpath = _path + "/" + filename;
+			std::string finalpath = (filename[0] == '/') ? filename : _path + "/" + filename;
 
 			auto [bucket, prefix] = axon::util::splitbucket(finalpath);
 
@@ -462,21 +458,18 @@ namespace axon
 			{
 				// READ: https://stackoverflow.com/questions/38647444/aws-c-s3-sdk-putobjectrequest-unable-to-connect-to-endpoint
 				_putobject = std::make_unique<Aws::S3::Model::PutObjectRequest>();
-
-				_putobject->WithBucket(bucket);
-				_putobject->WithKey(prefix);
+                _putobject->WithBucket(bucket).WithKey(prefix);
+                _buffer  = std::make_shared<std::stringstream>();
 			}
 			else
 			{
-				Aws::S3::Model::GetObjectRequest request;
-
-				request.WithBucket(bucket).WithKey(prefix);
-				_getobject = std::make_unique<Aws::S3::Model::GetObjectOutcome>(_client->GetObject(request));
-
-				if (!_getobject->IsSuccess())
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file to read. " + _getobject->GetError().GetMessage());
-
-				*_buffer << _getobject->GetResult().GetBody().rdbuf();
+                Aws::S3::Model::GetObjectRequest request;
+                request.WithBucket(bucket).WithKey(prefix);
+ 
+                _getobject = std::make_unique<Aws::S3::Model::GetObjectOutcome>(_client->GetObject(request));
+ 
+                if (!_getobject->IsSuccess())
+                    throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file for reading. " + _getobject->GetError().GetMessage());
 			}
 
 			_fileopen = true;
@@ -487,7 +480,7 @@ namespace axon
 
 		bool s3::close()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (!_fileopen)
@@ -498,7 +491,9 @@ namespace axon
 				_putobject->SetBody(_buffer);
 
 				Aws::S3::Model::PutObjectOutcome outcome = _client->PutObject(*_putobject);
+				
 				_putobject.reset();
+				_buffer.reset();
 
 				if (!outcome.IsSuccess())
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not push file. " + outcome.GetError().GetMessage());
@@ -506,17 +501,14 @@ namespace axon
 			else
 			{
 				_getobject.reset();
-				_buffer.reset();
 			}
 
-			_fileopen = false;
-
-			return !_fileopen;
+			return !(_fileopen = false);
 		}
 
 		bool s3::push(axon::transfer::connection& conn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 
 			if (!_fileopen)
@@ -533,10 +525,8 @@ namespace axon
 
 		ssize_t s3::read(char* buffer, size_t size)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s => size(%ld)", _id.c_str(), __PRETTY_FUNCTION__, size);
-
-			ssize_t filesize = 0;
 
 			if (!_fileopen)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
@@ -544,19 +534,17 @@ namespace axon
 			if (!(_om & std::ios::in))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
 
-			_buffer->read(buffer, size);
+			Aws::IOStream& body = _getobject->GetResult().GetBody();
+ 
+            body.read(buffer, static_cast<std::streamsize>(size));
+            const ssize_t nb = static_cast<ssize_t>(body.gcount());
 
-			if (*_buffer)
-				filesize = size;
-			else
-				filesize = _buffer->gcount();
-
-			return filesize;
+			return nb;
 		}
 
 		ssize_t s3::write(const char* buffer, size_t size)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("[%s] %s => size(%ld)", _id.c_str(), __PRETTY_FUNCTION__, size);
 
 			if (!_fileopen)
@@ -565,9 +553,9 @@ namespace axon
 			if (!(_om & std::ios::out))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform write operation when file is open for read");
 
-			*_buffer<<buffer;
+			_buffer->write(buffer, static_cast<std::streamsize>(size));
 
-			return size;
+			return static_cast<ssize_t>(size);
 		}
 	}
 }

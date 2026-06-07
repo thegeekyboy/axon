@@ -3,6 +3,8 @@
 
 #include <queue>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <cstring>
 
@@ -33,6 +35,9 @@ namespace axon
 				std::atomic<bool> _alive;
 				std::atomic<bool> _reader;
 
+				std::mutex _mtx;
+				std::condition_variable _cv;
+
 			public:
 				socks();
 				~socks();
@@ -44,7 +49,7 @@ namespace axon
 				bool alive();
 
 				long long read(void *, size_t);
-				int readline();
+				int  readline();		// runs on its own thread; now notifies _cv
 				bool linewaiting();
 				std::string line();
 				bool purge();
@@ -52,6 +57,8 @@ namespace axon
 				bool writeline(std::string);
 				long write(std::string);
 				long write(const char *, size_t);
+
+				bool wait(unsigned int timeout_ms = 0);
 			};
 		}
 	}
