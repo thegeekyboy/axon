@@ -226,7 +226,7 @@ namespace axon
 		if (!axon::util::isfile(filename))
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot attach file, does not exist");
 
-		auto [magic, encoding] = axon::util::magic(filename);
+		auto [magic, encoding] = axon::util::magic::resolve(filename);
 
 		attach(filename, cid, magic);
 	}

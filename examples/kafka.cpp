@@ -280,10 +280,10 @@ void parse(std::shared_ptr<axon::stream::recordset> rec, axon::cache::redis &red
 		// rec->get("REDEEMED_POINT_AMOUNT", REDEEMED_POINT_AMOUNT);
 
 		if ((size = rec->get("DEBIT_PARTY_ID", buffer, 8)) > 0) DEBIT_PARTY_ID = axon::util::bytes_to_ull(buffer, size);
-		if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = axon::util::bytestoull(buffer, size);
-		if ((size = rec->get("REASON_TYPE", buffer, 8)) > 0) REASON_TYPE = axon::util::bytestoull(buffer, size);
-		// if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = std::to_string(axon::util::bytestoull(buffer, size));
-		// if ((size = rec->get("EXCHANGE_RATE", buffer, 8)) > 0) EXCHANGE_RATE = axon::util::bytestoull(buffer, size);
+		if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = axon::util::bytes_to_ull(buffer, size);
+		if ((size = rec->get("REASON_TYPE", buffer, 8)) > 0) REASON_TYPE = axon::util::bytes_to_ull(buffer, size);
+		// if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = std::to_string(axon::util::bytes_to_ull(buffer, size));
+		// if ((size = rec->get("EXCHANGE_RATE", buffer, 8)) > 0) EXCHANGE_RATE = axon::util::bytes_to_ull(buffer, size);
 	
 		// std::cout<<axon::timer::fulldate(TRANS_INITATE_TIME)<<">>"<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<std::endl;
 		// std::cout<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<" => "<<DEBIT_PARTY_ID<<"::"<<CREDIT_PARTY_ID<<std::endl;

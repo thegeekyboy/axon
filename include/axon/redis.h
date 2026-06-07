@@ -56,15 +56,6 @@ namespace axon
 			}
 		};
 
-		/* ─────────────────────────────────────────────────────────────
-			redis  — main connection class
-
-			Follows the same style as axon::database::scylladb and
-			axon::stream::kafka:
-			• constructor connects, destructor cleans up
-			• throws axon::exception on errors
-			• non-copyable, moveable
-		───────────────────────────────────────────────────────────── */
 		class redis
 		{
 			redisContext *_ctx { nullptr };
@@ -78,7 +69,7 @@ namespace axon
 			axon::cache::reply _command(const char *, ...);
 
 		public:
-			/* ── construction / connection ─────────────────────────── */
+
 			redis();
 			redis(std::string_view, int, int = 500);
 			~redis();
@@ -117,26 +108,12 @@ namespace axon
 			// Returns field→value pairs for all fields in the hash
 			std::vector<std::pair<std::string, std::string>> hgetall(std::string_view);
 
-			/* ── pipeline support ──────────────────────────────────── */
-
-			/*  Pipeline lets you send N commands and collect N replies
-				in a single TCP round trip.
-
-				Usage:
-					redis r("127.0.0.1", 6379);
-					r.pipeline_begin();
-					r.pipeline_hincrby("entity:123:p2p:2026041816", "cnt", 1);
-					r.pipeline_hincrby("entity:123:p2p:2026041816", "sum", 5000);
-					r.pipeline_expire("entity:123:p2p:2026041816", 90000);
-					r.pipeline_commit(); // one round trip
-			*/
 			void pipeline_begin();
 			void pipeline_hincrby(std::string_view, std::string_view, long long);
 			void pipeline_hincrbyfloat(std::string_view, std::string_view, double);
 			void pipeline_hset(std::string_view, std::string_view, std::string_view);
 			void pipeline_hgetall(std::string_view);
 			void pipeline_expire(std::string_view, int);
-			void pipeline_commit(); /* flush + discard all replies */
 			std::vector<axon::cache::reply> pipeline_run();
 
 		private:

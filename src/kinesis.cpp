@@ -29,7 +29,7 @@ namespace axon {
 
 		std::string kinesis::stream::_get_stream_arn(std::string name)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			boost::regex pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/([A-Za-z0-9_.-]{1,128})$", boost::regex::extended);
 			boost::smatch what;
@@ -58,7 +58,7 @@ namespace axon {
 
 		std::vector<axon::stream::kinesis::partition> kinesis::stream::get_stream_partitions(std::string arn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			Aws::Kinesis::Model::ListShardsRequest request;
 
 			request.SetStreamARN(arn);
@@ -92,7 +92,7 @@ namespace axon {
 		kinesis::stream::stream(std::shared_ptr<Aws::Kinesis::KinesisClient> client, std::string name, axon::stream::cbfn callback = nullptr):
 		_client(client), _id(axon::util::uuid()), _name(name), _ready(false), _sync(false), _busy(false), _callback(callback)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			DBGPRN("%s %s stream creating", _id.c_str(), _name.c_str());
 
 			if (name.empty()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "stream name cannot be empty");
@@ -113,7 +113,7 @@ namespace axon {
 
 		void kinesis::stream::create()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_ready) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "stream already exists");
 
@@ -136,7 +136,7 @@ namespace axon {
 
 		void kinesis::stream::remove()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			if (!_ready) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kinesis stream does not exists");
 
 			Aws::Kinesis::Model::DeleteStreamRequest request;
@@ -156,7 +156,7 @@ namespace axon {
 
 		std::string kinesis::consumer::attach(std::shared_ptr<Aws::Kinesis::KinesisClient> client, std::string arn, std::string name)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			Aws::Kinesis::Model::RegisterStreamConsumerRequest request;
 
 			request.SetStreamARN(arn);
@@ -172,7 +172,7 @@ namespace axon {
 
 		bool kinesis::consumer::detach(std::shared_ptr<Aws::Kinesis::KinesisClient> client, std::string arn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			Aws::Kinesis::Model::DeregisterStreamConsumerRequest request;
 
 			request.SetConsumerARN(arn);
@@ -192,7 +192,7 @@ namespace axon {
 
 		bool kinesis::consumer::_validate_consumer_arn(std::string arn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			Aws::Kinesis::Model::DescribeStreamConsumerRequest request;
 
 			request.SetConsumerARN(arn);
@@ -206,7 +206,7 @@ namespace axon {
 
 		std::string kinesis::consumer::_get_consumer_arn(std::string stream_arn, std::string consumer_name)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			Aws::Kinesis::Model::ListStreamConsumersRequest request;
 
 			request.SetStreamARN(stream_arn);
@@ -238,7 +238,7 @@ namespace axon {
 
 		std::string kinesis::consumer::attach(std::string arn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			boost::regex c_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/([A-Za-z0-9_.-]{1,128})\\/consumer\\/([A-Za-z0-9_.-]{1,128}):\\d{10,}$", boost::regex::extended);
 			boost::regex s_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/[A-Za-z0-9_.-]{1,128}$");
 			boost::smatch what;
@@ -287,7 +287,7 @@ namespace axon {
 
 		void kinesis::consumer::detach()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			DBGPRN("consumer count = %d", _count);
 
@@ -303,7 +303,7 @@ namespace axon {
 
 		bool kinesis::consumer::detach(std::string arn)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			axon::stream::ARN arntype = axon::stream::resolve(arn);
 
 			if (arntype == axon::stream::ARN::UNKNOWN) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "arn is not in correct format");
@@ -349,7 +349,7 @@ namespace axon {
 		kinesis::kinesis(std::string hostname, std::string username, std::string password, uint16_t port):
 		interface(hostname, username, password, port), _aws(axon::AwsStack()), _sync(true), _consumer_count(0)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			Aws::Auth::AWSCredentials auth = Aws::Auth::AWSCredentials(_username, _password);
 			Aws::Client::ClientConfiguration cfg;
@@ -375,7 +375,7 @@ namespace axon {
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] " + outcome.GetError().GetMessage());
 
 			_connected = true;
-			_streams.reserve(10);
+			// _streams.reserve(10); // likely not needed
 		}
 
 		kinesis::kinesis(std::string hostname, std::string username, std::string password)
@@ -385,7 +385,7 @@ namespace axon {
 
 		kinesis::~kinesis()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_connected) {
 				if (_consumer) _consumer->detach();

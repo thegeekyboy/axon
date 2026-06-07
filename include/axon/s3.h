@@ -33,7 +33,7 @@ namespace axon
 	{
 		class s3 : public connection {
 
-			Aws::S3::S3Client *_client;
+			std::shared_ptr<Aws::S3::S3Client> _client;
 
 			std::unique_ptr<Aws::S3::Model::GetObjectOutcome> _getobject;
 			std::unique_ptr<Aws::S3::Model::PutObjectRequest> _putobject;

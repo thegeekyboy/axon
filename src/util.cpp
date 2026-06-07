@@ -6,8 +6,6 @@
 #include <cxxabi.h>
 #include <unistd.h>
 
-#include <magic.h>
-
 #include <axon.h>
 #include <axon/version.h>
 #include <axon/util.h>
@@ -31,21 +29,7 @@ namespace axon
 			"abcdefghijklmnopqrstuvwxyz"
 			"0123456789+/";
 
-		static inline void ltrim(std::string &s)
-		{
-			s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-		}
-
-		static inline void rtrim(std::string &s)
-		{
-			s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch);	}).base(), s.end());
-		}
-
-		static inline void trim(std::string &s)
-		{
-			rtrim(s);
-			ltrim(s);
-		}
+		struct magic_set *magic::cookie = NULL;
 
 		unsigned long long bytes_to_ull(const char* bytes, size_t size)
 		{
@@ -310,30 +294,6 @@ namespace axon
 					return false;
 
 			return true;
-		}
-
-		std::tuple<std::string, std::string> magic(std::string& filename)
-		{
-			struct magic_set *mcookie;
-			std::string mimetype, encoding;
-
-			if ((mcookie = magic_open(MAGIC_MIME|MAGIC_CHECK)) != NULL)
-			{
-				if (magic_load(mcookie, NULL) == 0)
-				{
-					mimetype = magic_file(mcookie, filename.c_str());
-					std::vector<std::string> bits = axon::util::split(mimetype, ';');
-					if (bits.size()>1)
-					{
-						trim(bits[0]);
-						trim(bits[1]);
-					}
-					mimetype = bits[0];
-					encoding = bits[1];
-				}
-				magic_close(mcookie);
-			}
-			return { mimetype, encoding };
 		}
 
 		bool execmd(const char *cmd)

@@ -46,6 +46,12 @@
 	#define INFPRN(...) { }
 #endif
 
+#if DEBUG >= 3
+#define BENCHMARK axon::timer ctm(__PRETTY_FUNCTION__)
+#else
+#define BENCHMARK
+#endif
+
 // AXON Namespace
 namespace axon
 {

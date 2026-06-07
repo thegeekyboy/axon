@@ -13,7 +13,7 @@ namespace axon {
 
 		resultset::resultset(std::shared_ptr<axon::database::statement> stmt)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_uuid = axon::util::uuid();
 			int rc = 0;
@@ -157,7 +157,7 @@ namespace axon {
 				_fetched = 0;
 				_row_index = 0;
 
-				axon::timer ctm(__PRETTY_FUNCTION__);
+				BENCHMARK;
 
 				rc = OCIStmtFetch2(_statement->get(), _error.get(), _prefetch, OCI_DEFAULT, 0, OCI_DEFAULT);
 				OCIAttrGet(_statement->get(), OCI_HTYPE_STMT, (void*) &_fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error.get());
@@ -193,7 +193,7 @@ namespace axon {
 
 		std::string resultset::get(int i)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			std::string value;
 
@@ -243,7 +243,7 @@ namespace axon {
 
 		int resultset::get_int(int position)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			int value = 0;
 
 			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
@@ -261,7 +261,7 @@ namespace axon {
 
 		long resultset::get_long(int position)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			long value = 0;
 
 			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[_col_index].type);
@@ -305,7 +305,7 @@ namespace axon {
 
 		float resultset::get_float(int position)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			float value = 0;
 
 			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
@@ -323,7 +323,7 @@ namespace axon {
 
 		double resultset::get_double(int position)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			double value = 0;
 
 			DBGPRN("_col_count: %d, position: %d, col.type: %d", _col_count, position, _columns[position].type);
@@ -341,7 +341,7 @@ namespace axon {
 
 		std::string resultset::get_string(int position)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			std::string value;
 
 			DBGPRN("_col_count: %d, position: %d, type: %d, size: %d", _col_count, position, _columns[position].type, _columns[position].size);
@@ -420,7 +420,7 @@ namespace axon {
 		{
 			// READ: https://stackoverflow.com/questions/16883694/ocibindbypos-on-array-of-strings
 
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			int index = 1, count = vars.size();
 
 			for (auto &element : vars)
@@ -560,7 +560,7 @@ namespace axon {
 
 		void statement::execute(axon::database::exec_type et)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if ((_error = OCIStmtExecute(_context->get(), _pointer, _error.get(), (et == exec_type::select)?0:1, 0, (OCISnapshot *) 0, (OCISnapshot *) 0, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
@@ -613,7 +613,7 @@ namespace axon {
 
 		bool oracle::connect()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_hostname.size() <= 1 || _username.size() <= 1 || _password.size() <= 1)
 				return false;
@@ -647,7 +647,7 @@ namespace axon {
 
 		bool oracle::close()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_connected)
 			{
@@ -667,7 +667,7 @@ namespace axon {
 
 		bool oracle::ping()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -680,7 +680,7 @@ namespace axon {
 
 		std::string oracle::version()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
@@ -707,7 +707,7 @@ namespace axon {
 			// For further reading, following link is helpful
 			// https://docs.oracle.com/cd/B19306_01/appdev.102/b14250/oci04sql.htm
 
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_running)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "query in progress, try later.");
@@ -721,7 +721,7 @@ namespace axon {
 
 		bool oracle::query(const std::string sql)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			// This is the bind one list overload of the hard query
 			//
 			// How to use list bind variable with IN statement was borrowed with thanks from
@@ -748,7 +748,7 @@ namespace axon {
 
 		bool oracle::next()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_running && !_executed)
 			{
@@ -770,7 +770,7 @@ namespace axon {
 
 		void oracle::done()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_executed = false;
 			_running = false;
@@ -804,7 +804,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(int value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -814,7 +814,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(long value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -824,7 +824,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(long long value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -834,7 +834,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(float value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -844,7 +844,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(double value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -854,7 +854,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(std::string& value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value.c_str());
 			_colidx++;
@@ -864,7 +864,7 @@ namespace axon {
 
 		oracle& oracle::operator<<(axon::database::bind &value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			_bind.push_back(value);
 			_colidx++;
@@ -881,7 +881,7 @@ namespace axon {
 			// API details on how to extract different type of number via OCI Number functions
 			// https://docs.oracle.com/cd/B28359_01/appdev.111/b28395/oci19map003.htm
 
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			value = _resultset->get_int(_colidx);
 			_colidx++;
@@ -890,7 +890,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(long &value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			value = _resultset->get_long(_colidx);
 			_colidx++;
@@ -899,7 +899,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(float &value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			value = _resultset->get_float(_colidx);
 			_colidx++;
@@ -908,7 +908,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(double &value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			value = _resultset->get_double(_colidx);
 			_colidx++;
@@ -917,7 +917,7 @@ namespace axon {
 
 		oracle& oracle::operator>>(std::string &value)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			value = _resultset->get_string(_colidx);
 			_colidx++;
@@ -926,7 +926,7 @@ namespace axon {
 
 		std::ostream& oracle::printer(std::ostream &stream)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			std::string strval;
 
