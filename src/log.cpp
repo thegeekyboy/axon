@@ -1,9 +1,10 @@
+#include <iostream>
 #include <cstring>
 
 #include <axon.h>
 #include <axon/log.h>
 #include <axon/util.h>
-#include<iostream>
+
 namespace axon
 {
 	void log::fopen()
@@ -221,3 +222,4 @@ namespace axon
 		return *this;
 	}
 }
+

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef AXON_ORACLE_H_
+#define AXON_ORACLE_H_
 
 #include <mutex>
 #include <cstring>
@@ -419,3 +420,6 @@ namespace axon {
 		};
 	}
 }
+
+#endif
+

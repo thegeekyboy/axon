@@ -40,3 +40,4 @@ namespace axon
 		ssize_t nothing::write(const char*, size_t) { return 0L; }
 	}
 }
+

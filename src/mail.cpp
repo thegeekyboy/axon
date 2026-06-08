@@ -207,7 +207,7 @@ namespace axon
 
 		std::ifstream fin(value, std::ios::binary);
 		std::ostringstream ostr;
-		ostr << fin.rdbuf();;
+		ostr << fin.rdbuf();
 		_html = axon::util::base64_encode(ostr.str());
 	}
 
@@ -334,3 +334,4 @@ namespace axon
 		return true;
 	}
 }
+

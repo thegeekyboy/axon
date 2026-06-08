@@ -702,8 +702,7 @@ namespace axon {
 
 		bool oracle::execute(const std::string sql)
 		{
-			// TODO: DONE! How do we select all columns from a select statement? This we need to iterate between the field and see
-			// how to pass the result accordingly. For now we are going to only return first field as this is the immediate requirement
+			// How do we select all columns from a select statement?
 			// For further reading, following link is helpful
 			// https://docs.oracle.com/cd/B19306_01/appdev.102/b14250/oci04sql.htm
 
@@ -957,3 +956,4 @@ namespace axon {
 		}
 	}
 }
+

@@ -18,6 +18,7 @@
 #include <system_error>
 #include <type_traits>
 
+#include <boost/regex.hpp>
 #include <magic.h>
 
 #include <axon.h>
@@ -29,9 +30,7 @@ namespace axon
 		typedef unsigned char BYTE;
 
 		unsigned long long bytes_to_ull(const char*, size_t);
-
-		unsigned long long bytestoull(const char *, const size_t);
-		std::string bytestodecstring(const char *, const size_t);
+		std::string bytes_to_binarystring(const char *, const size_t);
 
 		char *trim(char *);
 		static inline void ltrim(std::string &s)
@@ -79,7 +78,6 @@ namespace axon
 		bool set_thread_name(pthread_t, std::string);
 		void rm_thread(std::vector<std::thread>&, std::thread::id);
 
-		void debugprint(const char *, ...);
 		std::string demangle(const char*);
 
 		template <typename T>
@@ -122,42 +120,66 @@ namespace axon
 			static struct magic_set *cookie;
 
 			magic() {
-				
+
 				if (cookie) return;
 
 				if ((cookie = magic_open(MAGIC_MIME|MAGIC_CHECK)) == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot openmagic database");
-				
+
 				if (magic_load(cookie, NULL) != 0)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot load magic database");
-			};
-			
+			}
+
 			~magic() {
 				if (cookie) magic_close(cookie);
-			};
+			}
 
 			static std::tuple<std::string, std::string> resolve(std::string_view filename)
 			{
 				std::string mimetype = {}, encoding = {};
 
 				mimetype = magic_file(cookie, filename.data());
-				
+
 				std::vector<std::string> bits = axon::util::split(mimetype, ';');
-				
+
 				if (bits.size()>1)
 				{
 					trim(bits[0]);
 					trim(bits[1]);
 				}
-				
+
 				mimetype = bits[0];
 				encoding = bits[1];
-				
+
 				return { mimetype, encoding };
+			}
+		};
+
+		struct validator {
+
+			static const boost::regex regex_ipaddr;
+			static const boost::regex regex_fqdn;
+			static const boost::regex regex_username;
+
+			static bool hostname(std::string &hn) {
+
+				if (!boost::regex_match(hn, regex_ipaddr) && !boost::regex_match(hn, regex_fqdn))
+					return false;
+
+				return true;
+			};
+
+			static bool username(std::string &un) {
+
+				if (un.size() <= 0 || !boost::regex_match(un, regex_username))
+					return false;
+
+				return true;
 			};
 		};
 
 		struct procinfo {
+
 			char tcomm[16], state;
 			int pid, ppid, pgid, sid, tty_nr, tty_pgrp, exit_signal, cpu;
 			unsigned int flags, rt_priority, policy;
@@ -199,3 +221,4 @@ namespace axon
 }
 
 #endif
+

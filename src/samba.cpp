@@ -25,6 +25,20 @@ namespace axon
 		std::atomic<int> samba::_instance;
 		std::mutex samba::_mtx;
 
+		std::string samba::_smb2path(const std::string &abspath)
+		{
+			std::vector<std::string> parts = axon::util::split(abspath, '/');
+
+			if (parts[0] != _share)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path belongs to share '" + parts[0] + "', connected to '" + _share + "'");
+
+			std::string prefix;
+			for (unsigned int i = 1; i < parts.size(); i++)
+				prefix += parts[i] + (i < parts.size() - 1 ? "\\" : "");
+
+			return prefix;
+		}
+
 		bool samba::set(char c, std::string value)
 		{
 			switch (c)
@@ -417,13 +431,109 @@ namespace axon
 			return filesize;
 		}
 
-		bool samba::open(std::string, std::ios_base::openmode) { return false; }; // TODO: not yet implementd or donno how to do it
-		bool samba::close() { return false; }; // TODO: not yet implementd or donno how to do it
+		bool samba::open(std::string filename, std::ios_base::openmode om)
+		{
+			DBGPRN("[%s] requested samba::open() %s to %s", _id.c_str(), filename.c_str(), ((om == std::ios::out) ? "write" : "read"));
 
-		bool samba::push(axon::transfer::connection&) { return false; }; // TODO: not yet implementd or donno how to do it
+			if (_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] a file is already open");
 
-		ssize_t samba::read(char*, size_t) { return 0; }; // TODO: not yet implementd or donno how to do it
-		ssize_t samba::write(const char*, size_t) { return 0; }; // TODO: not yet implementd or donno how to do it
+			if (_path.size() <= 0)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] path not initialized");
+
+			std::string finalpath = (filename[0] == '/') ? filename : _path + "/" + filename;
+			std::string smb2rel = _smb2path(finalpath);
+
+			int flags = (om & std::ios::out) ? (O_WRONLY | O_CREAT | O_TRUNC) : O_RDONLY;
+
+			if ((_fh = smb2_open(_smb2, smb2rel.c_str(), flags)) == NULL)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file '" + smb2rel + "' - " + smb2_get_error(_smb2));
+
+			_fileopen = true;
+			_om = om;
+			_offset = 0;
+
+			return _fileopen;
+		}
+
+		bool samba::close()
+		{
+			DBGPRN("[%s] requested samba::close()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			smb2_close(_smb2, _fh);
+			_fh = NULL;
+			_fileopen = false;
+			_offset = 0;
+
+			return !_fileopen;
+		}
+
+		bool samba::push(axon::transfer::connection &conn)
+		{
+			DBGPRN("[%s] requested samba::push()", _id.c_str());
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			char buffer[axon::MAX_BUFFER_SIZE];
+			ssize_t size;
+
+			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
+				conn.write(buffer, size);
+
+			return true;
+		}
+
+		ssize_t samba::read(char *buffer, size_t size)
+		{
+			DBGPRN("[%s] requested samba::read() => size(%ld)", _id.c_str(), size);
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::in))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
+
+			ssize_t rc = smb2_pread(_smb2, _fh, reinterpret_cast<uint8_t*>(buffer), size, _offset);
+
+			if (rc < 0)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] read error - " + smb2_get_error(_smb2));
+
+			_offset += rc;
+
+			return rc;
+		}
+
+		ssize_t samba::write(const char *buffer, size_t size)
+		{
+			DBGPRN("[%s] requested samba::write() => size(%ld)", _id.c_str(), size);
+
+			if (!_fileopen)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
+
+			if (!(_om & std::ios::out))
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform write operation when file is open for read");
+
+			ssize_t remaining = static_cast<ssize_t>(size), written = 0;
+
+			while (remaining > 0)
+			{
+				ssize_t rc = smb2_pwrite(_smb2, _fh, reinterpret_cast<const uint8_t*>(buffer + written), remaining, _offset);
+
+				if (rc < 0)
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] write error - " + smb2_get_error(_smb2));
+
+				_offset += rc;
+				written += rc;
+				remaining -= rc;
+			}
+
+			return written;
+		}
 
 	}
 }
+
