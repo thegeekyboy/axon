@@ -14,8 +14,7 @@
 
 namespace axon
 {
-	std::mutex spinlock;
-	std::mutex thmtx;
+	std::mutex _debug_mtx;
 
 	std::string version()
 	{
@@ -30,6 +29,11 @@ namespace axon
 			"0123456789+/";
 
 		struct magic_set *magic::cookie = NULL;
+		static std::mutex thmtx;
+
+		const boost::regex validator::regex_ipaddr{"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"};
+		const boost::regex validator::regex_fqdn{"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]).)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$"};
+		const boost::regex validator::regex_username{"^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$"};
 
 		unsigned long long bytes_to_ull(const char* bytes, size_t size)
 		{
@@ -39,31 +43,16 @@ namespace axon
 			return __builtin_bswap64(result);
 		}
 
-		unsigned long long bytestoull(const char *bcd, const size_t size)
+		std::string bytes_to_binarystring(const char *bcd, const size_t size)
 		{
-			std::stringstream ss;
+			std::string result;
+			result.reserve(size * 8);
 
 			for (size_t i = 0; i < size; i++)
-			{
-				std::bitset<8> x(bcd[i]);
-				ss<<x;
-			}
-			std::bitset<64> bits(ss.str());
+				for (int bit = 7; bit >= 0; bit--)
+					result += ((static_cast<unsigned char>(bcd[i]) >> bit) & 1) ? '1' : '0';
 
-			return bits.to_ullong();
-		}
-
-		std::string bytestodecstring(const char *bcd, const size_t size)
-		{
-			std::stringstream ss;
-
-			for (size_t i = 0; i < size; i++)
-			{
-				std::bitset<8> x(bcd[i]);
-				ss<<x;
-			}
-
-			return ss.str();
+			return result;
 		}
 
 		char *trim(char *str)
@@ -311,11 +300,6 @@ namespace axon
 			return true;
 		}
 
-		bool set_thread_name(pthread_t th, std::string name)
-		{
-			return !pthread_setname_np(th, name.c_str());
-		}
-
 		std::string demangle(const char* mangled)
 		{
 			int status;
@@ -323,6 +307,11 @@ namespace axon
 			std::unique_ptr<char[], void (*)(void*)> result(abi::__cxa_demangle(mangled, 0, 0, &status), std::free);
 
 			return result.get() ? std::string(result.get()) : "error occurred";
+		}
+
+		bool set_thread_name(pthread_t th, std::string name)
+		{
+			return !pthread_setname_np(th, name.c_str());
 		}
 
 		void rm_thread(std::vector<std::thread> &tl, std::thread::id id)
@@ -460,19 +449,21 @@ namespace axon
 
 		std::string uuid()
 		{
-			static std::random_device dev;
-			static std::mt19937 rng(dev());
+			thread_local std::mt19937 rng(std::random_device{}());
 
 			std::uniform_int_distribution<int> dist(0, 15);
 
-			const char *v = "0123456789abcdef";
-			const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
+			static constexpr char v[] = "0123456789abcdef";
+			static constexpr bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
 
 			std::string res;
+			res.reserve(36);
+
 			for (int i = 0; i < 16; i++)
 			{
-				if (dash[i]) res += "-";
-					res += v[dist(rng)];
+				if (dash[i]) res += '-';
+
+				res += v[dist(rng)];
 				res += v[dist(rng)];
 			}
 
@@ -481,22 +472,11 @@ namespace axon
 
 		double random(double lower, double upper)
 		{
-			static std::random_device rd;
-			static std::mt19937 mt(rd());
+			thread_local std::mt19937 rng(std::random_device{}());
 			std::uniform_real_distribution<double> dist(lower, upper);
 
-			return dist(mt);
-		}
-
-		void debugprint(const char *format, ...)
-		{
-			va_list argptr;
-			char refmt[2048];
-
-			snprintf(refmt, 2048, "\033[0;33m%s\033[0m\n", format);
-			va_start(argptr, format);
-			vfprintf(stderr, refmt, argptr);
-			va_end(argptr);
+			return dist(rng);
 		}
 	}
 }
+

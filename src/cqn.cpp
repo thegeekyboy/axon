@@ -7,7 +7,7 @@ namespace axon {
 
 		void csubscription::attach(axon::stream::topic_t &topic)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_subscribing)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "statement already attached");
@@ -56,7 +56,7 @@ namespace axon {
 
 		void csubscription::detach()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			if ((_error = OCISubscriptionUnRegister(_context->get(), _pointer, _error.get(), OCI_DEFAULT)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 			_subscribing = false;
@@ -195,13 +195,13 @@ namespace axon {
 
 		void cqn::connect()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			_connected = true;
 		}
 
 		void cqn::disconnect()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_connected)
 			{
@@ -212,7 +212,7 @@ namespace axon {
 
 		std::string cqn::subscribe(std::string topic, cbfn interceptor)
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			std::string id = util::uuid();
 			_topics.push_back({id, topic, this, interceptor, (OCISubscription *) 0});
@@ -229,7 +229,7 @@ namespace axon {
 
 		void cqn::start()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 
 			if (_subscribing)
 				return;
@@ -247,12 +247,12 @@ namespace axon {
 
 		void cqn::stop()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 		}
 
 		std::tuple<std::string, std::unique_ptr<axon::database::resultset>> cqn::next()
 		{
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			for (size_t i = 0; i < _list.size(); i++)
 			{
 				message_t data = _list[i]->pop();
@@ -273,3 +273,4 @@ namespace axon {
 		}
 	}
 }
+

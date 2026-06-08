@@ -458,18 +458,18 @@ namespace axon
 			{
 				// READ: https://stackoverflow.com/questions/38647444/aws-c-s3-sdk-putobjectrequest-unable-to-connect-to-endpoint
 				_putobject = std::make_unique<Aws::S3::Model::PutObjectRequest>();
-                _putobject->WithBucket(bucket).WithKey(prefix);
-                _buffer  = std::make_shared<std::stringstream>();
+				_putobject->WithBucket(bucket).WithKey(prefix);
+				_buffer  = std::make_shared<std::stringstream>();
 			}
 			else
 			{
-                Aws::S3::Model::GetObjectRequest request;
-                request.WithBucket(bucket).WithKey(prefix);
- 
-                _getobject = std::make_unique<Aws::S3::Model::GetObjectOutcome>(_client->GetObject(request));
- 
-                if (!_getobject->IsSuccess())
-                    throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file for reading. " + _getobject->GetError().GetMessage());
+				Aws::S3::Model::GetObjectRequest request;
+				request.WithBucket(bucket).WithKey(prefix);
+
+				_getobject = std::make_unique<Aws::S3::Model::GetObjectOutcome>(_client->GetObject(request));
+
+				if (!_getobject->IsSuccess())
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] could not open file for reading. " + _getobject->GetError().GetMessage());
 			}
 
 			_fileopen = true;
@@ -491,7 +491,7 @@ namespace axon
 				_putobject->SetBody(_buffer);
 
 				Aws::S3::Model::PutObjectOutcome outcome = _client->PutObject(*_putobject);
-				
+
 				_putobject.reset();
 				_buffer.reset();
 
@@ -535,9 +535,9 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] cannot perform read operation when file is open for write");
 
 			Aws::IOStream& body = _getobject->GetResult().GetBody();
- 
-            body.read(buffer, static_cast<std::streamsize>(size));
-            const ssize_t nb = static_cast<ssize_t>(body.gcount());
+
+			body.read(buffer, static_cast<std::streamsize>(size));
+			const ssize_t nb = static_cast<ssize_t>(body.gcount());
 
 			return nb;
 		}
@@ -559,3 +559,4 @@ namespace axon
 		}
 	}
 }
+

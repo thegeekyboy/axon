@@ -56,7 +56,7 @@
 namespace axon
 {
 	constexpr std::size_t MAX_BUFFER_SIZE = 2097152;
-	extern std::mutex spinlock;
+	extern std::mutex _debug_mtx;
 
 	std::string version();
 
@@ -117,7 +117,7 @@ namespace axon
 	template<typename... Args>
 	void debug(FILE* fp, const char* filename, int line, const char* func, int code, const char* format, Args&&... args)
 	{
-		std::lock_guard<std::mutex> lock(axon::spinlock);
+		std::lock_guard<std::mutex> lock(axon::_debug_mtx);
 		char refmt[MAXDBGLEN], buf[32], out[40];
 		struct tm tm_info;
 
@@ -253,3 +253,4 @@ namespace axon
 }
 
 #endif
+

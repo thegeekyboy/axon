@@ -51,7 +51,8 @@ namespace axon
 
 			for (auto &element : _bind)
 			{
-				CassError ce = CASS_OK;;
+				CassError ce = CASS_OK;
+
 				INFPRN("+ Index: %d of %d, Type Index: %s", index, count, element.type().name());
 
 				if (element.type() == typeid(std::vector<std::string>))
@@ -276,7 +277,7 @@ namespace axon
 			if (!_connected)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
-			const CassSchemaMeta* schema_meta;;
+			const CassSchemaMeta* schema_meta;
 
 			if ((schema_meta = cass_session_get_schema_meta(_session)) == NULL)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot get database version");
@@ -820,3 +821,4 @@ namespace axon
 		}
 	}
 }
+

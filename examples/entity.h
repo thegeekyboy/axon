@@ -122,3 +122,4 @@ class cache
 			return capacity / (1024*1024);
 		}
 };
+

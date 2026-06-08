@@ -13,13 +13,17 @@ namespace axon
 			std::string _domain, _share;
 
 			struct smb2_context *_smb2;
-			struct smb2dir *_dir;
+			struct smb2dir      *_dir;
+			struct smb2fh       *_fh;
+			uint64_t             _offset;
 
 			static std::atomic<int> _instance;
-			static std::mutex _mtx;
+			static std::mutex        _mtx;
 
 			bool init();
 			bool push(axon::transfer::connection&);
+
+			std::string _smb2path(const std::string &);
 
 		public:
 			samba(std::string hostname, std::string username, std::string password, uint16_t port): connection(hostname, username, password, port) { };
@@ -57,3 +61,4 @@ namespace axon
 }
 
 #endif
+

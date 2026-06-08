@@ -22,32 +22,90 @@ namespace axon
 		SOCKET = 6
 	};
 
-	enum class protocol: int8_t {
-
-		UNKNOWN = -1,
-		NOTHING = 0, // done
-		FILE = 1, // done
-		SFTP = 2, // done
-		FTP = 3, // done
-		S3 = 4, // done
-		SAMBA = 5,
-		HDFS = 6, // done
-		AWS = 7, // done
-		SCP = 8, // done
+	enum class protocol : int8_t {
+		UNKNOWN  = -1,
+		NOTHING  = 0,
+		FILE     = 1,
+		SFTP     = 2,
+		FTP      = 3,
+		S3       = 4,
+		SAMBA    = 5,
+		HDFS     = 6,
+		AWS      = 7,
+		SCP      = 8,
 		DATABASE = 9,
-		KAFKA = 10,
-		KINESIS = 11,
-		HTTP = 12
+		KAFKA    = 10,
+		KINESIS  = 11,
+		HTTP     = 12
 	};
 
-	enum class authtype: int8_t {
-
-		UNKNOWN = -1,
-		PASSWORD = 0,
+	enum class authtype : int8_t {
+		UNKNOWN    = -1,
+		PASSWORD   = 0,
 		PRIVATEKEY = 1,
-		KERBEROS = 2,
-		NTLM = 3
+		KERBEROS   = 2,
+		NTLM       = 3
 	};
+
+	constexpr std::string_view protoname(axon::protocol p) noexcept
+	{
+		switch (p)
+		{
+			case axon::protocol::NOTHING:  return "axon::protocol::NOTHING";
+			case axon::protocol::FILE:     return "axon::protocol::FILE";
+			case axon::protocol::SFTP:     return "axon::protocol::SFTP";
+			case axon::protocol::FTP:      return "axon::protocol::FTP";
+			case axon::protocol::S3:       return "axon::protocol::S3";
+			case axon::protocol::SAMBA:    return "axon::protocol::SAMBA";
+			case axon::protocol::HDFS:     return "axon::protocol::HDFS";
+			case axon::protocol::AWS:      return "axon::protocol::AWS";
+			case axon::protocol::SCP:      return "axon::protocol::SCP";
+			case axon::protocol::DATABASE: return "axon::protocol::DATABASE";
+			case axon::protocol::KAFKA:    return "axon::protocol::KAFKA";
+			case axon::protocol::KINESIS:  return "axon::protocol::KINESIS";
+			case axon::protocol::HTTP:     return "axon::protocol::HTTP";
+			default:                       return "axon::protocol::UNKNOWN";
+		}
+	}
+
+	constexpr axon::protocol protoid(std::string_view name) noexcept
+	{
+		if (name == "NOTHING"  || name == "AXON::PROTOCOL::NOTHING")  return axon::protocol::NOTHING;
+		if (name == "FILE"     || name == "AXON::PROTOCOL::FILE")     return axon::protocol::FILE;
+		if (name == "SFTP"     || name == "AXON::PROTOCOL::SFTP")     return axon::protocol::SFTP;
+		if (name == "FTP"      || name == "AXON::PROTOCOL::FTP")      return axon::protocol::FTP;
+		if (name == "S3"       || name == "AXON::PROTOCOL::S3")       return axon::protocol::S3;
+		if (name == "SAMBA"    || name == "AXON::PROTOCOL::SAMBA")    return axon::protocol::SAMBA;
+		if (name == "HDFS"     || name == "AXON::PROTOCOL::HDFS")     return axon::protocol::HDFS;
+		if (name == "AWS"      || name == "AXON::PROTOCOL::AWS")      return axon::protocol::AWS;
+		if (name == "SCP"      || name == "AXON::PROTOCOL::SCP")      return axon::protocol::SCP;
+		if (name == "DATABASE" || name == "AXON::PROTOCOL::DATABASE") return axon::protocol::DATABASE;
+		if (name == "KAFKA"    || name == "AXON::PROTOCOL::KAFKA")    return axon::protocol::KAFKA;
+		if (name == "KINESIS"  || name == "AXON::PROTOCOL::KINESIS")  return axon::protocol::KINESIS;
+		if (name == "HTTP"     || name == "AXON::PROTOCOL::HTTP")     return axon::protocol::HTTP;
+		return axon::protocol::UNKNOWN;
+	}
+
+	constexpr std::string_view authname(axon::authtype a) noexcept
+	{
+		switch (a)
+		{
+			case axon::authtype::PASSWORD:   return "axon::authtype::PASSWORD";
+			case axon::authtype::PRIVATEKEY: return "axon::authtype::PRIVATEKEY";
+			case axon::authtype::KERBEROS:   return "axon::authtype::KERBEROS";
+			case axon::authtype::NTLM:       return "axon::authtype::NTLM";
+			default:                         return "axon::authtype::UNKNOWN";
+		}
+	}
+
+	constexpr axon::authtype authid(std::string_view name) noexcept
+	{
+		if (name == "PASSWORD"   || name == "AXON::AUTHTYPE::PASSWORD")   return axon::authtype::PASSWORD;
+		if (name == "PRIVATEKEY" || name == "AXON::AUTHTYPE::PRIVATEKEY") return axon::authtype::PRIVATEKEY;
+		if (name == "KERBEROS"   || name == "AXON::AUTHTYPE::KERBEROS")   return axon::authtype::KERBEROS;
+		if (name == "NTLM"       || name == "AXON::AUTHTYPE::NTLM")       return axon::authtype::NTLM;
+		return axon::authtype::UNKNOWN;
+	}
 
 	struct entry {
 
@@ -58,11 +116,6 @@ namespace axon
 		protocol proto;
 		struct stat stats;
 	};
-
-	std::string protoname(axon::protocol);
-	axon::protocol protoid(const std::string&);
-	std::string authname(axon::authtype);
-	axon::authtype authid(const std::string&);
 
 	class AwsStack {
 
@@ -170,3 +223,4 @@ namespace axon
 }
 
 #endif
+
