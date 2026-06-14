@@ -29,6 +29,17 @@ target_include_directories(database PRIVATE ${ORACLE_INCLUDE_DIRS})
 target_link_libraries (database ${PROJECT_NAME_MASTER})
 
 #
+list(APPEND EXAMPLES_LIST database2r)
+add_executable (database2r EXCLUDE_FROM_ALL database2r.cpp)
+target_include_directories(database2r PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (database2r ${PROJECT_NAME_MASTER})
+# delete this later
+list(APPEND EXAMPLES_LIST sqlite)
+add_executable (sqlite EXCLUDE_FROM_ALL sqlite.cpp)
+target_include_directories(sqlite PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (sqlite ${PROJECT_NAME_MASTER})
+
+#
 list(APPEND EXAMPLES_LIST smb)
 add_executable (smb EXCLUDE_FROM_ALL smb.cpp)
 target_link_libraries (smb ${PROJECT_NAME_MASTER} ${LIBRARIES})

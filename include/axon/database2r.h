@@ -62,7 +62,7 @@ namespace axon {
 
 				std::string _version;
 
-				bool _schema_pushed;
+				bool _open { false }, _query { false }, _running { false }, _prepared { false }, _schema_pushed { false };
 
 				int _vcount(std::string sql)
 				{
@@ -79,8 +79,6 @@ namespace axon {
 
 					return count;
 				}
-
-				virtual std::ostream& printer(std::ostream &) = 0;
 
 			public:
 
@@ -139,16 +137,16 @@ namespace axon {
 					return query(sql, args...) ;
 				}
 
-				virtual connector& operator<<(int) = 0;
-				virtual connector& operator<<(long) = 0;
-				virtual connector& operator<<(long long) = 0;
-				virtual connector& operator<<(float) = 0;
-				virtual connector& operator<<(double) = 0;
-				virtual connector& operator<<(std::string&) = 0;
-				virtual connector& operator<<(axon::database2r::bind&) = 0;
+				connector& operator<<(int value) { _bind.push_back(value); return *this; }
+				connector& operator<<(long value) { _bind.push_back(value); return *this; }
+				connector& operator<<(long long value) { _bind.push_back(value); return *this; }
+				connector& operator<<(float value) { _bind.push_back(value); return *this; }
+				connector& operator<<(double value) { _bind.push_back(value); return *this; }
+				connector& operator<<(std::string &value) { _bind.push_back(value); return *this; }
+				connector& operator<<(axon::database2r::bind &value) { _bind.push_back(value); return *this; }
 
 				virtual void fetch(axon::recordset2r&, int) = 0;
-				bool done() { return true; };
+				virtual void done() = 0;
 		};
 	}
 }
