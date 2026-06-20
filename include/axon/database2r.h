@@ -95,24 +95,22 @@ namespace axon {
 
 				virtual bool execute(const std::string) = 0;
 
+				// Push t directly into _bind as its natural type.
+				// Do NOT call t.c_str() — that stores a pointer into a local
+				// temporary that is destroyed before bind() uses it (dangling
+				// pointer, silent corruption in Release builds).
 				template <typename T>
 				bool execute(const std::string sql, T t)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
+					_bind.push_back(t);
 					return execute(sql);
 				}
 
 				template<typename T, typename... Args>
 				bool execute(std::string sql, T t, Args... args)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
-					return execute(sql, args...) ;
+					_bind.push_back(t);
+					return execute(sql, args...);
 				}
 
 				virtual bool query(const std::string) = 0;
@@ -120,21 +118,15 @@ namespace axon {
 				template <typename T>
 				bool query(const std::string sql, T t)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
+					_bind.push_back(t);
 					return query(sql);
 				}
 
 				template<typename T, typename... Args>
 				bool query(std::string sql, T t, Args... args)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
-					return query(sql, args...) ;
+					_bind.push_back(t);
+					return query(sql, args...);
 				}
 
 				connector& operator<<(int value) { _bind.push_back(value); return *this; }
@@ -152,4 +144,3 @@ namespace axon {
 }
 
 #endif
-

@@ -126,7 +126,7 @@ namespace axon
 
 		public:
 		AwsStack() {
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			std::lock_guard<std::mutex> guard(_lock);
 
 			if (_instance <= 0)
@@ -146,7 +146,7 @@ namespace axon
 			}
 		}
 		~AwsStack() {
-			axon::timer ctm(__PRETTY_FUNCTION__);
+			BENCHMARK;
 			std::lock_guard<std::mutex> guard(_lock);
 
 			_instance--;

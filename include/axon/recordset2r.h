@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <cstring>
 
-#define AXON_RECORDSET2R_BATCH_SIZE 10240
+#define AXON_RECORDSET2R_BATCH_SIZE 256
 
 namespace axon {
 
@@ -50,7 +50,7 @@ namespace axon {
 	using record = std::vector<axon::field>;
 
 	class recordset2r {
-		
+
 		std::string _id;
 		std::string _name;
 		axon::database2r::connector *_database { nullptr };

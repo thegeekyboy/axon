@@ -222,11 +222,9 @@ namespace axon
 			if (_query)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot close while query in progress");
 
-			
 			_statement.reset();
-			
 			_open = false;
-			
+
 			sqlite3_exec(_dbp.get(), "COMMIT;", nullptr, nullptr, nullptr);
 			_dbp.reset();
 
@@ -318,30 +316,30 @@ namespace axon
 		void sqlite::fetch(axon::recordset2r &rs, int howmany)
 		{
 			BENCHMARK;
-		
+
 			if (!_open)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not open");
-		
+
 			if (!_query && !_prepared)
 			{
 				rs.set_eof();
 				return;
 			}
-		
+
 			// First fetch call: bind parameters and initialise traversal.
 			if (!_query && _prepared)
 			{
 				bind(_statement);
 				_query  = true;
 			}
-		
+
 			int col_count = sqlite3_column_count(_statement.get());
 			int count     = 0;
-		
+
 			while (count < howmany)
 			{
 				int rc = sqlite3_step(_statement.get());
-		
+
 				if (rc == SQLITE_DONE)
 				{
 					// Fully exhausted — clean up state and signal EOF to recordset.
@@ -350,10 +348,10 @@ namespace axon
 					rs.set_eof();
 					return;
 				}
-		
+
 				if (rc != SQLITE_ROW)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "sqlite3_step error: %s", sqlite3_errmsg(_dbp.get()));
-		
+
 				// Build schema from first row — types are only reliable after step().
 				if (!_schema_pushed)
 				{
@@ -368,7 +366,7 @@ namespace axon
 						{
 							std::string dt(decl_type);
 							// SQLite type affinity rules (https://sqlite.org/datatype3.html)
-							
+
 							if (dt.find("INT")  != std::string::npos) ct = axon::column_type::int64_t;
 							else if (dt.find("REAL") != std::string::npos || dt.find("FLOA") != std::string::npos || dt.find("DOUB") != std::string::npos) ct = axon::column_type::double_t;
 							else if (dt.find("BLOB") != std::string::npos) ct = axon::column_type::bytes_t;
@@ -390,9 +388,9 @@ namespace axon
 					}
 					_schema_pushed = true;
 				}
-		
+
 				rs.begin_row();
-		
+
 				for (int i = 0; i < col_count; i++)
 				{
 					switch (sqlite3_column_type(_statement.get(), i))
@@ -405,7 +403,7 @@ namespace axon
 						default: rs.push_null(); break;
 					}
 				}
-		
+
 				rs.end_row();
 				count++;
 			}

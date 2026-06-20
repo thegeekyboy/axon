@@ -18,7 +18,7 @@ namespace axon
 	{
 		struct SchemaMeta {
 			SchemaMeta(CassSession *session) {
-				axon::timer ctm(__PRETTY_FUNCTION__);
+				BENCHMARK;
 				_schema = cass_session_get_schema_meta(session);
 			}
 			~SchemaMeta() {
@@ -35,7 +35,7 @@ namespace axon
 			tableinfo(CassSession *session, std::string keyspace, std::string table):
 			sm(session)
 			{
-				axon::timer ctm(__PRETTY_FUNCTION__);
+				BENCHMARK;
 				if ((_keyspace = cass_schema_meta_keyspace_by_name(sm.get(), keyspace.c_str())) == NULL)
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot get keyspace meta");
 
@@ -48,7 +48,7 @@ namespace axon
 			size_t colcnt() { return cass_table_meta_column_count(_table); }
 			size_t idxcnt() { return cass_table_meta_index_count(_table); }
 			bool column_exists(std::string name) { 
-				axon::timer ctm(__PRETTY_FUNCTION__);
+				BENCHMARK;
 				return (cass_table_meta_column_by_name(_table, name.c_str()) == NULL)?false:true;
 			}
 			void columns() {
@@ -94,7 +94,7 @@ namespace axon
 				}
 
 				bool next() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 					if (_result == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "result not extracted");
 
@@ -104,7 +104,7 @@ namespace axon
 				}
 
 				const CassRow *get() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 					if (_iterator == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "iterator empty");
 					_row = cass_iterator_get_row(_iterator);
@@ -130,7 +130,7 @@ namespace axon
 				}
 
 				void wait() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 					if (_cf == NULL)
 						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "future not set");
 					cass_future_wait(_cf);
@@ -166,7 +166,7 @@ namespace axon
 				}
 
 				std::unique_ptr<resultset> make_recordset() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 					return std::make_unique<resultset>(_cf);
 				}
 

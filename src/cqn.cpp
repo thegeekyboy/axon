@@ -46,7 +46,7 @@ namespace axon {
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			// statement attach
-			axon::database::statement stmt(*_context);
+			axon::database::statement stmt(_context);
 			stmt.prepare(topic.topic);
 			stmt.bind(_pointer);
 			stmt.execute(axon::database::exec_type::select);
