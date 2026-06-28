@@ -7,206 +7,6 @@ namespace axon {
 
 	namespace database2r {
 
-		OCIEnv *environment::handle;
-		std::mutex environment::lock;
-		int environment::count = 0;
-
-		oracle::statement::statement(std::shared_ptr<axon::database2r::context> ctx): _uuid(axon::util::uuid()), _prepared(false), _pointer(nullptr), _context(ctx)
-		{
-			DBGPRN("[%s] %s", _uuid.c_str(), __PRETTY_FUNCTION__);
-		}
-
-		oracle::statement::~statement()
-		{
-			reset();
-		}
-
-		OCIStmt *oracle::statement::get()
-		{
-			if (_pointer == nullptr)
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "statement not allocated");
-			return _pointer;
-		}
-
-		void oracle::statement::prepare(std::string sql)
-		{
-			// https://docs.oracle.com/en/database/oracle/oracle-database/19/lnoci/statement-functions.html#GUID-DF585B90-58BA-45FC-B7CE-6F7F987C03B9
-			if ((_error = OCIStmtPrepare2(_context->get(), &_pointer, _error.get(), (text*) sql.c_str(), sql.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-			_prepared = true;
-			_sql = sql;
-		}
-
-		int oracle::statement::bind(std::vector<axon::database2r::bind> &vars)
-		{
-			// READ: https://stackoverflow.com/questions/16883694/ocibindbypos-on-array-of-strings
-
-			BENCHMARK;
-			int index = 1, count = vars.size();
-
-			for (auto &element : vars)
-			{
-				INFPRN("+ Index: %d of %d, Type Index: %s", index, count, element.type().name());
-
-				if (element.type() == typeid(std::vector<std::string>))
-				{
-					// std::vector<std::string> data = std::any_cast<std::vector<std::string>>(element);
-				}
-				else if (element.type() == typeid(std::vector<double>))
-				{
-					// std::vector<double> data = std::any_cast<std::vector<double>>(element);
-				}
-				else if (element.type() == typeid(std::vector<int>))
-				{
-					// std::vector<int> data = std::any_cast<std::vector<int>>(element);
-				}
-				else if (element.type() == typeid(char*))
-				{
-					char *data = std::any_cast<char *>(element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data, strlen(data)+1, SQLT_STR, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(const char*))
-				{
-					const char *data = std::any_cast<const char *>(element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data, strlen(data)+1, SQLT_STR, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(unsigned char*))
-				{
-					unsigned char **data = std::any_cast<unsigned char*>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)(*data), strlen((char*)*data)+1, SQLT_STR, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(std::string))
-				{
-					std::string *data = std::any_cast<std::string>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (text*)data->c_str(), data->size(), SQLT_CHR, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(float))
-				{
-					float *data = std::any_cast<float>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(float), SQLT_FLT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(double))
-				{
-					double *data = std::any_cast<double>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(double), SQLT_BDOUBLE, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(int8_t))
-				{
-					int8_t *data = std::any_cast<int8_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int8_t), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-				}
-				else if (element.type() == typeid(int16_t))
-				{
-					int16_t *data = std::any_cast<int16_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int16_t), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-				}
-				else if (element.type() == typeid(int32_t))
-				{
-					int32_t *data = std::any_cast<int32_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int32_t), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-				}
-				else if (element.type() == typeid(uint32_t))
-				{
-					uint32_t *data = std::any_cast<uint32_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(uint32_t), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-				}
-				else if (element.type() == typeid(int64_t))
-				{
-					int64_t *data = std::any_cast<int64_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(int64_t), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-				}
-				else if (element.type() == typeid(uint64_t))
-				{
-					uint64_t *data = std::any_cast<uint64_t>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(uint64_t), SQLT_UIN, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else if (element.type() == typeid(bool))
-				{
-					// bool data = std::any_cast<bool>(element)?1:0;
-					bool *data = std::any_cast<bool>(&element);
-					OCIBind *bndp = nullptr;
-
-					if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, (dvoid *) data, (sword) sizeof(bool), SQLT_BOL, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				}
-				else
-					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "unsupported data type %s at index: %d", element.type().name(), index);
-
-				index++;
-			}
-
-			vars.clear();
-
-			return count;
-		}
-
-		void oracle::statement::bind(OCISubscription *sbptr)
-		{
-			// Associate the statement with the subscription handle
-			if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_STMT, sbptr, 0, OCI_ATTR_CHNF_REGHANDLE, _error)).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-		}
-
-		void oracle::statement::execute(axon::database2r::exec_type et)
-		{
-			BENCHMARK;
-
-			if ((_error = OCIStmtExecute(_context->get(), _pointer, _error.get(), (et == exec_type::select)?0:1, 0, (OCISnapshot *) 0, (OCISnapshot *) 0, OCI_DEFAULT)).failed())
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what() + " >> " + _sql);
-		}
-
-		void oracle::statement::reset()
-		{
-			if (_pointer != nullptr && _prepared)
-			{
-				OCIStmtRelease(_pointer, _error.get(), NULL, 0, OCI_DEFAULT);
-				_pointer = nullptr;
-				_prepared = false;
-				_sql.clear();
-			}
-		}
-
 		void oracle::_get_column_info()
 		{
 			BENCHMARK;
@@ -260,7 +60,7 @@ namespace axon {
 			_columns.emplace_back(name, namelen, position, type, scale, size);
 		}
 
-		axon::column_type oracle::_attach_column_data(oracle::column &clmn, uint16_t count)
+		axon::column_type oracle::_attach_column_data(axon::database2r::oci::column &clmn, uint16_t count)
 		{
 			OCIDefine *def = { nullptr };
 			sword rc;
@@ -315,6 +115,7 @@ namespace axon {
 					clmn.size = sizeof(double);
 					clmn.data.resize(sizeof(double) * count, 0);
 					clmn.indicator.resize(count, 0);
+					clmn.rlen.resize(count, 0);
 					ct = axon::column_type::double_t;
 					if ((rc = OCIDefineByPos(_statement->get(), &def, _error.get(), clmn.position, clmn.data.data(), sizeof(double), SQLT_BDOUBLE, clmn.indicator.data(), 0, 0, OCI_DEFAULT)) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
@@ -514,7 +315,7 @@ namespace axon {
 			}
 			else if (_columns[position].type == SQLT_BFLOAT || _columns[position].type == SQLT_BDOUBLE)
 			{
-				const double *ptr = reinterpret_cast<const double*>(data.data() + (row_index * sizeof(double)));
+				const double *ptr = reinterpret_cast<const double*>(_columns[position].data.data() + (row_index * sizeof(double)));
 				return *ptr;
 			}
 			else
@@ -545,13 +346,17 @@ namespace axon {
 					sprintf(temp, "%02d%02d-%02d-%02d %02d:%02d:%02d", 
 						((unsigned char)raw[0])-100, ((unsigned char)raw[1])-100, 
 						((int)raw[2]), ((int)raw[3]),
-							((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
+						((int)raw[4])-1, ((int)raw[5])-1, ((int)raw[6])-1);
 				value = temp;
 			}
 			else if (_columns[position].type == SQLT_AFC || _columns[position].type == SQLT_CHR || _columns[position].type == SQLT_STR)
 			{
 				value = reinterpret_cast<char const*>(_columns[position].data.data() + (row_index * (_columns[position].size + 1)));
-				value.erase(value.find_last_not_of(' ') + 1); // trim end
+				auto pos = value.find_last_not_of(' ');
+				if (pos != std::string::npos)
+					value.erase(pos + 1);
+				else
+					value.clear();
 			}
 			else if (_columns[position].type == SQLT_INTERVAL_YM || _columns[position].type == SQLT_INTERVAL_DS)
 			{
@@ -563,9 +368,13 @@ namespace axon {
 			return value;
 		}
 
-		oracle::oracle(): _context(std::make_shared<axon::database2r::context>()), _session(_context), _statement(std::make_shared<axon::database2r::oracle::statement>(_context))
+		oracle::oracle(): _connection(std::make_shared<axon::database2r::oci::connection>()), _statement(std::make_shared<axon::database2r::oci::statement>(_connection->context()))
 		{
-			_connected = false;
+			_running = false;
+		}
+
+		oracle::oracle(std::shared_ptr<axon::database2r::oci::connection> connection): _connection(connection), _statement(std::make_shared<axon::database2r::oci::statement>(_connection->context()))
+		{
 			_running = false;
 		}
 
@@ -579,24 +388,11 @@ namespace axon {
 			BENCHMARK;
 
 			if (_hostname.empty() || _username.empty() || _password.empty())
-				axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "hostname, username or password not set");
+				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "hostname, username or password not set");
 
-			// this probably is only needed for CQN
-			// if ((rc = OCIAttrSet((void *) _environment.get(), (ub4) OCI_HTYPE_ENV, (void *) &_port, (ub4) 0, (ub4) OCI_ATTR_SUBSCR_PORTNO, _error.get())) != OCI_SUCCESS)
-			// 	throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what(rc));
+			_connection->connect(_hostname, _username, _password);
 
-			// attach to server
-			if ((_error = OCIServerAttach(_server.get(), _error, (text *) _hostname.c_str(), (sb4) _hostname.size(), (ub4) OCI_DEFAULT)).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-			// set server attribute to service context
-			if ((_error = OCIAttrSet((dvoid *) _context->get(), (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _server.get(), (ub4) 0, (ub4) OCI_ATTR_SERVER, (OCIError *) _error.get())).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-			_session.connect(_username, _password);
-			_connected = true;
-
-			return _connected;
+			return _connection->connected();
 		}
 
 		bool oracle::connect(std::string hostname, std::string username, std::string password)
@@ -612,14 +408,10 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (_connected)
-			{
-				_session.disconnect();
-				if ((_error = OCIServerDetach(_server.get(), _error.get(), (ub4) OCI_DEFAULT)).failed())
-					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-				_connected = false;
-			}
-			return _connected;
+			if (_connection->connected())
+				_connection->disconnect();
+
+			return _connection->connected();
 		}
 
 		bool oracle::flush()
@@ -632,10 +424,10 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (!_connected)
+			if (!_connection->connected())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
-			if ((_error = OCIPing(_context->get(), _error.get(), (ub4) OCI_DEFAULT)).failed())
+			if ((_error = OCIPing(_connection->ctx(), _error.get(), (ub4) OCI_DEFAULT)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			return true;
@@ -645,12 +437,12 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (!_connected)
+			if (!_connection->connected())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
 			char sver[1024];
 
-			if((_error = OCIServerVersion(_context->get(), _error.get(), (text*) sver, (ub4) sizeof(sver), (ub1) OCI_HTYPE_SVCCTX)).failed())
+			if((_error = OCIServerVersion(_connection->ctx(), _error.get(), (text*) sver, (ub4) sizeof(sver), (ub1) OCI_HTYPE_SVCCTX)).failed())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			_version = sver;
@@ -710,7 +502,7 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (!_connected)
+			if (!_connection->connected())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
 			if (_running)
@@ -736,7 +528,8 @@ namespace axon {
 
 					OCIAttrGet(_statement->get(), OCI_HTYPE_STMT, (void*) &fetched, NULL, OCI_ATTR_ROWS_FETCHED, _error.get());
 
-					WRNPRN("fetched record count %d = %d", fetched, (rc == OCI_SUCCESS));
+					if (rc == OCI_SUCCESS_WITH_INFO)
+    					WRNPRN("OCIStmtFetch2() returned OCI_SUCCESS_WITH_INFO — possible truncation");
 
 					for (ub4 row = 0; row < fetched; row++)
 					{
@@ -744,7 +537,7 @@ namespace axon {
 
 						for (size_t col = 0; col < _columns.size(); col++)
 						{
-							const oracle::column &clmn = _columns[col];
+							const axon::database2r::oci::column &clmn = _columns[col];
 
 							if (clmn.indicator.empty() || clmn.data.empty())
 							{
