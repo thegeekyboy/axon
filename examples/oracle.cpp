@@ -74,6 +74,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
     std::cout << "\n=== axon::database2r::oracle + recordset2r test suite ===\n\n";
 
     try {
+		axon::database2r::oci::environment env;
 
         // ================================================================
         // 1. Database lifecycle
@@ -508,6 +509,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         ora.close();
         check(true, "close()");
+
+		std::shared_ptr<axon::database2r::oci::connection> oracon = std::make_shared<axon::database2r::oci::connection>();
+		oracon->connect(sid, username, password);
+		check(oracon->connected(), "direct OCI connection via axon::database2r::oci::connection");
+
+		axon::database2r::oracle ora2(oracon);
+		std::cout<<ora2.version()<<std::endl;
 
     } catch (axon::exception &e) {
         std::cerr << "\nEXCEPTION: " << e.what() << "\n";
