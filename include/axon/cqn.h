@@ -85,7 +85,7 @@ namespace axon
 			public:
 				csubscription() = delete;
 				csubscription(axon::database::context *ctx): _context(ctx) {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 
 					_pointer = (OCISubscription *) 0;
 					_uuid = axon::util::uuid();
@@ -95,7 +95,7 @@ namespace axon
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize subscription");
 				}
 				~csubscription() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 
 					if (_subscribing)
 						detach();
@@ -104,7 +104,7 @@ namespace axon
 						OCIHandleFree(_pointer, (ub4) OCI_HTYPE_SUBSCRIPTION);
 				}
 				OCISubscription *get() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+					BENCHMARK;
 					if (_pointer == (OCISubscription *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "subscription not ready");
 					return _pointer;

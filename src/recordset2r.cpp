@@ -127,6 +127,8 @@ namespace axon {
 
 	bool recordset2r::next()
 	{
+		BENCHMARK;
+
 		if (!_rows.empty())
 		{
 			_current = std::move(_rows.front());
@@ -175,13 +177,14 @@ namespace axon {
 
 	void recordset2r::done()
 	{
-		if (_database) _database->done(); // TODO: this should be removed later
-		// if (_stream) _stream->done(); // TODO: this will come when stream class is adjusted
+		if (_database) _database->done();
+		// if (_stream) _stream->done();
 
 		_rows.clear();
 		_current.clear();
 		_staging.clear();
 		_schema.clear();
+
 		_schema_ready = false;
 		_bof = true;
 		_eof = false;
@@ -322,7 +325,7 @@ namespace axon {
 		else if constexpr (std::is_integral_v<T>)
 		{
 			if (f.type != column_type::int64_t)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "type mismatch: expected integer");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "type mismatch: expected integer got %d", f.type);
 			out = static_cast<T>(std::get<int64_t>(f.value));
 		}
 		else if constexpr (std::is_floating_point_v<T>)

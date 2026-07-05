@@ -2,41 +2,32 @@
 #define AXON_ORACLE_H_
 
 #include <mutex>
+#include <algorithm>
 #include <cstring>
 #include <cstdarg>
 
 #include <oci.h>
 
 #include <axon/util.h>
-#include <axon/database.h>
+#include <axon/database2r.h>
 
 #define AXON_DATABASE_ORACLE_PREFETCH 500
 
 namespace axon {
 
-	namespace database {
+	namespace database2r {
 
-		struct colinfo {
-			text *name;		// column name
-			ub4 position;	// in the select statement the position
-			ub4 type;		// data type
-			ub4 size;		// size/length of the field
-			ub4 memsize;	// how much memory (bytes) was allocated
-			void *indicator;// indicator of null value in field
-			void *data;		// pointer to the data
-		};
-		typedef colinfo colinfo;
-
-		class environment {
-			// OK RAII
+		class environment
+		{
 			std::string _uuid;
 			static OCIEnv *handle;
 			static std::mutex lock;
 			static int count;
 
 			public:
-				environment() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
+				environment()
+				{
+					BENCHMARK;
 					_uuid = axon::util::uuid();
 
 					{
@@ -45,26 +36,29 @@ namespace axon {
 						{
 							handle = (OCIEnv *) 0;
 
-							if (OCIEnvCreate((OCIEnv **) &handle, OCI_EVENTS|OCI_OBJECT|OCI_THREADED, NULL, NULL, NULL, NULL, 0, NULL) != OCI_SUCCESS)
+							if (OCIEnvCreate((OCIEnv **) &handle, OCI_EVENTS|OCI_OBJECT|OCI_THREADED, nullptr, nullptr, nullptr, nullptr, 0, nullptr) != OCI_SUCCESS)
 								throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize environment");
 						}
 						count++;
 					}
 				}
-				~environment() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					if (count == 1)
-					{
-						if (handle != (OCIEnv *) 0) OCIHandleFree(handle, (ub4) OCI_HTYPE_ENV);
-					}
+				~environment()
+				{
+					BENCHMARK;
+
+					std::lock_guard<std::mutex> _lock(lock);
+
+					if (count == 1 && handle != (OCIEnv *) 0) OCIHandleFree(handle, (ub4) OCI_HTYPE_ENV);
 					count--;
 				}
-				OCIEnv *get() {
 
+				static OCIEnv *get()
+				{
 					if (handle == (OCIEnv *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "environment not ready");
 					return handle;
 				}
+
 				operator OCIEnv*() { return get(); }
 		};
 
@@ -75,94 +69,102 @@ namespace axon {
 			int _retcode;
 
 			public:
-				error() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					axon::database::environment env;
+				error()
+				{
+					BENCHMARK;
 
-					_retcode = 0;
+					_retcode = OCI_SUCCESS;
 					_pointer = (OCIError *) 0;
 					_uuid = axon::util::uuid();
 
-					if (OCIHandleAlloc(env.get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+					if (OCIHandleAlloc(axon::database2r::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate error object");
 				}
-				~error() {
+
+				~error()
+				{
 					if (_pointer != (OCIError *) 0)
 						OCIHandleFree(_pointer, (ub4) OCI_HTYPE_ERROR);
 				}
 
-				bool failed() {
+				bool failed()
+				{
 					return (_retcode != OCI_SUCCESS && _retcode != OCI_SUCCESS_WITH_INFO);
 				}
 
-				axon::database::error& operator= (int retcode) {
+				axon::database2r::error& operator= (int retcode)
+				{
 					_retcode = retcode;
 					return *this;
 				}
 
-				bool operator==(int retcode) {
+				bool operator==(int retcode)
+				{
 					return (_retcode == retcode);
 				}
 
-				bool operator!=(int retcode) {
+				bool operator!=(int retcode)
+				{
 					return (_retcode != retcode);
 				}
 
 				std::string what() { return checker(_pointer, _retcode); }
-				OCIError *get() {
+
+				OCIError *get()
+				{
 					if (_pointer == (OCIError *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "error not allocated");
 					return _pointer;
 				}
+
 				operator OCIError*() { return get(); }
+
 				std::string what(int errnum) { return checker(_pointer, errnum); }
+
 				static std::string checker(OCIError *errhand, sword status)
 				{
 					text errbuf[512];
 					sb4 errcode = 0;
+					size_t len = 0;
+					std::string retval;
 
-					std::stringstream s;
-
-					if (errhand == NULL)
+					if (errhand == nullptr)
 					{
-						s<<"OCIError is NULL so- nothing to see here!";
+						retval = "OCIError is nullptr so- nothing to see here!";
 					}
 					else
 					{
 						switch(status)
 						{
-							case OCI_SUCCESS:
-								s<<"Operation successful - no error detected";
-								break;
-
 							case OCI_SUCCESS_WITH_INFO:
-								s<<"Error - OCI_SUCCESS_WITH_INFO";
+								retval = "Error - OCI_SUCCESS_WITH_INFO";
 								break;
 
 							case OCI_NEED_DATA:
-								s<<"Error - OCI_NEED_DATA";
+								retval = "Error - OCI_NEED_DATA";
 								break;
 
 							case OCI_NO_DATA:
-								s<<"Error - OCI_NODATA";
+								retval = "Error - OCI_NODATA";
 								break;
 
 							case OCI_ERROR:
-								(void) OCIErrorGet((dvoid *) errhand, (ub4) 1, (text *) NULL, &errcode, errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
-								errbuf[strlen((char*)errbuf)-1] = 0;
-								s<<"Error - ("<<errcode<<") "<<errbuf;
+								(void) OCIErrorGet((dvoid *) errhand, (ub4) 1, (text *) nullptr, &errcode, errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
+								len = strlen((char*)errbuf);
+								if (len) errbuf[len-1] = 0;
+								retval = "Error - (" + std::to_string(errcode) + ") " + reinterpret_cast<char*>(errbuf);
 								break;
 
 							case OCI_INVALID_HANDLE:
-								s<<"Error - OCI_INVALID_HANDLE";
+								retval = "Error - OCI_INVALID_HANDLE";
 								break;
 
 							case OCI_STILL_EXECUTING:
-								s<<"Error - OCI_STILL_EXECUTE";
+								retval = "Error - OCI_STILL_EXECUTE";
 								break;
 
 							case OCI_CONTINUE:
-								s<<"Error - OCI_CONTINUE";
+								retval = "Error - OCI_CONTINUE";
 								break;
 
 							default:
@@ -170,97 +172,114 @@ namespace axon {
 						}
 					}
 
-					return s.str();
+					return retval;
 				}
 		};
 
-		class context {
-			// OK RAII
+		class context
+		{
 			std::string _uuid;
-			OCISvcCtx *_pointer;
-			public:
-				context() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					axon::database::environment env;
+			OCISvcCtx *_pointer { nullptr };
 
-					_pointer = (OCISvcCtx *) 0;
+			public:
+				context()
+				{
+					BENCHMARK;
+
 					_uuid = axon::util::uuid();
 
-					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+					if (OCIHandleAlloc((dvoid *) axon::database2r::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate context");
 				}
-				~context() {
+
+				~context()
+				{
 					if (_pointer != (OCISvcCtx *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SVCCTX);
 				}
-				OCISvcCtx *get() {
+
+				OCISvcCtx *get()
+				{
 					if (_pointer == (OCISvcCtx *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "context not allocated");
 					return _pointer;
 				}
+
 				operator OCISvcCtx*() { return get(); }
 		};
 
-		class server {
-			// OK RAII
+		class server
+		{
 			std::string _uuid;
 			OCIServer *_pointer;
+
 			public:
-				server() {
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					axon::database::environment env;
+				server()
+				{
+					BENCHMARK;
 
 					_pointer = (OCIServer *) 0;
 					_uuid = axon::util::uuid();
 
-					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+					if (OCIHandleAlloc((dvoid *) axon::database2r::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate server");
 				}
-				~server() {
+
+				~server()
+				{
 					if (_pointer != (OCIServer *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SERVER);
 				}
-				OCIServer *get() {
+
+				OCIServer *get()
+				{
 					if (_pointer == (OCIServer *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "server not allocated");
 					return _pointer;
 				}
+
 				operator OCIServer*() { return get(); }
 		};
 
-		class session {
-			// OK RAII
+		class session
+		{
 			std::string _uuid;
-			OCISession *_pointer;
-			axon::database::context *_context;
-			axon::database::error _error;
-			bool _connected;
+			bool _connected { false };
+			OCISession *_pointer { nullptr };
+			std::shared_ptr<axon::database2r::context> _context;
+			axon::database2r::error _error;
 			std::string _username, _password;
 
 			public:
-				session(axon::database::context &ctx)
+				session(std::shared_ptr<axon::database2r::context> ctx)
 				{
-					axon::timer ctm(__PRETTY_FUNCTION__);
-					axon::database::environment env;
+					BENCHMARK;
 
-					_pointer = (OCISession *) 0;
-					_connected = false;
 					_uuid = axon::util::uuid();
-					_context = &ctx;
+					_context = ctx;
 
-					if (OCIHandleAlloc((dvoid *) env.get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SESSION, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+					if (OCIHandleAlloc((dvoid *) axon::database2r::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SESSION, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate session");
 				}
-				~session() {
+
+				~session()
+				{
 					if (_pointer != (OCISession *) 0)
 						OCIHandleFree((dvoid *) _pointer, (ub4) OCI_HTYPE_SESSION);
 				}
-				OCISession *get() {
+
+				OCISession *get()
+				{
 					if (_pointer == (OCISession *) 0)
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "session not allocated");
+
+					return _pointer;
 				}
+
 				operator OCISession*() { return get(); }
-				void connect(std::string username, std::string password) {
+
+				void connect(std::string username, std::string password)
+				{
 					_username = username;
 					_password = password;
 
@@ -280,103 +299,123 @@ namespace axon {
 					if ((_error = OCIAttrSet((dvoid *) _context->get(), (ub4) OCI_HTYPE_SVCCTX, (dvoid *) _pointer, (ub4) 0, OCI_ATTR_SESSION, _error.get())).failed())
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
-				void disconnect() {
+
+				void disconnect()
+				{
 					if ((_error = OCISessionEnd(_context->get(), _error.get(), _pointer, (ub4) 0)).failed())
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 				}
 		};
 
-		class statement {
-			// OK RAII
-			std::string _uuid, _sql;
-			bool _prepared;
+		class oracle: public connector {
 
-			OCIStmt *_pointer;
+			//// classes and structs
+			struct column {
+				std::string name;           // column name
 
-			axon::database::environment _environment;
-			axon::database::context *_context;
-			axon::database::error _error;
+				ub4 position;               // position in the select statement
+				ub4 type;                   // data type
+				sb1 scale { 0 };			// number of digits to the right of the decimal point
+				size_t size { 0 };         // size/length of the field returned by OCI_ATTR_DATA_SIZE
+				size_t count { 0 };         // record/row count
 
-			public:
-				statement() = delete;
-				statement(axon::database::context&);
-				~statement();
+				std::vector<uint8_t> data;  // pointer to the data
+				std::vector<sb2> indicator; // indicator of null value in field
+				std::vector<ub2> rlen;      // actual byte length per row, set by OCI after fetch
 
-				OCIStmt *get();
-				operator OCIStmt*() { return get(); }
+				column(text *nn, ub4 nl, ub4 ps, ub4 tt, sb1 sk, ub4 sz): name(reinterpret_cast<const char*>(nn), nl), position(ps), type(tt), scale(sk), size(sz) {
+					WRNPRN("pos: %2u, type: %3u, size: %4zu, name: %s", position, type, size, name.c_str());
+				}
 
-				void prepare(std::string);
-				int bind(std::vector<axon::database::bind>&);
-				void bind(OCISubscription *);
-				void execute(axon::database::exec_type);
-				void clear();
-		};
+				~column() = default;
 
-		class resultset {
+				void allocate(size_t ct) {
 
-			std::string _uuid, _table;
+				    if (ct == 0) return;
 
-			bool _dirty;
-			int _row_count, _row_index, _col_count, _col_index, _prefetch, _fetched;
-			std::vector<axon::database::colinfo> _columns;
+					count = ct;
 
-			std::shared_ptr<axon::database::statement> _statement;
-			axon::database::error _error;
+					size_t needed = (size + 1) * count;
+					if (data.size() != needed)
+					{
+						data.resize(needed);
+						indicator.resize(count);
+						rlen.resize(count, 0);
+					}
 
-			public:
-				resultset() = delete;
-				resultset(std::shared_ptr<axon::database::statement>);
-				~resultset();
+					reset();
+				}
 
-				bool next();
-				void done();
+				void reset() {
+					std::fill(data.begin(), data.end(), 0);
+					std::fill(indicator.begin(), indicator.end(), 0);
+					std::fill(rlen.begin(), rlen.end(), 0);
+				}
+			};
 
-				unsigned int column_count() { return _col_count; }
-				int column_type(int position) { return _columns[position].type; }
+			class statement
+			{
+				std::string _uuid, _sql;
+				bool _prepared;
 
-				std::string get(int);
+				OCIStmt *_pointer;
 
-				int get_int(int);
-				long get_long(int);
-				float get_float(int);
-				double get_double(int);
-				std::string get_string(int);
+				axon::database2r::environment _environment;
+				std::shared_ptr<axon::database2r::context> _context;
+				axon::database2r::error _error;
 
-				bool operator++(int) { return next(); }
-		};
+				public:
+					statement() = delete;
+					statement(std::shared_ptr<axon::database2r::context>);
+					~statement();
 
-		class oracle:public interface {
+					OCIStmt *get();
+					operator OCIStmt*() { return get(); }
 
-			axon::database::environment _environment;
-			axon::database::context _context;
-			axon::database::error _error;
-			axon::database::server _server;
-			axon::database::session _session;
+					void prepare(std::string);
+					void bind(OCISubscription *);
+					int bind(std::vector<axon::database2r::bind>&);
 
-			std::shared_ptr<axon::database::statement> _statement;
+					void execute(axon::database2r::exec_type);
+					void reset();
+			};
+			//// End Subclass
+
+			axon::database2r::environment _environment;
+			std::shared_ptr<axon::database2r::context> _context;
+			axon::database2r::error _error;
+			axon::database2r::server _server;
+			axon::database2r::session _session;
+
+			std::shared_ptr<axon::database2r::oracle::statement> _statement;
 
 			bool _connected, _running, _executed;
 
 			std::string _hostname, _username, _password;
 
-			int _rowidx, _colidx;
+			std::vector<oracle::column> _columns;
 
-			int _vbind(int count, va_list *list, axon::database::bind *first);
+			inline const oracle::column& _col(size_t position) const {
+				if (position >= _columns.size())
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "column index out of bounds");
+				return _columns[position];
+			}
 
-			std::unique_ptr<axon::database::resultset> _resultset;
+			void _get_column_info();
+			void _get_column_details(uint16_t);
+			axon::column_type _attach_column_data(oracle::column&, uint16_t);
 
-			protected:
-				std::ostream& printer(std::ostream&) override;
+			int _get_int(size_t, int);
+			bool _get_bool(size_t, int);
+			long _get_long(size_t, int);
+			float _get_float(size_t, int);
+			double _get_double(size_t, int);
+			std::string _get_string(size_t, int);
 
 			public:
-				int _get_int(int) override;
-				long _get_long(int) override;
-				float _get_float(int) override;
-				double _get_double(int) override;
-				std::string _get_string(int) override;
 
 				oracle();
-				oracle(const axon::database::oracle&) = delete;
+				oracle(const axon::database2r::oracle&) = delete;
 				~oracle();
 
 				bool connect() override;
@@ -387,39 +426,17 @@ namespace axon {
 				bool ping() override;
 				std::string version() override;
 
-				bool transaction(axon::database::trans_t) override;
+				bool transaction(axon::database2r::trans_t) override;
 
 				bool execute(const std::string) override;
-
 				bool query(const std::string) override;
-				bool query(const std::string, std::vector<std::string>);
-				bool next() override;
+				void fetch(axon::recordset2r&, int) override;
 				void done() override;
-
-				std::unique_ptr<axon::database::resultset> make_resultset();
-
-				std::string get(unsigned int);
-				axon::database::context *get_context() { return &_context; };
 
 				std::string& operator[] (char);
 				int& operator[] (int);
-
-				oracle& operator<<(int) override;
-				oracle& operator<<(long) override;
-				oracle& operator<<(long long) override;
-				oracle& operator<<(float) override;
-				oracle& operator<<(double) override;
-				oracle& operator<<(std::string&) override;
-				oracle& operator<<(axon::database::bind&) override;
-
-				oracle& operator>>(int&) override;
-				oracle& operator>>(long&) override;
-				oracle& operator>>(float&) override;
-				oracle& operator>>(double&) override;
-				oracle& operator>>(std::string&) override;
 		};
 	}
 }
 
 #endif
-

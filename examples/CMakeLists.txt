@@ -38,6 +38,10 @@ list(APPEND EXAMPLES_LIST sqlite)
 add_executable (sqlite EXCLUDE_FROM_ALL sqlite.cpp)
 target_include_directories(sqlite PRIVATE ${ORACLE_INCLUDE_DIRS})
 target_link_libraries (sqlite ${PROJECT_NAME_MASTER})
+list(APPEND EXAMPLES_LIST oracle)
+add_executable (oracle EXCLUDE_FROM_ALL oracle.cpp)
+target_include_directories(oracle PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (oracle ${PROJECT_NAME_MASTER})
 
 #
 list(APPEND EXAMPLES_LIST smb)
