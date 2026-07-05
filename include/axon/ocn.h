@@ -17,7 +17,7 @@
 #include <axon/recordset2r.h>
 #include <axon/database2r.h>
 #include <axon/stream2r.h>
-#include <axon/oracle.h>
+#include <axon/oci.h>
 
 // -----------------------------------------------------------------------
 // axon::stream2r::ocn
@@ -64,29 +64,21 @@ namespace axon {
 
 		class ocn : public axon::stream2r::connector {
 
-			// ── OCI session ──────────────────────────────────────────────────
-			axon::database2r::environment _environment;
-			std::shared_ptr<axon::database2r::context> _context;
-			axon::database2r::error _error;
-			axon::database2r::server _server;
-			axon::database2r::session _session;
+			std::shared_ptr<axon::database2r::oci::connection> _connection;
+			axon::database2r::oci::error _error;
 
-			// ── Subscriptions ────────────────────────────────────────────────
-			std::vector<ocn_sub> _subs;
+			std::vector<axon::stream2r::ocn_sub> _subs;
 
-			// ── Dispatch queue ───────────────────────────────────────────────
-			std::deque<ocn_event> _queue;
+			std::deque<axon::stream2r::ocn_event> _queue;
 			std::mutex _queue_mtx;
 			std::condition_variable _queue_cv;
 
-			// ── Internal methods ──────────────────────────────────────────────
 			void _attach(ocn_sub &sub, const axon::stream2r::topic &t);
 			void _detach(ocn_sub &sub);
 			void _dispatch_loop();
 			void _handle_event(const ocn_event &ev);
 			void _fetch_row(const std::string &table, const std::string &rowid, const axon::stream2r::cbfn &cb);
 
-			// Required by connector::stop()
 			void _stop() override;
 
 		public:
@@ -94,33 +86,27 @@ namespace axon {
 			ocn() = delete;
 			ocn(const ocn&) = delete;
 
-			// hostname = Oracle SID/TNS, username, password
 			ocn(std::string, std::string, std::string);
+			ocn(std::shared_ptr<axon::database2r::oci::connection>);
 			~ocn();
 
-			// OCI session lifecycle — separate from stream lifecycle
 			void connect();
 			void disconnect();
 
-			// connector pure virtuals
 			void subscribe() override;
 			void unsubscribe() override;
 
 			bool start() override;
 			bool start(axon::stream2r::cbfn) override;
 
-			// OCN is callback-only — fetch() throws to signal misuse
-			void fetch(axon::recordset2r &, int) override
-			{
+			void fetch(axon::recordset2r &, int) override {
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "ocn is callback-only — use start() with a callback");
 			}
 
-			// Static OCI C callback — fires on OCI's background thread.
-			// Must not call oracle, must not throw, must return promptly.
 			static ub4 _notify(dvoid*, OCISubscription*, dvoid*, ub4*, dvoid*, ub4);
 		};
 
-	} // namespace stream2r
-} // namespace axon
+	}
+}
 
 #endif

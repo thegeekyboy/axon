@@ -225,6 +225,7 @@ namespace axon
 
 				public:
 					connection();
+					connection(const uint16_t);
 					~connection();
 
 					connection(const connection&) = delete;

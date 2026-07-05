@@ -3,67 +3,49 @@
 #include <axon/ocn.h>
 
 namespace axon {
+
 	namespace stream2r {
 
-		// -----------------------------------------------------------------------
-		// Construction / destruction
-		// -----------------------------------------------------------------------
-
-		ocn::ocn(std::string hostname, std::string username, std::string password): axon::stream2r::connector(hostname, username, password), _context(std::make_shared<axon::database2r::context>()), _server(), _session(_context)
+		ocn::ocn(std::string hostname, std::string username, std::string password): axon::stream2r::connector(hostname, username, password), _connection(std::make_shared<axon::database2r::oci::connection>())
 		{
-			_port = 6667;
-			DBGPRN("[ocn:%s] constructed", _id.c_str());
+			_port = -1;
+			DBGPRN("[%s] constructed", _id.c_str());
+		}
+
+		ocn::ocn(std::shared_ptr<axon::database2r::oci::connection> connection)
+		: axon::stream2r::connector("localhost", "localuser", "localpassword"), _connection(connection)
+		// ↑ dummy credentials — this ctor accepts a pre-built connection.
+  		// _hostname/_username/_password are unused; real credentials are in _connection.
+		{
+			DBGPRN("[%s] constructed", _id.c_str());
 		}
 
 		ocn::~ocn()
 		{
-			// connector::stop() joins _daemon and calls _stop() then unsubscribe()
-			// We only need to close the OCI session here
-			if (_connected)
+			if (_running)
+        		stop();
+
+			if (_connection->connected())
 				disconnect();
 		}
 
-		// -----------------------------------------------------------------------
-		// connect / disconnect
-		// -----------------------------------------------------------------------
-
 		void ocn::connect()
 		{
-			if (_connected)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__,"already connected");
+			if (_connection->connected())
+			{
+				DBGPRN("[%s] using pre-connected connection", _id.c_str());
+				return;
+			}
 
-			DBGPRN("SID: %s, username: %s", _hostname.c_str(), _username.c_str());
-
-			if ((_error = OCIAttrSet((void *) _environment.get(), (ub4) OCI_HTYPE_ENV, (void *) &_port, (ub4) 0, (ub4) OCI_ATTR_SUBSCR_PORTNO, _error.get())).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-			if ((_error = OCIServerAttach(_server.get(), _error.get(), (text*) _hostname.c_str(), (sb4) _hostname.size(), OCI_DEFAULT)).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-			if ((_error = OCIAttrSet((dvoid*) _context->get(), OCI_HTYPE_SVCCTX, (dvoid*) _server.get(), 0, OCI_ATTR_SERVER, _error.get())).failed())
-				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-
-			_session.connect(_username, _password);
-			_connected = true;
-
-			DBGPRN("[ocn:%s] connected to %s", _id.c_str(), _hostname.c_str());
+			_connection->connect(_hostname, _username, _password);
 		}
 
 		void ocn::disconnect()
 		{
-			if (!_connected) return;
+			if (!_connection->connected()) return;
 
-			_session.disconnect();
-
-			if ((_error = OCIServerDetach(_server.get(), _error.get(), OCI_DEFAULT)).failed())
-				ERRPRN("[ocn:%s] OCIServerDetach: %s", _id.c_str(), _error.what().c_str());
-
-			_connected = false;
+			_connection->disconnect();
 		}
-
-		// -----------------------------------------------------------------------
-		// _stop — called by connector::stop() before join
-		// -----------------------------------------------------------------------
 
 		void ocn::_stop()
 		{
@@ -71,15 +53,11 @@ namespace axon {
 			_queue_cv.notify_all();
 		}
 
-		// -----------------------------------------------------------------------
-		// _attach — configure and register one OCISubscription handle
-		// -----------------------------------------------------------------------
-
 		void ocn::_attach(ocn_sub &sub, const axon::stream2r::topic &t)
 		{
-			axon::database2r::error err;
+			axon::database2r::oci::error err;
 
-			if (OCIHandleAlloc(axon::database2r::environment::get(), (dvoid**) &sub.handle, OCI_HTYPE_SUBSCRIPTION, 0, nullptr) != OCI_SUCCESS)
+			if (OCIHandleAlloc(axon::database2r::oci::environment::get(), (dvoid**) &sub.handle, OCI_HTYPE_SUBSCRIPTION, 0, nullptr) != OCI_SUCCESS)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate OCISubscription handle");
 
 			// 1. Namespace = DBCHANGE (mandatory for OCN/CQN)
@@ -111,7 +89,7 @@ namespace axon {
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 			// Register with Oracle — creates server-side persistent registration
-			if ((err = OCISubscriptionRegister(_context->get(), &sub.handle, 1, err, OCI_DEFAULT)).failed())
+			if ((err = OCISubscriptionRegister(_connection->ctx(), &sub.handle, 1, err, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 			// Associate the registration SELECT with the subscription.
@@ -119,7 +97,7 @@ namespace axon {
 			// Result rows from this execute are discarded.
 			OCIStmt *regstmt = nullptr;
 
-			if ((err = OCIStmtPrepare2(_context->get(), &regstmt, err.get(), (text*) t.target.c_str(), (ub4) t.target.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
+			if ((err = OCIStmtPrepare2(_connection->ctx(), &regstmt, err.get(), (text*) t.target.c_str(), (ub4) t.target.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 			// Bind subscription handle to statement — this is the link
@@ -130,7 +108,7 @@ namespace axon {
 			}
 
 			// Execute — registers the query, result is discarded
-			if ((err = OCIStmtExecute(_context->get(), regstmt, err.get(), 0, 0, nullptr, nullptr, OCI_DEFAULT)).failed())
+			if ((err = OCIStmtExecute(_connection->ctx(), regstmt, err.get(), 0, 0, nullptr, nullptr, OCI_DEFAULT)).failed())
 			{
 				OCIStmtRelease(regstmt, err.get(), nullptr, 0, OCI_DEFAULT);
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
@@ -146,9 +124,9 @@ namespace axon {
 		{
 			if (!sub.attached || !sub.handle) return;
 
-			axon::database2r::error err;
+			axon::database2r::oci::error err;
 
-			OCISubscriptionUnRegister(_context->get(), sub.handle, err.get(), OCI_DEFAULT);
+			OCISubscriptionUnRegister(_connection->ctx(), sub.handle, err.get(), OCI_DEFAULT);
 			OCIHandleFree(sub.handle, OCI_HTYPE_SUBSCRIPTION);
 
 			sub.handle   = nullptr;
@@ -157,16 +135,12 @@ namespace axon {
 			DBGPRN("[ocn:%s] detached subscription", _id.c_str());
 		}
 
-		// -----------------------------------------------------------------------
-		// subscribe / unsubscribe
-		// -----------------------------------------------------------------------
-
 		void ocn::subscribe()
 		{
 			if (_subscribed)
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "already subscribed");
 
-			if (!_connected)
+			if (!_connection->connected())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "not connected — call connect() before subscribe()");
 
 			if (_topic.empty())
@@ -195,10 +169,6 @@ namespace axon {
 			_subscribed = false;
 		}
 
-		// -----------------------------------------------------------------------
-		// start / stop
-		// -----------------------------------------------------------------------
-
 		bool ocn::start()
 		{
 			if (_running)
@@ -222,13 +192,6 @@ namespace axon {
 			return start();
 		}
 
-		// -----------------------------------------------------------------------
-		// _notify — static OCI callback, fires on OCI's background thread
-		//
-		// Rules: must not call OCI query functions, must not throw.
-		// Only pushes events onto the queue and signals the daemon thread.
-		// -----------------------------------------------------------------------
-
 		ub4 ocn::_notify(dvoid *ctx, [[maybe_unused]] OCISubscription *subscrhp, [[maybe_unused]] dvoid *payload, [[maybe_unused]] ub4 *size, dvoid *descriptor, [[maybe_unused]] ub4 mode)
 		{
 			axon::stream2r::ocn *self = static_cast<axon::stream2r::ocn*>(ctx);
@@ -238,7 +201,7 @@ namespace axon {
 			try
 			{
 				// Use a local error handle — never share with the daemon thread
-				axon::database2r::error err;
+				axon::database2r::oci::error err;
 
 				ub4 event_type = 0;
 				if ((err = OCIAttrGet(descriptor, OCI_DTYPE_CHDES, &event_type, nullptr, OCI_ATTR_CHDES_NFYTYPE, err)).failed())
@@ -255,7 +218,7 @@ namespace axon {
 					return OCI_CONTINUE;
 
 				sb4 table_count = 0;
-				OCICollSize(axon::database2r::environment::get(), err.get(), table_changes, &table_count);
+				OCICollSize(axon::database2r::oci::environment::get(), err.get(), table_changes, &table_count);
 
 				for (sb4 i = 0; i < table_count; i++)
 				{
@@ -263,7 +226,7 @@ namespace axon {
 					dvoid **tptr = nullptr;
 					dvoid *elemind = nullptr;
 
-					if (OCICollGetElem(axon::database2r::environment::get(), err.get(), table_changes, i, &exist, (void**) &tptr, &elemind) != OCI_SUCCESS || !exist)
+					if (OCICollGetElem(axon::database2r::oci::environment::get(), err.get(), table_changes, i, &exist, (void**) &tptr, &elemind) != OCI_SUCCESS || !exist)
 						continue;
 
 					char *table_name = nullptr;
@@ -310,12 +273,12 @@ namespace axon {
 					if (!row_changes) continue;
 
 					sb4 row_count = 0;
-					OCICollSize(axon::database2r::environment::get(), err.get(), row_changes, &row_count);
+					OCICollSize(axon::database2r::oci::environment::get(), err.get(), row_changes, &row_count);
 
 					for (sb4 j = 0; j < row_count; j++)
 					{
 						dvoid **rptr = nullptr;
-						if (OCICollGetElem(axon::database2r::environment::get(), err.get(), row_changes, j, &exist, (void**) &rptr, &elemind) != OCI_SUCCESS || !exist)
+						if (OCICollGetElem(axon::database2r::oci::environment::get(), err.get(), row_changes, j, &exist, (void**) &rptr, &elemind) != OCI_SUCCESS || !exist)
 							continue;
 
 						char *rowid = nullptr;
@@ -410,19 +373,19 @@ namespace axon {
 
 			if (!boost::regex_match(rowid, valid_rowid))
 			{
-				ERRPRN("[ocn:%s] invalid ROWID: %s", _id.c_str(), rowid.c_str());
+				ERRPRN("[%s] invalid ROWID: %s", _id.c_str(), rowid.c_str());
 				return;
 			}
 
 			std::string sql = "SELECT * FROM " + table + " WHERE ROWID = '" + rowid + "'";
 
-			axon::database2r::error err;
+			axon::database2r::oci::error err;
 			OCIStmt *stmt = nullptr;
 
-			if ((err = OCIStmtPrepare2(_context->get(), &stmt, err.get(), (text*) sql.c_str(), (ub4) sql.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
+			if ((err = OCIStmtPrepare2(_connection->ctx(), &stmt, err.get(), (text*) sql.c_str(), (ub4) sql.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
-			if ((err = OCIStmtExecute(_context->get(), stmt, err.get(), 0, 0, nullptr, nullptr, OCI_DEFAULT)).failed())
+			if ((err = OCIStmtExecute(_connection->ctx(), stmt, err.get(), 0, 0, nullptr, nullptr, OCI_DEFAULT)).failed())
 			{
 				OCIStmtRelease(stmt, err.get(), nullptr, 0, OCI_DEFAULT);
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, err.what());
@@ -487,13 +450,13 @@ namespace axon {
 					case SQLT_LBI:
 						b.ctype = axon::column_type::bytes_t;
 						b.dtype = SQLT_BIN;
-						b.data.resize(col_size + 1, 0);
+						b.data.resize((col_size * 4) + 1, 0);
 						break;
 
 					default:
 						b.ctype = axon::column_type::string_t;
 						b.dtype = SQLT_STR;
-						b.data.resize(col_size + 1, 0);
+						b.data.resize((col_size * 4) + 1, 0);
 						break;
 				}
 
@@ -504,9 +467,9 @@ namespace axon {
 				OCIDefineByPos(stmt, &def, err.get(), i + 1, b.data.data(), (sb4) b.data.size(), b.dtype, &b.ind, &b.rlen, nullptr, OCI_DEFAULT);
 			}
 
-			// sword rc = OCIStmtFetch2(stmt, err.get(), 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 			sword rc = OCIStmtFetch2(stmt, err.get(), 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
-			if (err.failed()) DBGPRN("%s => OCIStmtFetch2() = %d >>> %s", sql.c_str(), rc, err.what().c_str());
+			err = rc;
+			if (err.failed()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "OCIStmtFetch2: %s — sql: %s", err.what().c_str(), sql.c_str());
 
 			if (rc == OCI_SUCCESS || rc == OCI_NO_DATA)
 			{

@@ -180,6 +180,13 @@ namespace axon {
 			connection::connection(): _context(std::make_shared<axon::database2r::oci::context>()), _session(_context), _id(axon::util::uuid())
 			{
 			}
+
+			connection::connection(const uint16_t port): _context(std::make_shared<axon::database2r::oci::context>()), _session(_context), _id(axon::util::uuid())
+			{
+				ub4 p = port;
+				if ((_error = OCIAttrSet(axon::database2r::oci::environment::get(), OCI_HTYPE_ENV, (void*) &p, sizeof(ub4), OCI_ATTR_SUBSCR_PORTNO, _error.get())).failed())
+					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
+			}
  
 			connection::~connection()
 			{

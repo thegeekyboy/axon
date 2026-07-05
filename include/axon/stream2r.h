@@ -28,9 +28,9 @@ namespace axon {
 			std::string target;
 
 			// reserved for individual use
-			std::any data0;
-			std::any data1;
-			std::any data2;
+			std::any reserved00;
+			std::any reserved01;
+			std::any reserved02;
 
 			axon::stream2r::cbfn callback;
 

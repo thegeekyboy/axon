@@ -58,7 +58,9 @@ void parse2([[maybe_unused]] std::unique_ptr<axon::recordset2r> rc)
 
 void parse(std::unique_ptr<axon::recordset2r> rc)
 {
-	if (rc) std::cout<<*rc<<std::endl;
+	// if (rc) std::cout<<*rc<<std::endl;
+	while (rc->next()) std::cout<<*rc<<std::endl;
+	// std::cout<<rc->rows()<<" got a ping()"<<std::endl;
 
 	count++;
 }
@@ -87,7 +89,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 
 	try {
 		// axon::stream::kinesis source(hostname, username, password);
-		axon::stream2r::ocn source(ora_sid, username, password);
+		axon::database2r::oci::environment env;
+		
+		// axon::stream2r::ocn source(ora_sid, username, password);
+
+		std::shared_ptr<axon::database2r::oci::connection> oracon = std::make_shared<axon::database2r::oci::connection>(6667);
+		oracon->connect(ora_sid, username, password);
+		axon::stream2r::ocn source(oracon);
 
 		// source.account() = "354285753755";
 		// source.name() = "dse_uat_hyperion_event_consumer";
@@ -98,7 +106,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 		// source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse2);
 
 		source.connect();
-		source.add("CPS_TRANS_RECORD", "SELECT * FROM CPSTXN.CPS_TRANS_RECORD", parse2);
+		source.add("CPS_ORDER_REFDATA", "SELECT * FROM CPSTXN.CPS_ORDER_REFDATA", parse2);
 
 		source.subscribe();
 
@@ -122,10 +130,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 	}
 
 	// eventloop
-	
-
-
-
 
 	return 0;
 
