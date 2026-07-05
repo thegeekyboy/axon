@@ -10,9 +10,6 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (!axon::util::validator::hostname(hostname))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Wrong hostname/ip address format");
-
 			if (!axon::util::validator::username(username))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username is empty or format is wrong");
 		}

@@ -159,9 +159,10 @@ namespace axon
 
 			static const boost::regex regex_ipaddr;
 			static const boost::regex regex_fqdn;
+			static const boost::regex regex_tns;
 			static const boost::regex regex_username;
 
-			static bool hostname(std::string &hn) {
+			static bool hostname(const std::string &hn) {
 
 				if (!boost::regex_match(hn, regex_ipaddr) && !boost::regex_match(hn, regex_fqdn))
 					return false;
@@ -169,9 +170,17 @@ namespace axon
 				return true;
 			};
 
-			static bool username(std::string &un) {
+			static bool username(const std::string &un) {
 
 				if (un.size() <= 0 || !boost::regex_match(un, regex_username))
+					return false;
+
+				return true;
+			};
+
+			static bool tns(const std::string &un) {
+
+				if (un.size() <= 0 || !boost::regex_match(un, regex_tns))
 					return false;
 
 				return true;

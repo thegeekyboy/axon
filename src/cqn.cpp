@@ -5,7 +5,7 @@ namespace axon {
 
 	namespace stream {
 
-		void csubscription::attach(axon::stream::topic_t &topic)
+		void cqn::subscription::attach(axon::stream::topic_t &topic)
 		{
 			BENCHMARK;
 
@@ -26,8 +26,8 @@ namespace axon {
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			// if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, (dvoid*) fnptr, 0, OCI_ATTR_SUBSCR_CALLBACK, _error)).failed())	// set callback function
-			// if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, (dvoid*) &csubscription::notify, 0, OCI_ATTR_SUBSCR_CALLBACK, _error)).failed())	// set callback function
-			if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, reinterpret_cast<void*>(&csubscription::notify), 0, OCI_ATTR_SUBSCR_CALLBACK, _error)).failed())	// set callback function
+			// if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, (dvoid*) &subscription::notify, 0, OCI_ATTR_SUBSCR_CALLBACK, _error)).failed())	// set callback function
+			if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, reinterpret_cast<void*>(&subscription::notify), 0, OCI_ATTR_SUBSCR_CALLBACK, _error)).failed())	// set callback function
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			// if ((_error = OCIAttrSet(_pointer, OCI_HTYPE_SUBSCRIPTION, (dvoid*) this, sizeof(this), OCI_ATTR_SUBSCR_PAYLOAD, _error)).failed())							// attach payload
@@ -46,15 +46,15 @@ namespace axon {
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 
 			// statement attach
-			axon::database::statement stmt(_context);
+			axon::database2r::oracle::statement stmt(_context);
 			stmt.prepare(topic.topic);
 			stmt.bind(_pointer);
-			stmt.execute(axon::database::exec_type::select);
+			stmt.execute(axon::database2r::exec_type::select);
 
 			_subscribing = true;
 		}
 
-		void csubscription::detach()
+		void cqn::subscription::detach()
 		{
 			BENCHMARK;
 			if ((_error = OCISubscriptionUnRegister(_context->get(), _pointer, _error.get(), OCI_DEFAULT)).failed())
@@ -62,11 +62,11 @@ namespace axon {
 			_subscribing = false;
 		}
 
-		ub4 csubscription::notify([[maybe_unused]] dvoid *ctx, [[maybe_unused]] OCISubscription *subscrhp, [[maybe_unused]] dvoid *payload, [[maybe_unused]] ub4 *size, dvoid *descriptor, [[maybe_unused]] ub4 mode)
+		ub4 cqn::subscription::notify([[maybe_unused]] dvoid *ctx, [[maybe_unused]] OCISubscription *subscrhp, [[maybe_unused]] dvoid *payload, [[maybe_unused]] ub4 *size, dvoid *descriptor, [[maybe_unused]] ub4 mode)
 		{
 			axon::timer t(__PRETTY_FUNCTION__);
-			axon::database::environment env;
-			axon::database::error err;
+			axon::database2r::environment env;
+			axon::database2r::error err;
 
 			ub4 event_type;
 			OCIColl *changes = (OCIColl *) 0;
@@ -119,19 +119,19 @@ namespace axon {
 				if ((err = OCIAttrGet(*tprt, OCI_DTYPE_TABLE_CHDES,  (dvoid *) &table_op, NULL, OCI_ATTR_CHDES_TABLE_OPFLAGS, err.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
-				if (table_op & axon::database::change::allrows) {
+				if (table_op & axon::database2r::change::allrows) {
 #if DEBUG > 1
-					if (table_op & axon::database::change::insert)
+					if (table_op & axon::database2r::change::insert)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - insert", table_name, table_op);
-					else if (table_op & axon::database::change::update)
+					else if (table_op & axon::database2r::change::update)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - update", table_name, table_op);
-					else if (table_op & axon::database::change::remove)
+					else if (table_op & axon::database2r::change::remove)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - remove", table_name, table_op);
-					else if (table_op & axon::database::change::alter)
+					else if (table_op & axon::database2r::change::alter)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - alter", table_name, table_op);
-					else if (table_op & axon::database::change::drop)
+					else if (table_op & axon::database2r::change::drop)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - drop", table_name, table_op);
-					else if (table_op & axon::database::change::unknown)
+					else if (table_op & axon::database2r::change::unknown)
 						DBGPRN("table: %s = OCI_OPCODE_ALLROWS <> %d - unknown", table_name, table_op);
 #endif
 					continue;
@@ -159,28 +159,28 @@ namespace axon {
 						throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, err.what());
 
 					topic_t *t = static_cast<topic_t*>(ctx);
-					csubscription *sub = std::any_cast<csubscription*>(t->sub);
+					subscription *sub = std::any_cast<subscription*>(t->sub);
 
-					sub->callback((axon::database::operation)event_type, (axon::database::change)table_op, table_name, rowid);
+					sub->callback((axon::database2r::operation)event_type, (axon::database2r::change)table_op, table_name, rowid);
 				}
 			}
 
 			return 0;
 		}
 
-		void csubscription::callback([[maybe_unused]]axon::database::operation op, [[maybe_unused]]axon::database::change ch, std::string table, std::string rowid)
+		void cqn::subscription::callback([[maybe_unused]]axon::database2r::operation op, [[maybe_unused]]axon::database2r::change ch, std::string table, std::string rowid)
 		{
 			axon::stream::message_t data = {false, op, ch, table, rowid};
 			_pipe.push_back(std::move(data));
 			_topic.callback(op, ch, table, rowid, this);
 		}
 
-		cqn::cqn(axon::database::oracle *ora, std::string consumer): cqn(ora)
+		cqn::cqn(axon::database2r::oracle *ora, std::string consumer): cqn(ora)
 		{
 			_consumer = consumer;
 		}
 
-		cqn::cqn(axon::database::oracle *ora): _oracle(ora)
+		cqn::cqn(axon::database2r::oracle *ora): _oracle(ora)
 		{
 			_uuid = util::uuid();
 			_port = 7776;
@@ -222,7 +222,7 @@ namespace axon {
 
 		std::string cqn::subscribe(std::string topic)
 		{
-			return subscribe(topic, [](axon::database::operation, axon::database::change, std::string, [[maybe_unused]] std::string rowid, void *) {
+			return subscribe(topic, [](axon::database2r::operation, axon::database2r::change, std::string, [[maybe_unused]] std::string rowid, void *) {
 				DBGPRN("rowid: %s", rowid.c_str());
 			});
 		}
@@ -236,7 +236,7 @@ namespace axon {
 
 			for (auto &elm : _topics)
 			{
-				std::unique_ptr<axon::stream::csubscription> temp = std::make_unique<axon::stream::csubscription>(_oracle->get_context());
+				std::unique_ptr<axon::stream::cqn::subscription> temp = std::make_unique<axon::stream::cqn::subscription>(_oracle->get_context());
 
 				temp->attach(elm);
 				_list.emplace_back(std::move(temp));
@@ -250,7 +250,7 @@ namespace axon {
 			BENCHMARK;
 		}
 
-		std::tuple<std::string, std::unique_ptr<axon::database::resultset>> cqn::next()
+		std::tuple<std::string, std::unique_ptr<axon::database2r::resultset>> cqn::next()
 		{
 			BENCHMARK;
 			for (size_t i = 0; i < _list.size(); i++)
@@ -262,10 +262,10 @@ namespace axon {
 
 					std::string sql = "SELECT * FROM " + data.table + " WHERE ROWID = '" + data.rowid + "'"; // TODO: change to bind variable to avoid SQL Injection possibilities
 
-					std::shared_ptr<axon::database::statement> stmt = std::make_shared<axon::database::statement>(*_oracle->get_context());
+					std::shared_ptr<axon::database2r::statement> stmt = std::make_shared<axon::database2r::statement>(*_oracle->get_context());
 					stmt->prepare(sql);
-					stmt->execute(axon::database::exec_type::select);
-					return std::make_tuple(data.table, std::make_unique<axon::database::resultset>(stmt));
+					stmt->execute(axon::database2r::exec_type::select);
+					return std::make_tuple(data.table, std::make_unique<axon::database2r::resultset>(stmt));
 				}
 
 			}
