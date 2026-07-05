@@ -8,17 +8,17 @@
 
 #include <sqlite3.h>
 
-#include <axon/database.h>
+#include <axon/database2r.h>
 
 namespace axon
 {
-	namespace database
+	namespace database2r
 	{
-		class sqlite: public interface {
+		class sqlite: public connector {
 
 			struct statement {
 
-				statement(): _statement(NULL) { };
+				statement(): _statement(nullptr), _session(nullptr) { };
 				~statement();
 
 				void reset();
@@ -31,31 +31,20 @@ namespace axon
 					sqlite3 *_session;
 			};
 
-			bool _open, _query, _running, _prepared;
-			int _type, _index, _rowidx, _colidx;
 			std::string _path, _name, _username, _password;
-
-			sqlite3 *_dbp;
-			sqlite3_stmt *_stmt;
-
+			std::shared_ptr<sqlite3> _dbp;
 			statement _statement;
 
 			std::mutex _safety;
 
-			int prepare(int, va_list*, axon::database::bind*);
 			int bind(statement&);
 
-		protected:
-			std::ostream& printer(std::ostream&) override;
-
 		public:
-			int _get_int(int) override;
-			long _get_long(int) override;
-			float _get_float(int) override;
-			double _get_double(int) override;
-			std::string _get_string(int) override;
 
-			sqlite();
+			using connector::execute;
+			using connector::query;
+
+			sqlite() = default;
 			sqlite(std::string);
 			sqlite(const sqlite&);
 
@@ -75,25 +64,11 @@ namespace axon
 			bool execute(const std::string) override;
 			bool query(const std::string) override;
 
-			bool next();
-			void done();
+			void fetch(axon::recordset2r &, int) override;
+			void done() override;
 
 			std::string& operator[] (char);
 			int& operator[] (int);
-
-			sqlite& operator<<(int) override;
-			sqlite& operator<<(long) override;
-			sqlite& operator<<(long long) override;
-			sqlite& operator<<(float) override;
-			sqlite& operator<<(double) override;
-			sqlite& operator<<(std::string&) override;
-			sqlite& operator<<(axon::database::bind&) override;
-
-			sqlite& operator>>(int&) override;
-			sqlite& operator>>(long&) override;
-			sqlite& operator>>(float&) override;
-			sqlite& operator>>(double&) override;
-			sqlite& operator>>(std::string&) override;
 		};
 	}
 }

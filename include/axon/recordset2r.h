@@ -122,7 +122,7 @@ namespace axon {
 		size_t index (std::string_view) const;
 
 		std::string_view source() const noexcept { return _name; }
-		void name(std::string val) { _name = std::move(val); }
+		void set_source(std::string val) { _name = std::move(val); }
 
 		template <typename T>
 		bool get(size_t n, T &out) const {
@@ -143,7 +143,7 @@ namespace axon {
 		axon::recordset2r& operator>>(T &out) {
 
 			if (_col_cursor >= _schema.size())
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "operator>>: all columns consumed for this row");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "operator>>: all columns consumed for this row. _col_cursor: %d, _schema.size(): %d", _col_cursor, _schema.size());
 			get(_col_cursor++, out);
 			return *this;
 		}
