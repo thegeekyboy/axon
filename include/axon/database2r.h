@@ -12,6 +12,8 @@
 #define AXON_DATABASE2R_KEYSPACE 'd'
 #define AXON_DATABASE2R_FILEPATH 'e'
 
+#define AXON_DATABASE2R_PORT 1
+
 namespace axon {
 
 	namespace database2r {
@@ -95,10 +97,6 @@ namespace axon {
 
 				virtual bool execute(const std::string) = 0;
 
-				// Push t directly into _bind as its natural type.
-				// Do NOT call t.c_str() — that stores a pointer into a local
-				// temporary that is destroyed before bind() uses it (dangling
-				// pointer, silent corruption in Release builds).
 				template <typename T>
 				bool execute(const std::string sql, T t)
 				{

@@ -11,7 +11,7 @@
 #include <axon/util.h>
 // #include <axon/database.h>
 #include <axon/oracle.h>
-#include <axon/scylladb.h>
+#include <axon/scylla.h>
 
 #include <signal.h>
 
