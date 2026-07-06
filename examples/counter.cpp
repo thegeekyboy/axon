@@ -5,7 +5,7 @@
 #include <axon.h>
 #include <axon/util.h>
 #include <axon/database.h>
-#include <axon/scylladb.h>
+#include <axon/scylla.h>
 #include <axon/kafka.h>
 
 static bool running = false;
