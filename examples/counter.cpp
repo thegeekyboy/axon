@@ -17,7 +17,7 @@ static void stop (int sig)
 	fflush(stderr);
 }
 
-void counter(axon::stream::kafka *hook)
+void counter(axon::stream2r::kafka *hook)
 {
 	running = true;
 
@@ -41,21 +41,21 @@ void dbg(avro_value_t *avro)
 	}
 }
 
-void parse(std::shared_ptr<axon::stream::recordset> rc)
+void parse(std::shared_ptr<axon::recordset2r> rc)
 {
 	std::string event_type, screen, msisdn, session, event_date, fingerprint;
 
-	rc->get("EVENT_TYPE", event_type);
-	rc->get("DEVICE_FINGERPRINTID", fingerprint);
-	rc->get("event_timestamp", event_date);
-	rc->get("SESSION_ID", session);
-	rc->get("MSISDN", msisdn);
-	rc->get("SCREEN_NAME", screen);
+	while (rc->next())
+	{
+		rc->get("EVENT_TYPE", event_type);
+		rc->get("DEVICE_FINGERPRINTID", fingerprint);
+		rc->get("event_timestamp", event_date);
+		rc->get("SESSION_ID", session);
+		rc->get("MSISDN", msisdn);
+		rc->get("SCREEN_NAME", screen);
 
-	// if (event_type == "bKash.events.fp")
-	// 	dbg(avro);
-	
-	std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<std::endl;
+		std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<std::endl;
+	}
 }
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
@@ -84,14 +84,22 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 
 	if (argc <= 2) return 0;
 
-	axon::stream::kafka uat(bootstrap, schema, "axon::counter");
+	axon::stream2r::kafka uat(bootstrap, schema, "axon::counter");
 
-	uat.add("uat_streamproxy_generic");
+	uat.add("uat_streamproxy_generic", "uat_streamproxy_generic", parse);
 	uat.subscribe();
+	uat.start();
 
 	signal(SIGINT, stop);
+	running = true;
 
-	if (false)
+	while (running)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	}
+	uat.stop();
+	
+	/*if (false)
 	{
 		uat.start(&parse);
 		std::thread th(counter, &uat);
@@ -101,7 +109,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 	{
 		running = true;
 
-		std::unique_ptr<axon::stream::recordset> rc;
+		std::unique_ptr<axon::recordset2r> rc;
 
 		while (running && (rc = uat.next()))
 		{
@@ -122,7 +130,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		}
 
 		uat.stop();
-	}
+	}*/
 
 	return 0;
 }

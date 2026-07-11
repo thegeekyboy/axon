@@ -10,8 +10,6 @@ namespace axon {
 		{
 			BENCHMARK;
 
-			if (!axon::util::validator::username(username))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Username is empty or format is wrong");
 		}
 
 		connector::connector(std::string hostname, std::string username, std::string password): connector(hostname, username, password, -1) { }
@@ -38,7 +36,7 @@ namespace axon {
 				_topic.emplace_back(std::move(t));
 			}
 			else
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "topic data incomplete");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "topic data incomplete: %s: %s", name.c_str(), target.c_str());
 
 		}
 
