@@ -12,6 +12,7 @@ namespace axon {
 
 	namespace stream2r {
 
+		const int MIN_COMMIT_COUNT = 50;
 		using cbfn = std::function<void(std::unique_ptr<axon::recordset2r>)>;
 
 		struct topic {
@@ -67,6 +68,7 @@ namespace axon {
 
 				virtual std::string id() final { return _id; };
 				virtual std::string& name() final { return _name; };
+				virtual std::string source() const { return _name; }
 				virtual size_t count() final { return _topic.size(); }
 				virtual size_t counter() final { return _counter; }
 

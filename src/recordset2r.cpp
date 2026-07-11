@@ -331,7 +331,7 @@ namespace axon {
 		else if constexpr (std::is_floating_point_v<T>)
 		{
 			if (f.type != column_type::double_t)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "type mismatch: expected float/double");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "type mismatch: expected float/double got %d", f.type);
 			out = static_cast<T>(std::get<double>(f.value));
 		}
 		else if constexpr (std::is_same_v<T, std::string>)

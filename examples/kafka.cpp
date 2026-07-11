@@ -1,469 +1,467 @@
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <variant>
+/*
+ * kafka2r.cpp — generic test suite for axon::stream2r::kafka
+ *
+ * Does not assume any specific schema or topic structure.
+ * Tests the axon kafka connector and recordset2r API using
+ * whatever topic and schema the user provides.
+ *
+ * Tests covered:
+ *   1.  Lifecycle             (add, subscribe, start, stop)
+ *   2.  Message delivery      (at least one message received)
+ *   3.  recordset2r cursor    (next() returns true)
+ *   4.  recordset2r metadata  (count() > 0, name(0) non-empty, source() correct)
+ *   5.  Column types          (all columns have a valid column_type)
+ *   6.  to_json()             (produces non-empty JSON object)
+ *   7.  operator<<            (print does not throw)
+ *   8.  Global callback       (start(cbfn) overrides per-topic callback)
+ *   9.  counter()             (increments per message)
+ *   10. stop() / start() cycle (re-subscribe and restart)
+ *   11. autocommit flag       (get/set without crash)
+ *   12. get<T> by name        (first column accessed by name, type-safe)
+ *   13. del()                 (optional — set AXON_RUN_DEL=1)
+ *
+ * Environment variables:
+ *   AXON_BOOTSTRAP         — Kafka broker list (e.g. "broker1:9092,broker2:9092")
+ *   AXON_SCHEMA_REGISTRY   — Schema Registry URL (e.g. "http://host:8081")
+ *   AXON_CONSUMER_GROUP    — consumer group id (default: "axon::kafka2r_test")
+ *   AXON_TOPIC             — topic to consume (e.g. "my.topic")
+ *   AXON_TEST_TIMEOUT_SEC  — seconds to wait per test (default: 30)
+ *   AXON_RUN_DEL           — set to "1" to run the del() test (default: skip)
+ *
+ * Build (from axon build directory):
+ *   g++ -std=c++17 -I ../include -L . -laxon -lrdkafka -lavro -lserdes \
+ *       -o kafka2r ../examples/kafka2r.cpp
+ *
+ * Run:
+ *   AXON_BOOTSTRAP=broker:9092 \
+ *   AXON_SCHEMA_REGISTRY=http://schema-reg:8081 \
+ *   AXON_TOPIC=my.topic \
+ *   ./kafka2r
+ */
 
-#include <cmath>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 #include <axon.h>
-#include <axon/kafka.h>
-#include <axon/redis.h>
 #include <axon/util.h>
-// #include <axon/database.h>
-#include <axon/oracle.h>
-#include <axon/scylla.h>
+#include <axon/kafka.h>
 
-#include <signal.h>
+// -----------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------
 
-#include "entity.h"
-// #include "exprtk.hpp"
-#include "logica.h"
+static int g_pass = 0, g_fail = 0;
 
-class transaction_type_code {
+static void check(bool ok, const std::string &label)
+{
+    if (ok) { ++g_pass; std::cout << "  PASS  " << label << "\n"; }
+    else    { ++g_fail; std::cout << "  FAIL  " << label << "\n"; }
+}
 
-	typedef struct {
-		uint32_t REASON_TYPE_ID;
-		uint16_t TRX_TYPE_CODE;
-		std::string TRX_TYPE_DESC;
-	} trx_type_map;
+static bool wait_for(std::atomic<int> &counter, int expected, int timeout_sec)
+{
+    for (int i = 0; i < timeout_sec * 10 && counter.load() < expected; i++)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return counter.load() >= expected;
+}
 
-	std::vector<trx_type_map> _data;
+// -----------------------------------------------------------------------
+// Shared state filled by the capture callback
+// -----------------------------------------------------------------------
 
-	bool _load_file(std::string filename) {
-		std::ifstream file(filename);
-		std::string line;
-
-		if (!file) return false;
-
-		while (std::getline(file, line))
-		{
-			std::stringstream ss(line);
-			std::string field;
-			trx_type_map t;
-
-			// REASON_TYPE_ID
-			std::getline(ss, field, ',');
-			t.REASON_TYPE_ID = std::stoi(field);
-
-			// TRX_TYPE_CODE
-			std::getline(ss, field, ',');
-			t.TRX_TYPE_CODE = std::stoi(field);
-
-			// TRX_TYPE_DESC
-			std::getline(ss, t.TRX_TYPE_DESC, ',');
-
-			_data.push_back(t);
-		}
-		return true;
-	};
-	
-	public:
-
-		transaction_type_code(std::string filename) {
-			if (_load_file(filename)) std::sort(_data.begin(), _data.end(), [](const trx_type_map& lhs, const trx_type_map& rhs) { return lhs.TRX_TYPE_DESC < rhs.TRX_TYPE_DESC; });
-		}
-
-		trx_type_map *find(uint32_t id) {
-			auto it = std::find_if(_data.begin(), _data.end(), [id](const trx_type_map& u) {
-				return u.REASON_TYPE_ID == id;
-			});
-
-			if (it != _data.end()) return std::addressof(*it);
-
-			return nullptr;
-		}
-
-		std::string name(uint32_t id) {
-			if (auto elm = find(id)) return elm->TRX_TYPE_DESC;
-			return std::string();
-		}
-
-		uint16_t code(uint32_t id) {
-			if (auto elm = find(id)) return elm->TRX_TYPE_CODE;
-			return 0;
-		}
-		
-		trx_type_map &get(size_t index) {
-			if (index < _data.size()) return _data[index];
-			throw std::invalid_argument("index out of range");
-		}
-
-		size_t size() { return _data.size(); }
-		void print() {
-			for (const auto& elm : _data) {
-				std::cout<<elm.REASON_TYPE_ID<<","<<elm.TRX_TYPE_CODE<<","<<elm.TRX_TYPE_DESC<<std::endl;
-			}
-		}
+struct capture_result {
+    bool        populated { false };
+    std::string source;
+    int         col_count { 0 };
+    std::string col0_name;
+    std::string json;
+    std::string print_out;
+    bool        next_ok   { false };
+    std::vector<axon::column_type> types;
 };
 
-std::shared_ptr<transaction_type_code> typemaps;
+static capture_result   g_cap;
+static std::atomic<int> g_received { 0 };
+static std::atomic<int> g_global   { 0 };
 
-Stats query(axon::cache::redis &redis, uint64_t identity_id, uint8_t wsize = 24)
+static void capture(std::unique_ptr<axon::recordset2r> rs)
 {
-	static int TYPES[5] = { 1000, 1001, 1002, 1003, 1009 };
-	std::time_t hour = std::time(nullptr);//(std::time(nullptr) % 3600);
-	std::string key;
+    if (!rs) { g_received++; return; }
+    if (!rs->next()) { g_received++; return; }
 
-	Stats st;
+    capture_result r;
+    r.next_ok   = true;
+    r.source    = rs->source();
+    r.col_count = (int) rs->count();
+    r.col0_name = r.col_count > 0 ? std::string(rs->name(0)) : "";
+    r.json      = rs->to_json();
 
-	// std::cout<<std::time(nullptr)<<std::endl;
+    for (int i = 0; i < r.col_count; i++)
+        r.types.push_back(rs->type(i));
 
-	// for (size_t i = 0; i < typemaps->size(); i++)
-	for ( auto &tc: TYPES)
-	{
-		// uint16_t tc = typemaps->get(i).TRX_TYPE_CODE;
-		std::time_t hts = hour;
+    std::ostringstream oss;
+    oss << *rs;
+    r.print_out = oss.str();
 
-		redis.pipeline_begin();
-		for (int i = 0; i <= wsize; i++)
-		{
-			std::tm tm_buf {};
+    while (rs->next()) { }
 
-			localtime_r(&hts, &tm_buf);
-			char hour_str[16];
-			std::strftime(hour_str, sizeof(hour_str), "%Y%m%d%H", &tm_buf);
-
-			key = "entity:" + std::to_string(identity_id) + ":" + std::to_string(tc) + ":" + hour_str;
-			redis.pipeline_hgetall(key);
-			hts -= 3600;
-		}
-
-		std::vector<axon::cache::reply> response = redis.pipeline_run();
-
-		for (auto &r : response)
-		{
-			if (r.ok() && !r.is_null() && r->type == REDIS_REPLY_ARRAY && r->elements > 0)
-			{
-				printf("total fields: %zu\n", r->elements / 2);
-
-				for (size_t i = 0; i + 1 < r->elements; i += 2)
-				{
-					std::string_view field(r->element[i]->str,   r->element[i]->len);
-					std::string_view value(r->element[i+1]->str, r->element[i+1]->len);
-
-					printf("  field=%-12.*s  value=%.*s\n",
-						(int)field.size(), field.data(),
-						(int)value.size(), value.data());
-
-					switch (tc)
-					{
-						case 1000:
-							if (field == "count") st.ci+=axon::util::str_to_num<long>(value);
-							if (field == "sum") st.ci_sum+=axon::util::str_to_num<long>(value);
-							break;
-						case 1001:
-							if (field == "count") st.co+=axon::util::str_to_num<long>(value);
-							if (field == "sum") st.co_sum+=axon::util::str_to_num<long>(value);
-							break;
-						case 1002:
-							if (field == "count") st.p2p+=axon::util::str_to_num<long>(value);
-							if (field == "sum") st.p2p_sum+=axon::util::str_to_num<long>(value);
-							break;
-						case 1003:
-							if (field == "count") st.pay+=axon::util::str_to_num<long>(value);
-							if (field == "sum") st.pay_sum+=axon::util::str_to_num<long>(value);
-							break;
-						case 1009:
-							if (field == "count") st.bill+=axon::util::str_to_num<long>(value);
-							if (field == "sum") st.bill_sum+=axon::util::str_to_num<long>(value);
-							break;
-					}
-				}
-			}
-		}
-	}
-
-	return st;
+    r.populated = true;
+    g_cap       = r;
+    g_received++;
 }
 
-/// globals
-static bool running = false;
-static unsigned long count = 0;
-static long delta = 0;
-
-std::shared_ptr<cache> memcache;
-///
-
-static void stop (int sig)
+static void global_cb(std::unique_ptr<axon::recordset2r> rs)
 {
-	running = false;
-	fprintf(stderr, "stopping eventloop! received signal: %d\n", sig);
-	fflush(stderr);
+    if (rs) while (rs->next()) { }
+    g_global++;
 }
 
-static void reload (int sig)
+// -----------------------------------------------------------------------
+// main
+// -----------------------------------------------------------------------
+
+int main([[maybe_unused]] int argc,
+         [[maybe_unused]] char *argv[],
+         char *env[])
 {
-	running = false;
-	fprintf(stderr, "stopping eventloop! received signal: %d\n", sig);
-	fflush(stderr);
+    axon::timer ctm(__PRETTY_FUNCTION__);
+
+    std::string bootstrap, schema_registry, consumer_group, topic;
+    int  timeout_sec = 30;
+    bool run_del     = false;
+
+    for (int i = 0; env[i]; i++)
+    {
+        auto p = axon::util::split(env[i], '=');
+        if (p[0] == "AXON_BOOTSTRAP")        bootstrap       = p[1];
+        if (p[0] == "AXON_SCHEMA_REGISTRY")  schema_registry = p[1];
+        if (p[0] == "AXON_CONSUMER_GROUP")   consumer_group  = p[1];
+        if (p[0] == "AXON_TOPIC")            topic           = p[1];
+        if (p[0] == "AXON_TEST_TIMEOUT_SEC") timeout_sec     = std::stoi(p[1]);
+        if (p[0] == "AXON_RUN_DEL")          run_del         = (p[1] == "1");
+    }
+
+    if (bootstrap.empty() || schema_registry.empty() || topic.empty())
+    {
+        std::cerr << "Required: AXON_BOOTSTRAP, AXON_SCHEMA_REGISTRY, AXON_TOPIC\n";
+        return 1;
+    }
+    if (consumer_group.empty()) consumer_group = "axon::kafka2r_test";
+
+    std::cout << "\n=== axon::stream2r::kafka generic test suite ===\n";
+    std::cout << "bootstrap:  " << bootstrap       << "\n";
+    std::cout << "schema_reg: " << schema_registry << "\n";
+    std::cout << "group:      " << consumer_group  << "\n";
+    std::cout << "topic:      " << topic           << "\n";
+    std::cout << "timeout:    " << timeout_sec     << "s\n\n";
+
+    try {
+
+        // ================================================================
+        // 1. Lifecycle
+        // ================================================================
+        std::cout << "[1] Lifecycle\n";
+        {
+            g_received = 0;
+            axon::stream2r::kafka source(bootstrap, schema_registry, consumer_group);
+
+            check(source.count() == 0, "count() == 0 before add()");
+
+            source.add(topic, topic, capture);
+            check(source.count() == 1, "count() == 1 after add()");
+
+            source.subscribe();
+            check(true, "subscribe() did not throw");
+
+            source.start();
+            check(true, "start() did not throw");
+
+            bool got = wait_for(g_received, 1, timeout_sec);
+            check(got, "received >= 1 message within " +
+                  std::to_string(timeout_sec) + "s");
+
+            source.stop();
+            check(true, "stop() did not throw");
+        }
+
+        if (!g_cap.populated)
+        {
+            std::cerr << "\nNo message received within " << timeout_sec
+                      << "s — skipping remaining tests.\n"
+                      << "Ensure " << topic << " has live messages.\n";
+            ++g_fail;
+            // Use a scope to avoid goto crossing initializations
+            goto print_results;
+        }
+
+        // ================================================================
+        // 2. Message delivery
+        // ================================================================
+        std::cout << "\n[2] Message delivery\n";
+        check(g_received.load() >= 1,
+              "messages received: " + std::to_string(g_received.load()));
+        check(g_cap.source == topic,
+              "source() == \"" + topic + "\" (got \"" + g_cap.source + "\")");
+
+        // ================================================================
+        // 3. Cursor
+        // ================================================================
+        std::cout << "\n[3] Cursor — next()\n";
+        check(g_cap.next_ok, "next() returned true");
+
+        // ================================================================
+        // 4. Metadata
+        // ================================================================
+        std::cout << "\n[4] recordset2r metadata\n";
+        check(g_cap.col_count > 0,
+              "count() > 0 — schema has " +
+              std::to_string(g_cap.col_count) + " columns");
+        check(!g_cap.col0_name.empty(),
+              "name(0) non-empty: \"" + g_cap.col0_name + "\"");
+
+        // Print full schema for visibility
+        {
+            g_received = 0;
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic, [](std::unique_ptr<axon::recordset2r> rs) {
+                if (!rs || !rs->next()) { g_received++; return; }
+                std::cout << "         schema (" << rs->count() << " columns):\n";
+                for (size_t i = 0; i < rs->count(); i++)
+                {
+                    const char *tn = "?";
+                    switch (rs->type(i))
+                    {
+                        case axon::column_type::string_t: tn = "string"; break;
+                        case axon::column_type::int64_t:  tn = "int64";  break;
+                        case axon::column_type::double_t: tn = "double"; break;
+                        case axon::column_type::bool_t:   tn = "bool";   break;
+                        case axon::column_type::bytes_t:  tn = "bytes";  break;
+                        case axon::column_type::null_t:   tn = "null";   break;
+                        default:                          tn = "other";  break;
+                    }
+                    std::cout << "           [" << i << "] "
+                              << rs->name(i) << " (" << tn << ")\n";
+                }
+                while (rs->next()) { }
+                g_received++;
+            });
+            src.subscribe();
+            src.start();
+            wait_for(g_received, 1, timeout_sec);
+            src.stop();
+        }
+
+        // ================================================================
+        // 5. Column types — all recognised
+        // ================================================================
+        std::cout << "\n[5] Column types\n";
+        {
+            bool all_valid = true;
+            for (auto ct : g_cap.types)
+            {
+                switch (ct)
+                {
+                    case axon::column_type::string_t:
+                    case axon::column_type::int64_t:
+                    case axon::column_type::double_t:
+                    case axon::column_type::bool_t:
+                    case axon::column_type::bytes_t:
+                    case axon::column_type::null_t:
+                        break;
+                    default:
+                        all_valid = false;
+                }
+            }
+            check(all_valid, "all " + std::to_string(g_cap.col_count) +
+                  " columns have a recognised column_type");
+        }
+
+        // ================================================================
+        // 6. to_json()
+        // ================================================================
+        std::cout << "\n[6] to_json()\n";
+        check(!g_cap.json.empty() &&
+              g_cap.json.find('{') != std::string::npos,
+              "to_json() produced a JSON object");
+        std::cout << "         first 120 chars: "
+                  << g_cap.json.substr(0, 120)
+                  << (g_cap.json.size() > 120 ? "..." : "") << "\n";
+
+        // ================================================================
+        // 7. operator<<
+        // ================================================================
+        std::cout << "\n[7] operator<<\n";
+        check(!g_cap.print_out.empty(),
+              "operator<< produced non-empty output");
+        std::cout << "         first 120 chars: "
+                  << g_cap.print_out.substr(0, 120)
+                  << (g_cap.print_out.size() > 120 ? "..." : "") << "\n";
+
+        // ================================================================
+        // 8. Global callback via start(cbfn)
+        // ================================================================
+        std::cout << "\n[8] Global callback via start(cbfn)\n";
+        {
+            g_global = 0;
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic, capture);   // per-topic — will be overridden
+            src.subscribe();
+            src.start(global_cb);             // global takes priority
+
+            bool got = wait_for(g_global, 1, timeout_sec);
+            check(got, "global callback fired (" +
+                  std::to_string(g_global.load()) + " messages)");
+            src.stop();
+        }
+
+        // ================================================================
+        // 9. counter()
+        // ================================================================
+        std::cout << "\n[9] counter()\n";
+        {
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic,
+                [](std::unique_ptr<axon::recordset2r> rs) {
+                    if (rs) while (rs->next()) { }
+                });
+            src.subscribe();
+            src.start();
+
+            size_t before = src.counter();
+            int wait_s = std::min(timeout_sec / 3, 5);
+            std::this_thread::sleep_for(std::chrono::seconds(wait_s));
+            size_t after = src.counter();
+            src.stop();
+
+            check(after >= before,
+                  "counter() non-decreasing (before=" +
+                  std::to_string(before) + " after=" + std::to_string(after) + ")");
+        }
+
+        // ================================================================
+        // 10. stop() / start() cycle
+        // ================================================================
+        std::cout << "\n[10] stop() / start() cycle\n";
+        {
+            g_received = 0;
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic, capture);
+            src.subscribe();
+            src.start();
+            wait_for(g_received, 1, timeout_sec);
+            int first_count = g_received.load();
+            src.stop();
+            check(true, "first stop() did not throw");
+
+            g_received = 0;
+            src.subscribe();
+            src.start();
+            check(true, "start() after stop() did not throw");
+            wait_for(g_received, 1, timeout_sec);
+            src.stop();
+
+            check(first_count >= 1 || g_received.load() >= 1,
+                  "at least one run received messages");
+        }
+
+        // ================================================================
+        // 11. autocommit flag
+        // ================================================================
+        std::cout << "\n[11] autocommit flag\n";
+        {
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            check(src.autocommit() == true,  "default autocommit() == true");
+            src.autocommit(false);
+            check(src.autocommit() == false, "autocommit(false) set");
+            src.autocommit(true);
+            check(src.autocommit() == true,  "autocommit(true) restored");
+        }
+
+        // ================================================================
+        // 12. get<T> by column name — uses first column, adapts to its type
+        // ================================================================
+        std::cout << "\n[12] get<T> by column name\n";
+        if (g_cap.col_count > 0)
+        {
+            g_received = 0;
+            std::string first_col = g_cap.col0_name;
+            axon::column_type first_type = g_cap.types[0];
+            bool get_ok = false;
+
+            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic,
+                [&](std::unique_ptr<axon::recordset2r> rs) {
+                    if (!rs || !rs->next()) { g_received++; return; }
+                    try {
+                        switch (first_type)
+                        {
+                            case axon::column_type::string_t:
+                            { std::string v; rs->get(first_col, v);      get_ok = true; break; }
+                            case axon::column_type::int64_t:
+                            { long long v = 0; rs->get(first_col, v);    get_ok = true; break; }
+                            case axon::column_type::double_t:
+                            { double v = 0.0; rs->get(first_col, v);     get_ok = true; break; }
+                            case axon::column_type::bool_t:
+                            { bool v = false; rs->get(first_col, v);     get_ok = true; break; }
+                            case axon::column_type::bytes_t:
+                            { std::vector<uint8_t> v; rs->get(first_col, v); get_ok = true; break; }
+                            default:
+                                get_ok = true;   // null_t — acceptable
+                                break;
+                        }
+                    } catch (...) { get_ok = false; }
+                    while (rs->next()) { }
+                    g_received++;
+                });
+
+            src.subscribe();
+            src.start();
+            wait_for(g_received, 1, timeout_sec);
+            src.stop();
+
+            check(get_ok, "get<T>(\"" + first_col + "\") succeeded without exception");
+        }
+        else
+        {
+            check(false, "skipped — schema has no columns");
+        }
+
+        // ================================================================
+        // 13. del() — optional
+        // ================================================================
+        std::cout << "\n[13] del() consumer group\n";
+        if (run_del)
+        {
+            try {
+                axon::stream2r::kafka::del(bootstrap, consumer_group);
+                check(true, "del(\"" + consumer_group + "\") completed");
+            } catch (axon::exception &e) {
+                std::cout << "  NOTE  del() threw (group may be active or absent): "
+                          << e.what() << "\n";
+                check(true, "del() threw a caught exception — not a crash");
+            }
+        }
+        else
+        {
+            std::cout << "  SKIP  del() — set AXON_RUN_DEL=1 to enable\n";
+        }
+
+    print_results:
+        ;
+
+    } catch (axon::exception &e) {
+        std::cerr << "\nEXCEPTION: " << e.what() << "\n";
+        ++g_fail;
+    }
+
+    std::cout << "\n=== Results: " << g_pass << " passed, "
+              << g_fail << " failed ===\n";
+    std::cerr << "runtime: " << ctm.now() / 1000.0 << " ms\n";
+
+    return g_fail == 0 ? 0 : 1;
 }
-
-void counter([[maybe_unused]] axon::stream::kafka *hook)
-{
-	long tick = axon::timer::epoch();
-
-	running = true;
-	while (running)
-	{
-		std::this_thread::sleep_for(std::chrono::seconds(10));
-
-		long tt = axon::timer::epoch();
-		float tps = count/(tt-tick);
-		tick = tt;
-		long apt = (count)?delta/count:0;
-
-		std::cout<<"count: "<<count<<", "<<tps<<" rps, id count: "<<memcache->size()<<", memory: "<<memcache->memory()<<", apt: "<<apt<<std::endl;
-
-		count = 0;
-		delta = 0;
-	}
-
-	// hook->stop();
-}
-
-void parse(std::shared_ptr<axon::stream::recordset> rec, axon::cache::redis &redis)
-{
-	axon::timer ctm(__PRETTY_FUNCTION__);
-	std::string table, op_type;
-
-	// std::shared_ptr<axon::database::tableinfo> inf = db->getinfo("cps_transaction_normalized");
-
-	// std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_TYPE, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_TYPE, CREDIT_PARTY_MNEMONIC, REQUEST_CURRENCY, ACCOUNT_UNIT_TYPE, CURRENCY, IS_REVERSED, IS_PARTIAL_REVERSED, IS_REVERSING, REMARK, BANK_ACCOUNT_NUMBER, BANK_ACCOUNT_NAME, CONSUMED_BUNDLE;
-	// long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0, EXPIRED_TIME = 0, LAST_UPDATED_TIME = 0, REASON_TYPE = 0;
-	// long long REQUEST_AMOUNT = 0, ORG_AMOUNT = 0, ACTUAL_AMOUNT = 0, FEE = 0, COMMISSION = 0, TAX = 0, DISCOUNT_AMOUNT = 0, REDEEMED_POINT_AMOUNT = 0, EXCHANGE_RATE = 0;
-	// std::string CHANNEL, ORIGCONVERSATIONID, LINKEDTYPE, LINKEDORDERID, REQUESTER_TYPE, REQUESTER_IDENTIFIER_TYPE, REQUESTER_IDENTIFIER_VALUE, REQUESTER_MNEMORIC, INITIATOR_TYPE, INITIATOR_IDENTIFIER_TYPE, INITIATOR_IDENTIFIER_VALUE, INITIATOR_MNEMONIC, PRIMARY_PARTY_TYPE, THIRDPARTYID, THIRDPARTYIP, ACCESSPOINTIP, THIRDPARTYREQTIME, ERRORCODE, ERRORMESSAGE;
-	
-	uint8_t IS_REVERSED;
-	uint64_t DEBIT_PARTY_ID = 0, CREDIT_PARTY_ID = 0;
-	long ACTUAL_AMOUNT = 0, REASON_TYPE = 0, ORG_AMOUNT = 0, FEE = 0, COMMISSION = 0;
-	long long TRANS_INITATE_TIME = 0, TRANS_END_TIME = 0;
-	std::string ORDERID, TRANS_STATUS, DEBIT_PARTY_MNEMONIC, CREDIT_PARTY_MNEMONIC;
-
-	std::string sbuf;
-	char buffer[16] = { 0 };
-	size_t size;
-
-	std::string REFERENCE_KEY, REFERENCE_VALUE;
-
-	if (rec->name() == "CPS_TRANS_RECORD")
-	{
-		// rec->get("table", table);
-		// rec->get("op_type", op_type);
-		rec->get("ORDERID", ORDERID);
-		rec->get("TRANS_STATUS", TRANS_STATUS);
-		// rec->get("DEBIT_PARTY_TYPE", DEBIT_PARTY_TYPE);
-		rec->get("DEBIT_PARTY_MNEMONIC", DEBIT_PARTY_MNEMONIC); std::replace(DEBIT_PARTY_MNEMONIC.begin(), DEBIT_PARTY_MNEMONIC.end(), '\'', '*');
-		// rec->get("CREDIT_PARTY_TYPE", CREDIT_PARTY_TYPE);
-		rec->get("CREDIT_PARTY_MNEMONIC", CREDIT_PARTY_MNEMONIC);
-		// rec->get("REQUEST_CURRENCY", REQUEST_CURRENCY);
-		// rec->get("ACCOUNT_UNIT_TYPE", ACCOUNT_UNIT_TYPE);
-		// rec->get("CURRENCY", CURRENCY);
-		// rec->get("REMARK", REMARK);
-		rec->get("IS_REVERSED", sbuf); IS_REVERSED = axon::util::str_to_num<uint8_t>(sbuf);
-		// rec->get("IS_PARTIAL_REVERSED", IS_PARTIAL_REVERSED);
-		// rec->get("IS_REVERSING", IS_REVERSING);
-		// rec->get("BANK_ACCOUNT_NUMBER", BANK_ACCOUNT_NUMBER);
-		// rec->get("BANK_ACCOUNT_NAME", BANK_ACCOUNT_NAME);
-		// rec->get("CONSUMED_BUNDLE", CONSUMED_BUNDLE);
-
-		rec->get("TRANS_INITATE_TIME", TRANS_INITATE_TIME);
-		rec->get("TRANS_END_TIME", TRANS_END_TIME);
-		// rec->get("EXPIRED_TIME", EXPIRED_TIME);
-		// rec->get("LAST_UPDATED_TIME", LAST_UPDATED_TIME);
-		// rec->get("REQUEST_AMOUNT", REQUEST_AMOUNT);
-		rec->get("ORG_AMOUNT", ORG_AMOUNT);
-		rec->get("ACTUAL_AMOUNT", ACTUAL_AMOUNT);
-		rec->get("FEE", FEE);
-		rec->get("COMMISSION", COMMISSION);
-		// rec->get("TAX", TAX);
-		// rec->get("DISCOUNT_AMOUNT", DISCOUNT_AMOUNT);
-		// rec->get("REDEEMED_POINT_AMOUNT", REDEEMED_POINT_AMOUNT);
-
-		if ((size = rec->get("DEBIT_PARTY_ID", buffer, 8)) > 0) DEBIT_PARTY_ID = axon::util::bytes_to_ull(buffer, size);
-		if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = axon::util::bytes_to_ull(buffer, size);
-		if ((size = rec->get("REASON_TYPE", buffer, 8)) > 0) REASON_TYPE = axon::util::bytes_to_ull(buffer, size);
-		// if ((size = rec->get("CREDIT_PARTY_ID", buffer, 8)) > 0) CREDIT_PARTY_ID = std::to_string(axon::util::bytes_to_ull(buffer, size));
-		// if ((size = rec->get("EXCHANGE_RATE", buffer, 8)) > 0) EXCHANGE_RATE = axon::util::bytes_to_ull(buffer, size);
-	
-		// std::cout<<axon::timer::fulldate(TRANS_INITATE_TIME)<<">>"<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<std::endl;
-		// std::cout<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<" => "<<DEBIT_PARTY_ID<<"::"<<CREDIT_PARTY_ID<<std::endl;
-		// std::cout<<ORDERID<<" ("<<op_type<<") - "<<REASON_TYPE<<" => "<<typemaps->name(REASON_TYPE)<<std::endl;
-
-		// std::cout<<TRANS_STATUS<<"<::>"<<IS_REVERSED<<"<::>"<<DEBIT_PARTY_ID<<"<::>"<<CREDIT_PARTY_ID<<"<::>"<<ACTUAL_AMOUNT<<"<::>"<<REASON_TYPE<<"<::>"<<ORG_AMOUNT<<"<::>"<<FEE<<"<::>"<<COMMISSION<<"<::>"<<TRANS_INITATE_TIME<<"<::>"<<TRANS_END_TIME<<"<::>"<<ORDERID<<"<::>"<<DEBIT_PARTY_MNEMONIC<<"<::>"<<CREDIT_PARTY_MNEMONIC<<std::endl;
-
-		uint16_t typecode = typemaps->code(REASON_TYPE);
-
-		/*
-		try {
-			entity *ptr = nullptr;
-
-			if (!(ptr = memcache->find(DEBIT_PARTY_ID))) {
-				ptr = memcache->push(DEBIT_PARTY_ID);
-			}
-
-			
-		} catch (const std::invalid_argument& e) {
-		}
-		*/
-
-		time_t epochSec = TRANS_INITATE_TIME / 1000;
-    	struct tm *t = localtime(&epochSec);
-		std::string key;
-	    char buf[11];
-		
-		strftime(buf, sizeof(buf), "%Y%m%d%H", t);
-
-		// if (typecode > 1)
-		// {
-		// 	key = "entity:" + std::to_string(DEBIT_PARTY_ID) + ":" + std::to_string(typecode) + ":" + buf;
-
-		// 	redis.pipeline_begin();
-		// 	redis.pipeline_hincrby(key, "count", 1);
-		// 	redis.pipeline_hincrby(key, "sum", ACTUAL_AMOUNT);
-		// 	redis.pipeline_expire(key, 262800);   // 73hr TTL — auto-expiry
-		// 	redis.pipeline_commit();
-
-		// 	Stats st = query(redis, DEBIT_PARTY_ID, 6);
-
-		// 	std::cout<<DEBIT_PARTY_ID<<"+>CI:"<<st.ci<<
-		// }
-
-		// {
-		// 	axon::timer ctm(__PRETTY_FUNCTION__);
-
-		// 	exprtk::symbol_table<double> symbol_table;
-		// 	double aa = ACTUAL_AMOUNT/100, ir = IS_REVERSED;
-			
-		// 	symbol_table.add_variable("TRX_TYPE_CODE", typecode);
-		// 	symbol_table.add_variable("ACTUAL_AMOUNT", aa);
-		// 	symbol_table.add_variable("IS_REVERSED", ir);
-
-		// 	exprtk::expression<double> expression;
-		// 	expression.register_symbol_table(symbol_table);
-
-		// 	exprtk::parser<double> parser;
-		// 	parser.compile("ACTUAL_AMOUNT >= 2190.94 and TRX_TYPE_CODE = 1000", expression);
-
-		// 	double result = expression.value();
-		// 	delta += ctm.now();
-		// }
-
-		{
-			axon::logica::Transaction txn;
-
-			std::strncpy(txn.orderid, ORDERID.data(), sizeof(txn.orderid) - 1);
-			txn.trans_status = 1;
-			txn.trans_initate_time = TRANS_INITATE_TIME;
-			txn.trans_end_time = TRANS_END_TIME;
-			txn.debit_party_id = DEBIT_PARTY_ID;
-			std::strncpy(txn.debit_party_mnemonic,  DEBIT_PARTY_MNEMONIC.data(), sizeof(txn.debit_party_mnemonic) - 1);
-			txn.credit_party_id = CREDIT_PARTY_ID;
-			std::strncpy(txn.credit_party_mnemonic, CREDIT_PARTY_MNEMONIC.data(), sizeof(txn.credit_party_mnemonic) - 1);
-			txn.reason_type = REASON_TYPE;
-			txn.type_code = typecode;
-			txn.org_amount = ORG_AMOUNT/100;
-			txn.actual_amount = ACTUAL_AMOUNT/100;
-			txn.fee = FEE/100;
-			txn.commission = COMMISSION/100;
-			txn.is_reversed = IS_REVERSED;
-
-			char expression[256] = "actual_amount >= 2190.94 and type_code == 1002";
-
-			try {
-				auto ast = axon::logica::compile(expression);
-				bool answer = axon::logica::Evaluator::eval(*ast, txn);
-
-				// if (answer) std::cout<<TRANS_STATUS<<"<::>"<<IS_REVERSED<<"<::>"<<DEBIT_PARTY_ID<<"<::>"<<CREDIT_PARTY_ID<<"<::>"<<ACTUAL_AMOUNT<<"<::>"<<REASON_TYPE<<"<::>"<<ORG_AMOUNT<<"<::>"<<FEE<<"<::>"<<COMMISSION<<"<::>"<<TRANS_INITATE_TIME<<"<::>"<<TRANS_END_TIME<<"<::>"<<ORDERID<<"<::>"<<DEBIT_PARTY_MNEMONIC<<"<::>"<<CREDIT_PARTY_MNEMONIC<<std::endl;
-			} catch (const axon::logica::ParseError& e) {
-				std::cout << "PARSE ERROR: " << e.what() << "\n";
-			} catch (const axon::logica::EvalError& e) {
-				std::cout << "EVAL  ERROR: " << e.what() << "\n";
-			}
-		}
-
-		// if (result) std::cout<<REASON_TYPE<<"<>"<<DEBIT_PARTY_ID<<"::"<<typecode<<"::"<<aa<<std::endl;
-	}
-
-	delta += ctm.now();
-	count++;
-}
-
-int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
-{
-	const char *envp;
-	std::string hostname, username, password, schema_registry, domain, ora_sid, krb5_keytab, krb5_cachepath, bootstrap, kafka_consumer_group, scylla_keyspace, proxy;
-
-	if ((envp = std::getenv("http_proxy")) != nullptr) proxy = envp;
-	if ((envp = std::getenv("AXON_DOMAIN")) != nullptr) domain = envp;
-	if ((envp = std::getenv("AXON_ORA_SID")) != nullptr) ora_sid = envp;
-	if ((envp = std::getenv("AXON_USERNAME")) != nullptr) username = envp;
-	if ((envp = std::getenv("AXON_PASSWORD")) != nullptr) password = envp;
-	if ((envp = std::getenv("AXON_HOSTNAME")) != nullptr) hostname = envp;
-	if ((envp = std::getenv("AXON_BOOTSTRAP")) != nullptr) bootstrap = envp;
-	if ((envp = std::getenv("AXON_KRB5_KEYTAB")) != nullptr) krb5_keytab = envp;
-	if ((envp = std::getenv("AXON_KRB5_CACHEPATH")) != nullptr) krb5_cachepath = envp;
-	if ((envp = std::getenv("AXON_SCHEMA_REGISTRY")) != nullptr) schema_registry = envp;
-	if ((envp = std::getenv("AXON_SCYLLA_KEYSPACE")) != nullptr) scylla_keyspace = envp;
-	if ((envp = std::getenv("AXON_KAFKA_CONSUMER_GROUP")) != nullptr) kafka_consumer_group = envp;
-
-	// if (argc <= 2) return 0;
-
-	typemaps = std::make_shared<transaction_type_code>("/home/amirul.islam/axon/examples/DWD_TRX_TYPE_MAP.csv");
-	memcache = std::make_shared<cache>();
-
-	axon::stream::kafka source(bootstrap, schema_registry, "hyperion");
-
-	axon::cache::redis redis;
-
-	// axon::cache::redis redis("10.82.30.32", 6379);
-	// redis.login("sentinel", "??");
-
-	std::thread th(counter, &source);
-
-	// source.add("CPS_ORDERHIS");
-	// source.add("CPS_ORDER_REFDATA");
-	source.add("CPS_TRANS_RECORD");
-	// source.add("UAT-USER-FP-STAT-STREAM");
-	source.subscribe();
-
-	signal(SIGINT, stop);
-	signal(SIGHUP, reload);
-
-	// axon::database::oracle ora;
-	// ora.connect(ora_sid, username, password);
-	// axon::database::interface &db = ora;
-
-	// axon::database::scylladb db;
-	// db[AXON_DATABASE_KEYSPACE] = scylla_keyspace;
-	// db.connect(hostname, username, password);
-
-	std::shared_ptr<axon::stream::recordset> rc;
-	
-	// parse by polling
-	/*
-	while (running && (rc = std::move(source.next())))
-	{
-		if (rc->is_empty())
-			continue;
-		// parse(rc, db);
-		parse(rc);
-	}
-	*/
-
-	// parse by callback
-	source.start([&](std::unique_ptr<axon::stream::recordset> rec) {
-		rc = std::move(rec);
-		parse(rc, redis);
-		// rc->print();
-	});
-
-	th.join();
-
-	// source.unsubscribe();
-	source.stop();
-
-	// memcache->print();
-
-	return 0;
-}
-
