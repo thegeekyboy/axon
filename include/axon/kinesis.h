@@ -6,13 +6,15 @@
 #include <axon/stream.h>
 #include <axon/connection.h>
 
-#include <axon/recordset.h>
+#include <axon/resultset.h>
 
 #include <aws/core/Aws.h>
 #include <aws/kinesis/KinesisClient.h>
 
 #define AXON_KINESIS_ROW_GET 100
 #define AXON_KINESIS_DATA_SIZE 8192
+#define AXON_KINESIS_POLL_INTERVAL 250   // ms between GetRecords calls per shard
+#define AXON_KINESIS_IDLE_SLEEP 500   // ms to sleep when shard returns 0 records
 
 #define AXON_AWS_ACCOUNT_ID 'a'
 
@@ -38,10 +40,17 @@ namespace axon {
 			return axon::stream::ARN::UNKNOWN;
 		}
 
-		class kinesis: public axon::stream::interface {
+		namespace aws {
 
-			class stream; // WARNING: Forward declaration
-			class consumer; // WARNING: Forward declaration
+			struct event {
+
+				std::string  topic_name;							// stream/topic name this record came from
+				std::string  shard_id;								// shard the record arrived on
+				std::string  sequence_number;
+				std::string  partition_key;
+				int64_t	  timestamp { 0 };						// epoch ms
+				std::string  data;									// raw record payload bytes
+			};
 
 			class shard {
 				bool _status;
@@ -77,99 +86,108 @@ namespace axon {
 			class stream {
 
 				std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
-				std::vector<partition> _partition;
+				std::vector<axon::stream::aws::partition> _partitions;
 
 				std::string _id, _name, _arn;
-				bool _ready, _sync, _busy;
-				axon::stream::cbfn _callback;
+				bool _ready { false };
+				bool _busy  { false };
 
-				std::string _get_stream_arn(std::string);
-				std::vector<axon::stream::kinesis::partition> get_stream_partitions(std::string);
+				std::string _resolve_arn(const std::string&);
+				std::vector<partition> _get_partitions(const std::string&);
 
 				public:
 					stream() = delete;
-					stream(std::shared_ptr<Aws::Kinesis::KinesisClient>, std::string, axon::stream::cbfn);
 
+					stream(std::shared_ptr<Aws::Kinesis::KinesisClient>, const std::string&);
 					stream(const stream&);
 
-					~stream() { ERRPRN("%s %s stream destroying", _id.c_str(), _name.c_str()); }
+					~stream() = default;
 
-					explicit operator bool() { return _ready; };
-
-					const std::string name() const { return _name; };
-					const std::string arn() const { return _arn; };
+					const std::string& name() const { return _name; }
+					const std::string& arn() const { return _arn; }
 					bool ready() const { return _ready; }
 					bool busy() const { return _busy; }
+					explicit operator bool() const { return _ready; }
+
+					const std::vector<axon::stream::aws::partition> &partitions() const { return _partitions; }
+					std::vector<axon::stream::aws::partition> &partitions() { return _partitions; }
 
 					void create();
 					void remove();
-
-					// void start();
-					// void start()
 			};
 
 			class consumer {
 
 				std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
-
 				std::string _name;
-				std::vector<std::string> _arn;
+				std::vector<std::string> _arns;
+				bool _ready { false };
+				uint8_t _count { 0 };
 
-				bool _fanout, _ready, _busy;
-				uint8_t _count;
+				bool _is_attached(const std::string&) const;
+				bool _validate_arn(const std::string&) const;
+				std::string _find_arn(const std::string&, const std::string&) const;
 
-				bool _is_attached(std::string);
-				bool _validate_consumer_arn(std::string);
-				std::string _get_consumer_arn(std::string, std::string);
+				static std::string _register(std::shared_ptr<Aws::Kinesis::KinesisClient>, const std::string&, const std::string&);
+				bool _deregister(std::shared_ptr<Aws::Kinesis::KinesisClient>, const std::string&);
 
 				public:
 					consumer() = delete;
-					consumer(std::shared_ptr<Aws::Kinesis::KinesisClient>, std::string, bool);
+					consumer(std::shared_ptr<Aws::Kinesis::KinesisClient>, const std::string&);
 
-					explicit operator bool() { return _ready; };
+					const std::string& name() const { return _name; }
+					const std::vector<std::string>& arns() const { return _arns; }
+					bool ready() const { return _ready; }
+					explicit operator bool() const { return _ready; }
 
-					const std::string name() const { return _name; };
-					const std::vector<std::string> arn() const { return _arn; };
+					std::string attach(const std::string&);
+					std::string attach(axon::stream::aws::stream&);
 
-					static std::string attach(std::shared_ptr<Aws::Kinesis::KinesisClient>, std::string, std::string);
-					static bool detach(std::shared_ptr<Aws::Kinesis::KinesisClient>, std::string);
-
-					std::string attach(axon::stream::kinesis::stream&);
-					std::string attach(std::string);
-
-					bool detach(axon::stream::kinesis::stream&);
-					bool detach(std::string);
+					bool detach(const std::string&);
+					bool detach(axon::stream::aws::stream&);
 					void detach();
 			};
+
+		} // namespace aws
+
+		class kinesis: public axon::stream::connector {
+
 
 			axon::AwsStack _aws;
 			std::string _account, _proxy;
 
 			std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
 
-			bool _sync;
-			uint8_t _consumer_count;
+			bool _sync { true };
+			uint8_t _consumer_count { 0 };
 
-			std::vector<axon::stream::kinesis::stream> _streams;
-			std::unique_ptr<axon::stream::kinesis::consumer> _consumer;
+			std::vector<axon::stream::aws::stream> _streams;
+			std::unique_ptr<axon::stream::aws::consumer> _consumer;
 
-			std::queue<std::unique_ptr<axon::recordset>> _records;
+			std::deque<axon::stream::aws::event> _queue;
+			std::mutex _queue_mtx;
+			std::condition_variable _queue_cv;
 
-			std::vector<std::thread> th;
+			std::vector<std::thread> _shard_threads;
+			std::atomic<bool> _shard_running { false };
 
 			void _stop() override;
-			std::unique_ptr<axon::recordset> get();
+			void _run();
+
+			void _poll_shard(const std::string&, const std::string&, axon::stream::aws::partition);
+			static std::unique_ptr<axon::resultset> _build_recordset(const axon::stream::aws::event&);
 
 			public:
+				kinesis() = delete;
+
 				kinesis(std::string, std::string, std::string);
 				kinesis(std::string, std::string, std::string, uint16_t);
 
-				kinesis() = delete;
 				~kinesis();
 
 				static void asynccb(const Aws::Kinesis::KinesisClient*, const Aws::Kinesis::Model::SubscribeToShardRequest&, const Aws::Kinesis::Model::SubscribeToShardOutcome&, const std::shared_ptr<const Aws::Client::AsyncCallerContext>&);
 
-				std::string &account() { return _account; };
+				std::string& account() { return _account; };
 
 				void subscribe() override;
 				void unsubscribe() override;
@@ -177,7 +195,10 @@ namespace axon {
 				bool start() override;
 				bool start(axon::stream::cbfn) override;
 
-				std::unique_ptr<axon::recordset> next() override;
+				void fetch(axon::resultset&, int) override
+				{
+					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kinesis is callback-only — use start() with a callback");
+				}
 		};
 	}
 }

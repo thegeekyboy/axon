@@ -4,11 +4,15 @@
 #include <any>
 #include <boost/regex.hpp>
 
+#include <axon/resultset.h>
+
 #define AXON_DATABASE_HOSTNAME 'a'
 #define AXON_DATABASE_USERNAME 'b'
 #define AXON_DATABASE_PASSWORD 'c'
 #define AXON_DATABASE_KEYSPACE 'd'
 #define AXON_DATABASE_FILEPATH 'e'
+
+#define AXON_DATABASE_PORT 1
 
 namespace axon {
 
@@ -49,7 +53,7 @@ namespace axon {
 			static const trans_t BEGIN = 1;
 		};
 
-		class interface
+		class connector
 		{
 			protected:
 
@@ -59,6 +63,8 @@ namespace axon {
 				int _throwawayint;
 
 				std::string _version;
+
+				bool _open { false }, _query { false }, _running { false }, _prepared { false }, _schema_pushed { false };
 
 				int _vcount(std::string sql)
 				{
@@ -76,15 +82,7 @@ namespace axon {
 					return count;
 				}
 
-				virtual std::ostream& printer(std::ostream &) = 0;
-
 			public:
-
-				virtual int _get_int(int) = 0;
-				virtual long _get_long(int) = 0;
-				virtual float _get_float(int) = 0;
-				virtual double _get_double(int) = 0;
-				virtual std::string _get_string(int) = 0;
 
 				virtual bool connect() = 0;
 				virtual bool connect(std::string, std::string, std::string) = 0;
@@ -102,20 +100,15 @@ namespace axon {
 				template <typename T>
 				bool execute(const std::string sql, T t)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
+					_bind.push_back(t);
 					return execute(sql);
 				}
+
 				template<typename T, typename... Args>
 				bool execute(std::string sql, T t, Args... args)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
-					return execute(sql, args...) ;
+					_bind.push_back(t);
+					return execute(sql, args...);
 				}
 
 				virtual bool query(const std::string) = 0;
@@ -123,67 +116,29 @@ namespace axon {
 				template <typename T>
 				bool query(const std::string sql, T t)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
+					_bind.push_back(t);
 					return query(sql);
 				}
+
 				template<typename T, typename... Args>
 				bool query(std::string sql, T t, Args... args)
 				{
-					if constexpr (std::is_same<T, std::string>::value)
-						_bind.push_back(t.c_str());
-					else
-						_bind.push_back(t);
-					return query(sql, args...) ;
+					_bind.push_back(t);
+					return query(sql, args...);
 				}
 
+				connector& operator<<(int value) { _bind.push_back(value); return *this; }
+				connector& operator<<(long value) { _bind.push_back(value); return *this; }
+				connector& operator<<(long long value) { _bind.push_back(value); return *this; }
+				connector& operator<<(float value) { _bind.push_back(value); return *this; }
+				connector& operator<<(double value) { _bind.push_back(value); return *this; }
+				connector& operator<<(std::string &value) { _bind.push_back(value); return *this; }
+				connector& operator<<(axon::database::bind &value) { _bind.push_back(value); return *this; }
 
-				virtual bool next() = 0;
+				virtual void fetch(axon::resultset&, int) = 0;
 				virtual void done() = 0;
-
-				template <typename T>
-				bool get(int position, T& p) {
-
-					if constexpr(std::is_same<T, int>::value)
-						p = static_cast<T>(_get_int(position));
-					else if constexpr(std::is_same<T, long>::value)
-						p = static_cast<T>(_get_long(position));
-					else if constexpr(std::is_same<T, float>::value)
-						p = static_cast<T>(_get_float(position));
-					else if constexpr(std::is_same<T, double>::value)
-						p = static_cast<T>(_get_double(position));
-					else if constexpr(std::is_same<T, std::string>::value)
-						p = static_cast<T>(_get_string(position));
-					else return false;
-
-					return true;
-				}
-
-				virtual interface& operator<<(int) = 0;
-				virtual interface& operator<<(long) = 0;
-				virtual interface& operator<<(long long) = 0;
-				virtual interface& operator<<(float) = 0;
-				virtual interface& operator<<(double) = 0;
-				virtual interface& operator<<(std::string&) = 0;
-				virtual interface& operator<<(axon::database::bind&) = 0;
-
-				virtual interface& operator>>(int&) = 0;
-				virtual interface& operator>>(long&) = 0;
-				virtual interface& operator>>(float&) = 0;
-				virtual interface& operator>>(double&) = 0;
-				virtual interface& operator>>(std::string&) = 0;
-
-				friend std::ostream& operator<<(std::ostream&, interface&);
 		};
-
-		inline std::ostream& operator<< (std::ostream& o, interface& i) {
-			i.printer(o);
-			return o;
-		}
 	}
 }
 
 #endif
-

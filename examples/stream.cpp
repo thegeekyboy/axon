@@ -11,6 +11,7 @@
 #include <axon/kinesis.h>
 // #include <axon/kafka.h>
 // #include <axon/cqn.h>
+#include <axon/ocn.h>
 
 
 static bool canrun = false;
@@ -49,15 +50,17 @@ void counter()
 // {
 // 	axon::timer ctm(__PRETTY_FUNCTION__);
 // }
-void parse2(std::unique_ptr<axon::recordset> rc)
+void parse2([[maybe_unused]] std::unique_ptr<axon::resultset> rc)
 {
 	std::cout<<count<<" got a ping()"<<std::endl;
 	count++;
 }
 
-void parse(std::unique_ptr<axon::recordset> rc)
+void parse(std::unique_ptr<axon::resultset> rc)
 {
-	if (rc) std::cout<<*rc<<std::endl;
+	// if (rc) std::cout<<*rc<<std::endl;
+	while (rc->next()) std::cout<<*rc<<std::endl;
+	// std::cout<<rc->rows()<<" got a ping()"<<std::endl;
 
 	count++;
 }
@@ -85,31 +88,40 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 	signal(SIGINT, stop);
 
 	try {
-		axon::stream::kinesis source(hostname, username, password);
+		// axon::stream::kinesis source(hostname, username, password);
+		axon::database::oci::environment env;
+		
+		// axon::stream::ocn source(ora_sid, username, password);
+
+		std::shared_ptr<axon::database::oci::connection> oracon = std::make_shared<axon::database::oci::connection>(6667);
+		oracon->connect(ora_sid, username, password);
+		axon::stream::ocn source(oracon);
 
 		// source.account() = "354285753755";
-		source.name() = "dse_uat_hyperion_event_consumer";
+		// source.name() = "dse_uat_hyperion_event_consumer";
 		// source.add("customerapp-event-stream", "customerapp-event-stream", parse);
-		
-		source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse);
+		// source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse);
 		// source.add("non_existing_stream", "non_existing_stream", parse);
-		source.add("uat-next-fp-kinesis-stream", "uat-next-fp-kinesis-stream", parse);
+		// source.add("uat-next-fp-kinesis-stream", "uat-next-fp-kinesis-stream", parse);
 		// source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse2);
+
+		source.connect();
+		source.add("CPS_ORDER_REFDATA", "SELECT * FROM CPSTXN.CPS_ORDER_REFDATA", parse2);
 
 		source.subscribe();
 
 		canrun = true;
 
-		// source.start(parse);
+		source.start(parse);
 		// source.start(nullptr);
-		// while (canrun) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		while (canrun) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		
-		source.start();
-		while (canrun)
-		{
-			parse(source.next());
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
+		// source.start();
+		// while (canrun)
+		// {
+		// 	parse(source.next());
+		// 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// }
 
 		source.stop();
 
@@ -118,10 +130,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 	}
 
 	// eventloop
-	
-
-
-
 
 	return 0;
 

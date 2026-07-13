@@ -14,193 +14,239 @@ extern "C" {
 	#include <libserdes/serdes-avro.h>
 }
 
+#include <axon/stream.h>
+
 #define AXON_KAFKA_POLL_TIMEOUT 100
 
 namespace axon
 {
 	namespace stream
 	{
-		typedef void (*cbfn)(avro_value_t *);
-		typedef void *(*cbfnptr)(void *);
+		namespace rdk
+		{
+			class config {
 
-		const int MIN_COMMIT_COUNT = 50;
+				rd_kafka_conf_t *_kc;
+				bool _new;
 
-		class message {
+				public:
+					config(): _kc(nullptr), _new(true) { _kc = rd_kafka_conf_new(); }
+					config(const config &other): _new(false) { _kc = rd_kafka_conf_dup(other._kc); }
+					config(const rd_kafka_conf_t *other): _new(false) { _kc = rd_kafka_conf_dup(other); }
+					config(rd_kafka_t *other): _new(false) { _kc = rd_kafka_conf_dup(rd_kafka_conf(other)); }
+					~config() { if (_kc) rd_kafka_conf_destroy(_kc); }
 
-			rd_kafka_message_t *_rdkm;
+					void set(std::string name, std::string value) {
+						char error[1024];
+						if (rd_kafka_conf_set(_kc, name.c_str(), value.c_str(), error, sizeof(error)) != RD_KAFKA_CONF_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+						_new = false;
+					}
+					void reset() { _kc = nullptr; }
+					bool is_new() const { return _new; }
+					rd_kafka_conf_t *get() const {
+						if (!_kc) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "config object not ready");
+						return _kc;
+					}
+					operator rd_kafka_conf_t*() { return get(); }
+			};
 
-			public:
-				message(rd_kafka_t *rdk): _rdkm(nullptr) {
-					if ((_rdkm = rd_kafka_consumer_poll(rdk, AXON_KAFKA_POLL_TIMEOUT)) && _rdkm->err)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, rd_kafka_message_errstr(_rdkm));
-				}
-				~message() {
-					if (_rdkm) rd_kafka_message_destroy(_rdkm);
-				}
-				rd_kafka_message_t *get() const { return _rdkm; }
-				std::string name() { return rd_kafka_topic_name(_rdkm->rkt); }
-				size_t size() { return _rdkm->len; }
-				void *payload() const { return _rdkm->payload; }
-		};
+			class rdkafka {
 
-		class kconf {
+				rd_kafka_t *_rk;
 
-			rd_kafka_conf_t *_kc;
-			bool _new;
+				public:
+					rdkafka() = delete;
+					rdkafka(const rdkafka&) = delete;
+					rdkafka(config &conf, rd_kafka_type_t type = RD_KAFKA_PRODUCER) {
+						char error[1024];
+						_rk = rd_kafka_new(type, conf, error, sizeof(error));
+						if (!_rk) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+						conf.reset();
+					}
+					~rdkafka() { if (_rk) rd_kafka_destroy(_rk); }
+					rd_kafka_t *get() const { if (!_rk) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "rdkafka not initialized"); return _rk; }
+					operator rd_kafka_t*() { return get(); }
+					bool valid() const { return _rk != nullptr; }
+			};
 
-			public:
-				kconf(): _kc(NULL), _new(true) { _kc = rd_kafka_conf_new(); }
-				kconf(const kconf &other): _new(false) { _kc = rd_kafka_conf_dup(other._kc); }
-				kconf(const rd_kafka_conf_t *other): _new(false) { _kc = rd_kafka_conf_dup(other); }
-				kconf(rd_kafka_t *other): _new(false) { _kc = rd_kafka_conf_dup(rd_kafka_conf(other)); }
-				~kconf() { if (_kc != NULL) rd_kafka_conf_destroy(_kc); };
-				void set(std::string name, std::string value) {
-					char error[1024];
-					if (rd_kafka_conf_set(_kc, name.c_str(), value.c_str(), error, sizeof(error)) != RD_KAFKA_CONF_OK)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-					_new = false;
-				};
-				void reset() { _kc = NULL; }
-				bool is_new() { return _new; }
-				rd_kafka_conf_t *get() const {
-					if (_kc == NULL)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "config object not ready");
-					return _kc;
-				};
-				operator rd_kafka_conf_t*() { return get(); }
-		};
+			class options {
 
-		class serdes {
+				rd_kafka_AdminOptions_t *_opts;
 
-			bool _init = false;
-			serdes_conf_t *_config;
-			serdes_t *_serdes;
+				public:
+					options() = delete;
+					options(const options&) = delete;
+					options(rdkafka &rdk, rd_kafka_admin_op_t op) {
+						_opts = rd_kafka_AdminOptions_new(rdk.get(), op);
+						if (!_opts) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create admin options");
+					}
+					~options() { if (_opts) rd_kafka_AdminOptions_destroy(_opts); }
+					rd_kafka_AdminOptions_t *get() const { return _opts; }
+					operator rd_kafka_AdminOptions_t*() { return get(); }
+			};
 
-			public:
-				serdes(): _init(false) {
-					if (!(_config = serdes_conf_new(NULL, 0, NULL)))
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize serdes config object");
-					_init = true;
-				};
-				~serdes() { if (_init) serdes_destroy(_serdes); };
-				void init() {
-					char error[1024];
+			class event {
 
-					if (!(_serdes = serdes_new(_config, error, 1023)))
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-				}
-				void set(std::string name, std::string value) {
+				rd_kafka_event_t *_ev;
 
-					char error[1024];
+				public:
+					event(): _ev(nullptr) {};
+					explicit event(rd_kafka_event_t *ev) : _ev(ev) {}
 
-					if (serdes_conf_set(_config, name.c_str(), value.c_str(), error, sizeof(error)) != SERDES_ERR_OK)
-						throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
-				};
-				serdes_t *get() const { return _serdes; };
-		};
+					~event() { if (_ev) rd_kafka_event_destroy(_ev); }
 
-		class subscription {
+					rd_kafka_event_t *get() const { return _ev; }
+					operator rd_kafka_event_t*() { return _ev; }
+					bool valid() const { return _ev != nullptr; }
 
-			rd_kafka_topic_partition_list_t *_subscription;
+					event& operator=(rd_kafka_event_t *ev) {
+						if (ev == _ev) return *this;
+						if (_ev) rd_kafka_event_destroy(_ev);
+						_ev = ev;
 
-			public:
-				subscription() = delete;
-				subscription(int);
-				~subscription();
+						return *this;
+					}
 
-				void add(std::string);
-				void remove(std::string);
-				int count();
-				rd_kafka_topic_partition_list_t *get();
-				void info();
-				operator rd_kafka_topic_partition_list_t*() { return get(); }
-		};
+					rd_kafka_event_type_t type() const {
+						return _ev ? rd_kafka_event_type(_ev) : RD_KAFKA_EVENT_NONE;
+					}
+			};
 
-		class recordset {
+			class queue {
 
-			std::string _name;
+				rd_kafka_queue_t *_queue;
 
-			avro_value_t _data;
+				public:
+					queue() = delete;
+					queue(axon::stream::rdk::rdkafka &rdk): _queue(nullptr) {
+						if (!rdk.valid()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "rd_kafka_t is null");
+						if (!(_queue = rd_kafka_queue_new(rdk.get())))
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create queue");
+					}
+					~queue() { if (_queue) rd_kafka_queue_destroy(_queue); }
+					rd_kafka_queue_t *get() const { return _queue; }
+					operator rd_kafka_queue_t*() { return get(); }
+			};
 
-			std::string _get_string(std::string);
-			int _get_int(std::string);
-			long _get_long(std::string);
-			float _get_float(std::string);
-			double _get_double(std::string);
+			class message {
 
-			bool _empty;
+				rd_kafka_message_t *_rdkm;
+				axon::stream::rdk::rdkafka &_rdk;
 
-			public:
-				template <typename T>
-				bool get(std::string name, T& p) {
+				public:
+					message(axon::stream::rdk::rdkafka &rdk): _rdkm(nullptr), _rdk(rdk) {
+						if ((_rdkm = rd_kafka_consumer_poll(_rdk.get(), AXON_KAFKA_POLL_TIMEOUT)) && _rdkm->err)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, rd_kafka_message_errstr(_rdkm));
+					}
+					~message() {
+						if (_rdkm) rd_kafka_message_destroy(_rdkm);
+					}
+					rd_kafka_message_t *get() const { return _rdkm; }
+					std::string name() {
+						if (!_rdkm || !_rdkm->rkt) return "";
+						return rd_kafka_topic_name(_rdkm->rkt);
+					}
+					size_t size() const { return _rdkm ? _rdkm->len : 0; }
+					void *payload() const { return _rdkm ? _rdkm->payload : nullptr; }
+					bool empty() const { return _rdkm == nullptr; }
+					void drain() {
+						rd_kafka_message_t *msg;
+						while ((msg = rd_kafka_consumer_poll(_rdk.get(), 100)) != nullptr)
+							rd_kafka_message_destroy(msg);
+					}
+			};
 
-					if constexpr(std::is_same<T, int>::value)
-						p = static_cast<T>(_get_int(name));
-					else if constexpr(std::is_same<T, long>::value)
-						p = static_cast<T>(_get_long(name));
-					else if constexpr(std::is_same<T, long long>::value)
-						p = static_cast<T>(_get_long(name));
-					else if constexpr(std::is_same<T, float>::value)
-						p = static_cast<T>(_get_float(name));
-					else if constexpr(std::is_same<T, double>::value)
-						p = static_cast<T>(_get_double(name));
-					else if constexpr(std::is_same<T, std::string>::value)
-						p = static_cast<T>(_get_string(name));
-					else return false;
+			class serdes {
 
-					return true;
-				}
+				bool _init { false };
+				serdes_conf_t *_config;
+				serdes_t *_serdes { nullptr };
 
-				recordset(axon::stream::serdes&, axon::stream::message&);
-				~recordset();
+				public:
+					serdes() {
+						if (!(_config = serdes_conf_new(nullptr, 0, nullptr)))
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot initialize serdes config object");
+						_init = true;
+					}
+					~serdes() { if (_serdes) serdes_destroy(_serdes); }
 
-				size_t get(std::string, void *, size_t);
-				bool is_empty() { return _empty; }
-				std::string name() { return _name; }
-				void print();
-		};
+					void init() {
+						char error[1024];
+						if (!(_serdes = serdes_new(_config, error, 1023)))
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+					}
+					void set(std::string name, std::string value) {
+						char error[1024];
+						if (serdes_conf_set(_config, name.c_str(), value.c_str(), error, sizeof(error)) != SERDES_ERR_OK)
+							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
+					}
+					serdes_t *get() const { return _serdes; }
+			};
 
-		class kafka {
+			class subscription {
 
-			std::string _id, _bootstrap_hosts, _schema_hosts, _consumer;
-			std::vector<std::string> _topic;
+				rd_kafka_topic_partition_list_t *_subscription;
 
-			serdes _serdes;
+				public:
+					subscription() = delete;
+					subscription(int count);
+					~subscription();
 
-			rd_kafka_t *_rk;
+					void add(std::string topic);
+					void remove(std::string topic);
+					int  count();
+					void info();
 
-			bool _runnable, _subscribed, _autocommit;
-			unsigned long long _counter;
+					rd_kafka_topic_partition_list_t *get();
+					operator rd_kafka_topic_partition_list_t*() { return get(); }
+			};
+		}
 
-			std::thread _runner;
-			std::function<void(std::unique_ptr<axon::stream::recordset>)> _callback;
+		class kafka : public axon::stream::connector
+		{
+            bool _autocommit { true };
+			bool _was_started { false };
 
-			static void rebalance(rd_kafka_t *rk, rd_kafka_resp_err_t err, rd_kafka_topic_partition_list_t *partitions, void *opaque);
-			void init(axon::stream::kconf&);
+ 		    std::string _bootstrap_hosts;
+            std::string _schema_hosts;
+            std::string _consumer;
+            std::vector<std::string> _topics;
 
-			public:
-				kafka(std::string, std::string, std::string, axon::stream::kconf = kconf());
-				kafka() = delete;
-				~kafka();
+            std::shared_ptr<axon::stream::rdk::rdkafka> _rdk;
+            axon::stream::rdk::serdes _serdes;
 
-				std::string id() { return _id; };
-				std::string name() { return _consumer; };
-				size_t count() { return _topic.size(); }
+			std::unique_ptr<axon::resultset> _deserialise(axon::stream::rdk::message&);
+            void _avro_to_recordset(avro_value_t&, const std::string&, axon::resultset&);
+			static void _rebalance(rd_kafka_t *r, rd_kafka_resp_err_t, rd_kafka_topic_partition_list_t *, void *);
 
-				bool add(std::string);
+            void _stop() override;
+        public:
 
-				void subscribe();
-				void unsubscribe();
+            kafka() = delete;
+            kafka(const kafka&) = delete;
 
-				bool start(std::function<void(std::unique_ptr<axon::stream::recordset>)>);
-				void stop();
+            kafka(std::string, std::string, std::string, axon::stream::rdk::config = axon::stream::rdk::config());
+            ~kafka();
 
-				unsigned long long counter();
+            void subscribe() override;
+            void unsubscribe() override;
 
-				std::unique_ptr<axon::stream::recordset> next();
-		};
+            bool start() override;
+            bool start(axon::stream::cbfn) override;
+
+			static void del(const std::string&, const std::string&, int = 10000);
+			static void del(const std::string&, const std::vector<std::string>&, int = 10000);
+
+            void fetch(axon::resultset&, int) override
+            {
+                throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kafka is callback-only — use start() with a callback");
+            }
+
+            bool autocommit() const { return _autocommit; }
+            void autocommit(bool v) { _autocommit = v; }
+        };
 	}
 }
 
 #endif
-

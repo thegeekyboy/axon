@@ -5,7 +5,7 @@
 #include <axon.h>
 #include <axon/util.h>
 #include <axon/database.h>
-#include <axon/scylladb.h>
+#include <axon/scylla.h>
 #include <axon/kafka.h>
 
 static bool running = false;
@@ -41,21 +41,21 @@ void dbg(avro_value_t *avro)
 	}
 }
 
-void parse(std::shared_ptr<axon::stream::recordset> rc)
+void parse(std::shared_ptr<axon::resultset> rc)
 {
 	std::string event_type, screen, msisdn, session, event_date, fingerprint;
 
-	rc->get("EVENT_TYPE", event_type);
-	rc->get("DEVICE_FINGERPRINTID", fingerprint);
-	rc->get("event_timestamp", event_date);
-	rc->get("SESSION_ID", session);
-	rc->get("MSISDN", msisdn);
-	rc->get("SCREEN_NAME", screen);
+	while (rc->next())
+	{
+		rc->get("EVENT_TYPE", event_type);
+		rc->get("DEVICE_FINGERPRINTID", fingerprint);
+		rc->get("event_timestamp", event_date);
+		rc->get("SESSION_ID", session);
+		rc->get("MSISDN", msisdn);
+		rc->get("SCREEN_NAME", screen);
 
-	// if (event_type == "bKash.events.fp")
-	// 	dbg(avro);
-	
-	std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<std::endl;
+		std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<std::endl;
+	}
 }
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
@@ -86,43 +86,18 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 
 	axon::stream::kafka uat(bootstrap, schema, "axon::counter");
 
-	uat.add("uat_streamproxy_generic");
+	uat.add("uat_streamproxy_generic", "uat_streamproxy_generic", parse);
 	uat.subscribe();
+	uat.start();
 
 	signal(SIGINT, stop);
+	running = true;
 
-	if (false)
+	while (running)
 	{
-		uat.start(&parse);
-		std::thread th(counter, &uat);
-		th.join();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
-	else 
-	{
-		running = true;
-
-		std::unique_ptr<axon::stream::recordset> rc;
-
-		while (running && (rc = uat.next()))
-		{
-			if (rc->is_empty())
-				continue;
-
-			std::string event_flag, event_type, screen, msisdn, session, event_date, fingerprint;
-
-			rc->get("EVENT_FLAG", event_flag);
-			rc->get("EVENT_TYPE", event_type);
-			rc->get("DEVICE_FINGERPRINTID", fingerprint);
-			rc->get("event_timestamp", event_date);
-			rc->get("SESSION_ID", session);
-			rc->get("MSISDN", msisdn);
-			rc->get("SCREEN_NAME", screen);
-
-			std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<" "<<event_flag<<std::endl;
-		}
-
-		uat.stop();
-	}
+	uat.stop();
 
 	return 0;
 }

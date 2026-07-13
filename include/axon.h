@@ -17,7 +17,7 @@
 #define AXON_ERROR 31
 #define AXON_WARNING 33
 #define AXON_DEBUG 36
-#define AXON_INFO 34
+#define AXON_INFO 32
 
 #ifndef DEBUG
 	#define DEBUG 0

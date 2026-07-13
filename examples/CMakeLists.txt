@@ -28,6 +28,22 @@ add_executable (database EXCLUDE_FROM_ALL database.cpp)
 target_include_directories(database PRIVATE ${ORACLE_INCLUDE_DIRS})
 target_link_libraries (database ${PROJECT_NAME_MASTER})
 
+# delete this later
+####
+list(APPEND EXAMPLES_LIST sqlite)
+add_executable (sqlite EXCLUDE_FROM_ALL sqlite.cpp)
+target_link_libraries (sqlite ${PROJECT_NAME_MASTER})
+#
+list(APPEND EXAMPLES_LIST oracle)
+add_executable (oracle EXCLUDE_FROM_ALL oracle.cpp)
+target_include_directories(oracle PRIVATE ${ORACLE_INCLUDE_DIRS})
+target_link_libraries (oracle ${PROJECT_NAME_MASTER})
+#
+list(APPEND EXAMPLES_LIST scylla)
+add_executable (scylla EXCLUDE_FROM_ALL scylla.cpp)
+target_link_libraries (scylla ${PROJECT_NAME_MASTER})
+####
+
 #
 list(APPEND EXAMPLES_LIST smb)
 add_executable (smb EXCLUDE_FROM_ALL smb.cpp)
