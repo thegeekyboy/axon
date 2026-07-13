@@ -25,17 +25,17 @@ namespace axon
 		namespace rdk
 		{
 			class config {
-	
+
 				rd_kafka_conf_t *_kc;
 				bool _new;
-	
+
 				public:
 					config(): _kc(nullptr), _new(true) { _kc = rd_kafka_conf_new(); }
 					config(const config &other): _new(false) { _kc = rd_kafka_conf_dup(other._kc); }
 					config(const rd_kafka_conf_t *other): _new(false) { _kc = rd_kafka_conf_dup(other); }
 					config(rd_kafka_t *other): _new(false) { _kc = rd_kafka_conf_dup(rd_kafka_conf(other)); }
 					~config() { if (_kc) rd_kafka_conf_destroy(_kc); }
-		
+
 					void set(std::string name, std::string value) {
 						char error[1024];
 						if (rd_kafka_conf_set(_kc, name.c_str(), value.c_str(), error, sizeof(error)) != RD_KAFKA_CONF_OK)
@@ -107,7 +107,7 @@ namespace axon
 
 						return *this;
 					}
-					
+
 					rd_kafka_event_type_t type() const {
 						return _ev ? rd_kafka_event_type(_ev) : RD_KAFKA_EVENT_NONE;
 					}
@@ -116,7 +116,7 @@ namespace axon
 			class queue {
 
 				rd_kafka_queue_t *_queue;
-		
+
 				public:
 					queue() = delete;
 					queue(axon::stream2r::rdk::rdkafka &rdk): _queue(nullptr) {
@@ -130,10 +130,10 @@ namespace axon
 			};
 
 			class message {
- 
+
 				rd_kafka_message_t *_rdkm;
 				axon::stream2r::rdk::rdkafka &_rdk;
-		
+
 				public:
 					message(axon::stream2r::rdk::rdkafka &rdk): _rdkm(nullptr), _rdk(rdk) {
 						if ((_rdkm = rd_kafka_consumer_poll(_rdk.get(), AXON_KAFKA_POLL_TIMEOUT)) && _rdkm->err)
@@ -158,11 +158,11 @@ namespace axon
 			};
 
 			class serdes {
-			
+
 				bool _init { false };
 				serdes_conf_t *_config;
 				serdes_t *_serdes { nullptr };
-	
+
 				public:
 					serdes() {
 						if (!(_config = serdes_conf_new(nullptr, 0, nullptr)))
@@ -170,7 +170,7 @@ namespace axon
 						_init = true;
 					}
 					~serdes() { if (_serdes) serdes_destroy(_serdes); }
-		
+
 					void init() {
 						char error[1024];
 						if (!(_serdes = serdes_new(_config, error, 1023)))
@@ -185,19 +185,19 @@ namespace axon
 			};
 
 			class subscription {
-		
+
 				rd_kafka_topic_partition_list_t *_subscription;
-		
+
 				public:
 					subscription() = delete;
 					subscription(int count);
 					~subscription();
-		
+
 					void add(std::string topic);
 					void remove(std::string topic);
 					int  count();
 					void info();
-		
+
 					rd_kafka_topic_partition_list_t *get();
 					operator rd_kafka_topic_partition_list_t*() { return get(); }
 			};
@@ -212,29 +212,29 @@ namespace axon
             std::string _schema_hosts;
             std::string _consumer;
             std::vector<std::string> _topics;
- 
+
             std::shared_ptr<axon::stream2r::rdk::rdkafka> _rdk;
             axon::stream2r::rdk::serdes _serdes;
- 
+
 			std::unique_ptr<axon::recordset2r> _deserialise(axon::stream2r::rdk::message&);
             void _avro_to_recordset(avro_value_t&, const std::string&, axon::recordset2r&);
 			static void _rebalance(rd_kafka_t *r, rd_kafka_resp_err_t, rd_kafka_topic_partition_list_t *, void *);
-			
+
             void _stop() override;
         public:
- 
+
             kafka() = delete;
             kafka(const kafka&) = delete;
- 
+
             kafka(std::string, std::string, std::string, axon::stream2r::rdk::config = axon::stream2r::rdk::config());
             ~kafka();
- 
+
             void subscribe() override;
             void unsubscribe() override;
- 
+
             bool start() override;
             bool start(axon::stream2r::cbfn) override;
-			
+
 			static void del(const std::string&, const std::string&, int = 10000);
 			static void del(const std::string&, const std::vector<std::string>&, int = 10000);
 
@@ -242,7 +242,7 @@ namespace axon
             {
                 throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kafka is callback-only — use start() with a callback");
             }
- 
+
             bool autocommit() const { return _autocommit; }
             void autocommit(bool v) { _autocommit = v; }
         };
@@ -250,4 +250,3 @@ namespace axon
 }
 
 #endif
-

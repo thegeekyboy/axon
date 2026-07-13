@@ -1,6 +1,30 @@
+#include <signal.h>
+
 #include <axon.h>
 #include <axon/util.h>
 #include <axon/kinesis.h>
+
+static unsigned long count { 0 };
+static bool canrun { false };
+
+static void stop (int sig)
+{
+	canrun = false;
+	fprintf(stderr, "stopping eventloop! received signal: %d\n", sig);
+	fflush(stderr);
+}
+
+void parse(std::unique_ptr<axon::recordset2r> rc)
+{
+	while (rc->next())
+	{
+		std::vector<uint8_t> data;
+
+		rc->get("data", data);
+		std::cout<<std::string(data.begin(), data.end());
+		count++;
+	}
+}
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]]char* env[])
 {
@@ -31,11 +55,28 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 	if (username.empty() || password.empty() || hostname.empty())
 		return 1;
 
-	axon::stream::kinesis k(hostname, username, password, 25);
+	signal(SIGINT, stop);
 
-	k.name() = "blah";
-	
-	std::cout<<k.name()<<std::endl;
+	try {
+
+		axon::stream2r::kinesis source(hostname, username, password);
+
+		source.account() = "354285753755";
+		source.name() = "dse_uat_hyperion_event_consumer";
+
+		source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse);
+		source.subscribe();
+
+		source.start();
+		canrun = true;
+
+		while (canrun) std::this_thread::sleep_for(std::chrono::milliseconds(200));;
+
+		source.stop();
+
+	} catch(axon::exception& e) {
+		std::cerr<<e.what()<<std::endl;
+	}
 
 	return 0;
 }

@@ -236,12 +236,12 @@ namespace axon {
 		{
 			BENCHMARK;
 			long value = 0;
-			
+
 			if (position >= _columns.size())
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Column out of bounds");
 
 			DBGPRN("_columns.size(): %d, position: %d, col.type: %d", _columns.size(), position, _columns[position].type);
-			
+
 			if (_columns[position].type == SQLT_DAT || _columns[position].type == SQLT_TIMESTAMP || _columns[position].type == SQLT_TIMESTAMP_TZ)
 			{
 				char *raw;
@@ -516,7 +516,7 @@ namespace axon {
 						axon::column_type ct = _attach_column_data(column, howmany);
 						rs.add_column(column.name, ct);
 					}
-	
+
 					_schema_pushed = true;
 				}
 
@@ -546,7 +546,7 @@ namespace axon {
 							}
 
 							if (clmn.indicator[row] < 0) { rs.push_null(); continue; }
-							
+
 							switch (clmn.type)
 							{
 								case SQLT_CHR:

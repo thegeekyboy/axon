@@ -187,7 +187,7 @@ namespace axon {
 				if ((_error = OCIAttrSet(axon::database2r::oci::environment::get(), OCI_HTYPE_ENV, (void*) &p, sizeof(ub4), OCI_ATTR_SUBSCR_PORTNO, _error.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 			}
- 
+
 			connection::~connection()
 			{
 				if (_connected)
@@ -205,12 +205,12 @@ namespace axon {
 				BENCHMARK;
 				if ((_error = OCIServerAttach(_server.get(), _error.get(), (text*) dblink.data(), (sb4) dblink.size(), OCI_DEFAULT)).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what().c_str());
- 
+
 				if ((_error = OCIAttrSet((dvoid*) _context->get(), OCI_HTYPE_SVCCTX, (dvoid*) _server.get(), 0, OCI_ATTR_SERVER, _error.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
- 
+
 				_session.connect(username, password);
- 
+
 				_connected = true;
 
 				return true;
@@ -220,18 +220,18 @@ namespace axon {
 			{
 				if (_connected)
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "already connected");
- 
+
 				if (!axon::util::validator::tns(tns) || !axon::util::validator::username(username) || password.empty())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "tns name, username and password required");
 
 				_connect(tns, username, password);
 			}
- 
+
 			void connection::connect(const std::string &hostname, const std::string &username, const std::string &password, const uint16_t port, const std::string &servicename)
 			{
 				if (_connected)
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "already connected");
- 
+
 				if (hostname.empty() || username.empty() || password.empty() || servicename.empty())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "hostname, username and password required");
 
@@ -242,7 +242,7 @@ namespace axon {
 			void connection::disconnect()
 			{
 				if (!_connected) return;
- 
+
 				try {
 					_session.disconnect();
 				} catch (axon::exception &e) {
@@ -251,7 +251,7 @@ namespace axon {
 				WRNPRN("disconnecting from server");
 				if ((_error = OCIServerDetach(_server.get(), _error.get(), OCI_DEFAULT)).failed())
 					ERRPRN("OCIServerDetach: %s", _error.what().c_str());
- 
+
 				_connected = false;
 			}
 
@@ -419,7 +419,7 @@ namespace axon {
 
 						if ((_error = OCIBindByPos(_pointer, &bndp, _error.get(), index, intptr, sizeof(int), SQLT_INT, nullptr, nullptr, nullptr, 0, nullptr, OCI_DEFAULT)).failed())
 							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _error.what());
-						
+
 						// following is only supported from v23, need to implement some method to check version and use this if available
 						// bool *data = std::any_cast<bool>(&element);
 						// OCIBind *bndp = nullptr;

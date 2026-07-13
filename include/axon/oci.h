@@ -191,7 +191,7 @@ namespace axon
 
 				std::shared_ptr<axon::database2r::oci::context> _context;
 				axon::database2r::oci::error _error;
-				
+
 				std::string _username, _password;
 
 				public:

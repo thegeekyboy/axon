@@ -341,7 +341,7 @@ namespace axon
 		{
 			if (_runnable)
 				stop();
-			
+
 			if (_rdk && _rdk->valid())
 			{
 				DBGPRN("[kafka:%s] closing consumer", _id.c_str());
