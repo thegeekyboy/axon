@@ -10,7 +10,7 @@
 #include <cassandra.h>
 #include <dse.h>
 
-#include <axon/database2r.h>
+#include <axon/database.h>
 
 #define AXON_DATABASE_SCYLLA_CONN_PER_HOST 2
 #define AXON_DATABASE_SCYLLA_TIMEOUT 10
@@ -19,7 +19,7 @@
 
 namespace axon
 {
-	namespace database2r
+	namespace database
 	{
 		namespace sci {
 
@@ -185,8 +185,8 @@ namespace axon
 
 				bool _connected { false };
 
-				axon::database2r::sci::session _session;
-				axon::database2r::sci::cluster _cluster;
+				axon::database::sci::session _session;
+				axon::database::sci::cluster _cluster;
 
 				public:
 					connection() { }
@@ -271,7 +271,7 @@ namespace axon
 			class statement {
 
 				CassStatement *_statement;
-				std::shared_ptr<axon::database2r::sci::connection> _connection;
+				std::shared_ptr<axon::database::sci::connection> _connection;
 
 				public:
 
@@ -288,21 +288,21 @@ namespace axon
 
 					operator CassStatement*() { return get(); }
 
-					void prepare(std::shared_ptr<axon::database2r::sci::connection> connection, std::string sql) {
+					void prepare(std::shared_ptr<axon::database::sci::connection> connection, std::string sql) {
 
 						future fq = cass_session_prepare(connection->get(), sql.c_str());
 						if (fq.wait().failed())
 							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, fq.what());
 
 						if (_statement != NULL) cass_statement_free(_statement);
-						_statement = cass_prepared_bind(axon::database2r::sci::prepared(fq));
+						_statement = cass_prepared_bind(axon::database::sci::prepared(fq));
 						_connection = connection;
 					};
 
-					std::unique_ptr<axon::database2r::sci::future> execute() {
+					std::unique_ptr<axon::database::sci::future> execute() {
 						if (_statement == NULL)
 							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "No prepared statement to execute!");
-						return std::make_unique<axon::database2r::sci::future>(cass_session_execute(_connection->get(), _statement));
+						return std::make_unique<axon::database::sci::future>(cass_session_execute(_connection->get(), _statement));
 					}
 			};
 		}
@@ -313,8 +313,8 @@ namespace axon
 			std::string _hostname, _username, _password, _keyspace;
 			int _port { 9042 };
 
-			std::shared_ptr<axon::database2r::sci::connection> _connection;
-			std::shared_ptr<axon::database2r::sci::statement> _statement;
+			std::shared_ptr<axon::database::sci::connection> _connection;
+			std::shared_ptr<axon::database::sci::statement> _statement;
 
 			const CassResult *_result { nullptr };
 			CassIterator *_iterator { nullptr };
@@ -322,14 +322,14 @@ namespace axon
 			std::mutex _safety;
 
 			int replace(std::string &);
-			int bind(std::shared_ptr<axon::database2r::sci::statement>&);
+			int bind(std::shared_ptr<axon::database::sci::statement>&);
 
 			public:
 
 				scylla();
 				~scylla();
 
-				scylla(const axon::database2r::scylla&) = delete;
+				scylla(const axon::database::scylla&) = delete;
 
 				bool connect() override;
 				bool connect(std::string, std::string, std::string) override;
@@ -339,15 +339,15 @@ namespace axon
 				bool ping() override;
 				std::string version() override;
 
-				bool transaction(axon::database2r::trans_t) override;
+				bool transaction(axon::database::trans_t) override;
 
 				bool execute(const std::string) override;
 				bool query(const std::string) override;
-				void fetch(axon::recordset2r&, int) override;
+				void fetch(axon::resultset&, int) override;
 				void done() override;
 
-				std::shared_ptr<axon::database2r::sci::description> describe(std::string& keyspace, std::string table) {
-					return std::make_shared<axon::database2r::sci::description>(_connection->get(), keyspace, table);
+				std::shared_ptr<axon::database::sci::description> describe(std::string& keyspace, std::string table) {
+					return std::make_shared<axon::database::sci::description>(_connection->get(), keyspace, table);
 				}
 
 				std::string& operator[] (char);

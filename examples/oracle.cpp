@@ -1,6 +1,6 @@
 /*
- * oracle2r.cpp — comprehensive example and test for axon::database2r::oracle
- *                and axon::recordset2r
+ * oracle2r.cpp — comprehensive example and test for axon::database::oracle
+ *                and axon::resultset
  *
  * Tests covered:
  *   1.  Database lifecycle      (connect via operator[], ping, version, close)
@@ -15,11 +15,11 @@
  *   9.  SELECT — binary         (RAW)
  *   10. SELECT — NULL handling  (get() returns false, field unchanged)
  *   11. Bind variables          (operator<< style, variadic style)
- *   12. recordset2r cursor      (next(), get<T> by position, get<T> by name)
- *   13. recordset2r >> op       (stream extraction, column cursor reset)
- *   14. recordset2r metadata    (count(), name(n), type(n), rows(), source())
- *   15. recordset2r to_json     (serialise current row)
- *   16. recordset2r operator<<  (print current row)
+ *   12. resultset cursor      (next(), get<T> by position, get<T> by name)
+ *   13. resultset >> op       (stream extraction, column cursor reset)
+ *   14. resultset metadata    (count(), name(n), type(n), rows(), source())
+ *   15. resultset to_json     (serialise current row)
+ *   16. resultset operator<<  (print current row)
  *   17. Paginated fetch         (batch_size smaller than result set)
  *   18. done() after exhaustion (safe to call after natural EOF)
  *   19. ping() on live connection
@@ -71,20 +71,20 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         if (parts[0] == "AXON_PASSWORD") password = parts[1];
     }
 
-    std::cout << "\n=== axon::database2r::oracle + recordset2r test suite ===\n\n";
+    std::cout << "\n=== axon::database::oracle + resultset test suite ===\n\n";
 
     try {
-		axon::database2r::oci::environment env;
+		axon::database::oci::environment env;
 
         // ================================================================
         // 1. Database lifecycle
         // ================================================================
         std::cout << "[1] Database lifecycle\n";
 
-        axon::database2r::oracle ora;
-        ora[AXON_DATABASE2R_HOSTNAME] = sid;
-        ora[AXON_DATABASE2R_USERNAME] = username;
-        ora[AXON_DATABASE2R_PASSWORD] = password;
+        axon::database::oracle ora;
+        ora[AXON_DATABASE_HOSTNAME] = sid;
+        ora[AXON_DATABASE_USERNAME] = username;
+        ora[AXON_DATABASE_PASSWORD] = password;
         ora.connect();
         check(true, "connect() via operator[]");
 
@@ -94,7 +94,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         check(!ver.empty(), "version() non-empty: " + ver.substr(0, 50));
 
         // Use connector& reference for the rest — tests the polymorphic path
-        axon::database2r::connector &db = ora;
+        axon::database::connector &db = ora;
 
         // ================================================================
         // 2. DDL
@@ -175,10 +175,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         // ================================================================
         std::cout << "\n[5] Transactions\n";
 
-        db.transaction(axon::database2r::transaction::BEGIN);
+        db.transaction(axon::database::transaction::BEGIN);
         db.execute("INSERT INTO ORA2R_TEST (ID,NAME,FLAGS,CHAR_COL,DATE_COL,TS_COL,TSTZ_COL,RAW_COL) VALUES (7,'Grace',1,'G_CHAR',SYSDATE,SYSTIMESTAMP,SYSTIMESTAMP,HEXTORAW('ABCDEF01'))");
         db.execute("INSERT INTO ORA2R_TEST (ID,NAME,FLAGS,CHAR_COL,DATE_COL,TS_COL,TSTZ_COL,RAW_COL) VALUES (8,'Hank',0,'H_CHAR',SYSDATE,SYSTIMESTAMP,SYSTIMESTAMP,HEXTORAW('FEDCBA98'))");
-        db.transaction(axon::database2r::transaction::END);
+        db.transaction(axon::database::transaction::END);
         check(true, "transaction BEGIN/END with two inserts");
 
         // ================================================================
@@ -188,7 +188,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, SCORE, BFLOAT_COL, BDOUBLE_COL FROM ORA2R_TEST WHERE ID IN (1,2,3,6) ORDER BY ID");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             int row = 0;
             while (rc.next())
             {
@@ -211,7 +211,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, CHAR_COL FROM ORA2R_TEST WHERE ID <= 3 ORDER BY ID");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             const std::string expected[] = { "Alice", "Bob", "Carol" };
             int row = 0;
             while (rc.next())
@@ -235,7 +235,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, DATE_COL, TS_COL, TSTZ_COL FROM ORA2R_TEST WHERE ID = 1");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             check(rc.next(), "date query: next() returns true");
             std::string date_str, ts_str, tstz_str;
             rc.get(1, date_str);
@@ -254,7 +254,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, RAW_COL FROM ORA2R_TEST WHERE ID = 1");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             check(rc.next(), "raw query: next() returns true");
 
             std::vector<uint8_t> raw;
@@ -272,7 +272,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, SCORE, NOTES FROM ORA2R_TEST WHERE ID = 5");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             check(rc.next(), "null query: next() returns true for Eve");
 
             double  score_sentinel = 999.0;
@@ -295,7 +295,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME FROM ORA2R_TEST WHERE ID < :max_id ORDER BY ID", 4);
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             int count = 0;
             while (rc.next()) count++;
             check(count == 3, "bind WHERE ID < 4: 3 rows (got " + std::to_string(count) + ")");
@@ -306,7 +306,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         db << filter_name;
         db.query("SELECT ID, NAME FROM ORA2R_TEST WHERE NAME = :name");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             check(rc.next(), "bind WHERE NAME = Alice: next() true");
             std::string name;
             rc.get(1, name);
@@ -321,7 +321,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, SCORE FROM ORA2R_TEST WHERE ID = 3");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
 
             long id; std::string name; double score;
@@ -338,7 +338,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, SCORE FROM ORA2R_TEST WHERE ID = 3");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
 
             long id; std::string name; double score;
@@ -358,7 +358,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, SCORE FROM ORA2R_TEST WHERE ID = 2");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             check(rc.next(), ">> test: next() true for Bob");
 
             long bid; std::string bname; double bscore;
@@ -371,13 +371,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         }
 
         // ================================================================
-        // 14. recordset2r metadata
+        // 14. resultset metadata
         // ================================================================
-        std::cout << "\n[14] recordset2r metadata\n";
+        std::cout << "\n[14] resultset metadata\n";
 
         db.query("SELECT ID, NAME, SCORE, FLAGS FROM ORA2R_TEST WHERE ROWNUM = 1");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
 
             check(rc.count()  == 4,                             "count() == 4");
@@ -396,7 +396,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, SCORE FROM ORA2R_TEST WHERE ID = 1");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
 
             std::string json = rc.to_json();
@@ -413,7 +413,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME, SCORE FROM ORA2R_TEST WHERE ID = 2");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
             std::cout << "         row:  " << rc << "\n";
             check(true, "operator<< did not throw");
@@ -427,7 +427,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID, NAME FROM ORA2R_TEST ORDER BY ID");
         {
-            axon::recordset2r rc(db, 2);   // force multiple fetch() calls
+            axon::resultset rc(db, 2);   // force multiple fetch() calls
             int rows = 0;
             while (rc.next()) rows++;
             check(rows == 8, "paginated: all 8 rows returned (got " + std::to_string(rows) + ")");
@@ -441,7 +441,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT ID FROM ORA2R_TEST WHERE ROWNUM <= 2");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             while (rc.next()) { }    // drain all rows
             rc.done();               // must not throw
             check(true, "done() after natural exhaustion does not throw");
@@ -460,7 +460,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT NOTES FROM ORA2R_TEST WHERE ID = 1");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
             std::string notes;
             rc.get(0, notes);
@@ -478,7 +478,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT SCORE FROM ORA2R_TEST WHERE NAME = :name", std::string("Alice"));
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
             double updated_score;
             rc.get(0, updated_score);
@@ -491,7 +491,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
 
         db.query("SELECT COUNT(*) FROM ORA2R_TEST");
         {
-            axon::recordset2r rc(db);
+            axon::resultset rc(db);
             rc.next();
             long remaining;
             rc.get(0, remaining);
@@ -510,11 +510,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[], char *env[])
         ora.close();
         check(true, "close()");
 
-		std::shared_ptr<axon::database2r::oci::connection> oracon = std::make_shared<axon::database2r::oci::connection>();
+		std::shared_ptr<axon::database::oci::connection> oracon = std::make_shared<axon::database::oci::connection>();
 		oracon->connect(sid, username, password);
-		check(oracon->connected(), "direct OCI connection via axon::database2r::oci::connection");
+		check(oracon->connected(), "direct OCI connection via axon::database::oci::connection");
 
-		axon::database2r::oracle ora2(oracon);
+		axon::database::oracle ora2(oracon);
 		std::cout<<ora2.version()<<std::endl;
 
     } catch (axon::exception &e) {

@@ -5,7 +5,7 @@
 
 namespace axon {
 
-	namespace database2r {
+	namespace database {
 
 		void oracle::_get_column_info()
 		{
@@ -60,7 +60,7 @@ namespace axon {
 			_columns.emplace_back(name, namelen, position, type, scale, size);
 		}
 
-		axon::column_type oracle::_attach_column_data(axon::database2r::oci::column &clmn, uint16_t count)
+		axon::column_type oracle::_attach_column_data(axon::database::oci::column &clmn, uint16_t count)
 		{
 			OCIDefine *def = { nullptr };
 			sword rc;
@@ -368,12 +368,12 @@ namespace axon {
 			return value;
 		}
 
-		oracle::oracle(): _connection(std::make_shared<axon::database2r::oci::connection>()), _statement(std::make_shared<axon::database2r::oci::statement>(_connection->context()))
+		oracle::oracle(): _connection(std::make_shared<axon::database::oci::connection>()), _statement(std::make_shared<axon::database::oci::statement>(_connection->context()))
 		{
 			_running = false;
 		}
 
-		oracle::oracle(std::shared_ptr<axon::database2r::oci::connection> connection): _connection(connection), _statement(std::make_shared<axon::database2r::oci::statement>(_connection->context()))
+		oracle::oracle(std::shared_ptr<axon::database::oci::connection> connection): _connection(connection), _statement(std::make_shared<axon::database::oci::statement>(_connection->context()))
 		{
 			_running = false;
 		}
@@ -450,9 +450,9 @@ namespace axon {
 			return _version;
 		}
 
-		bool oracle::transaction([[maybe_unused]] axon::database2r::trans_t ttype)
+		bool oracle::transaction([[maybe_unused]] axon::database::trans_t ttype)
 		{
-			if (ttype == axon::database2r::transaction::END)
+			if (ttype == axon::database::transaction::END)
 				return execute("COMMIT");
 			return true; 
 		}
@@ -470,7 +470,7 @@ namespace axon {
 
 			_statement->prepare(sql);
 			_statement->bind(_bind);
-			_statement->execute(axon::database2r::exec_type::other);
+			_statement->execute(axon::database::exec_type::other);
 
 			return true;
 		}
@@ -498,7 +498,7 @@ namespace axon {
 			return true;
 		}
 
-		void oracle::fetch(axon::recordset2r &rs, int howmany)
+		void oracle::fetch(axon::resultset &rs, int howmany)
 		{
 			BENCHMARK;
 
@@ -537,7 +537,7 @@ namespace axon {
 
 						for (size_t col = 0; col < _columns.size(); col++)
 						{
-							const axon::database2r::oci::column &clmn = _columns[col];
+							const axon::database::oci::column &clmn = _columns[col];
 
 							if (clmn.indicator.empty() || clmn.data.empty())
 							{
@@ -629,11 +629,11 @@ namespace axon {
 		{
 			_throwawaystr.erase();
 
-			if (i == AXON_DATABASE2R_HOSTNAME)
+			if (i == AXON_DATABASE_HOSTNAME)
 				return _hostname;
-			else if (i == AXON_DATABASE2R_USERNAME)
+			else if (i == AXON_DATABASE_USERNAME)
 				return _username;
-			else if (i == AXON_DATABASE2R_PASSWORD)
+			else if (i == AXON_DATABASE_PASSWORD)
 				return _password;
 
 			return _throwawaystr;

@@ -50,13 +50,13 @@ void counter()
 // {
 // 	axon::timer ctm(__PRETTY_FUNCTION__);
 // }
-void parse2([[maybe_unused]] std::unique_ptr<axon::recordset2r> rc)
+void parse2([[maybe_unused]] std::unique_ptr<axon::resultset> rc)
 {
 	std::cout<<count<<" got a ping()"<<std::endl;
 	count++;
 }
 
-void parse(std::unique_ptr<axon::recordset2r> rc)
+void parse(std::unique_ptr<axon::resultset> rc)
 {
 	// if (rc) std::cout<<*rc<<std::endl;
 	while (rc->next()) std::cout<<*rc<<std::endl;
@@ -89,13 +89,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[], [[maybe_unuse
 
 	try {
 		// axon::stream::kinesis source(hostname, username, password);
-		axon::database2r::oci::environment env;
+		axon::database::oci::environment env;
 		
-		// axon::stream2r::ocn source(ora_sid, username, password);
+		// axon::stream::ocn source(ora_sid, username, password);
 
-		std::shared_ptr<axon::database2r::oci::connection> oracon = std::make_shared<axon::database2r::oci::connection>(6667);
+		std::shared_ptr<axon::database::oci::connection> oracon = std::make_shared<axon::database::oci::connection>(6667);
 		oracon->connect(ora_sid, username, password);
-		axon::stream2r::ocn source(oracon);
+		axon::stream::ocn source(oracon);
 
 		// source.account() = "354285753755";
 		// source.name() = "dse_uat_hyperion_event_consumer";

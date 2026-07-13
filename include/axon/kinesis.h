@@ -3,10 +3,10 @@
 
 #include <algorithm>
 
-#include <axon/stream2r.h>
+#include <axon/stream.h>
 #include <axon/connection.h>
 
-#include <axon/recordset2r.h>
+#include <axon/resultset.h>
 
 #include <aws/core/Aws.h>
 #include <aws/kinesis/KinesisClient.h>
@@ -20,7 +20,7 @@
 
 namespace axon {
 
-	namespace stream2r {
+	namespace stream {
 
 		enum class ARN {
 
@@ -30,14 +30,14 @@ namespace axon {
 			CONSUMER
 		};
 
-		inline axon::stream2r::ARN resolve(std::string arn) {
+		inline axon::stream::ARN resolve(std::string arn) {
 			boost::regex c_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/[A-Za-z0-9_.-]{1,128}\\/consumer\\/[A-Za-z0-9_.-]{1,128}:\\d{10,}$");
 			boost::regex s_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/[A-Za-z0-9_.-]{1,128}$");
 
-			if (boost::regex_match(arn, c_pattern)) return axon::stream2r::ARN::CONSUMER;
-			else if (boost::regex_match(arn, s_pattern)) return axon::stream2r::ARN::STREAM;
+			if (boost::regex_match(arn, c_pattern)) return axon::stream::ARN::CONSUMER;
+			else if (boost::regex_match(arn, s_pattern)) return axon::stream::ARN::STREAM;
 
-			return axon::stream2r::ARN::UNKNOWN;
+			return axon::stream::ARN::UNKNOWN;
 		}
 
 		namespace aws {
@@ -58,9 +58,9 @@ namespace axon {
 				Aws::String _id, _name, _iterator;
 
 				public:
-					axon::stream2r::cbfn callback;
+					axon::stream::cbfn callback;
 
-					shard(Aws::String name, Aws::String id, Aws::String iterator, axon::stream2r::cbfn callback): _status(false), _size(0), _id(id), _name(name), _iterator(iterator), callback(callback) {};
+					shard(Aws::String name, Aws::String id, Aws::String iterator, axon::stream::cbfn callback): _status(false), _size(0), _id(id), _name(name), _iterator(iterator), callback(callback) {};
 					const Aws::String get() const { return _iterator; };
 					void set(Aws::String iterator) {
 						_iterator = iterator;
@@ -86,7 +86,7 @@ namespace axon {
 			class stream {
 
 				std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
-				std::vector<axon::stream2r::aws::partition> _partitions;
+				std::vector<axon::stream::aws::partition> _partitions;
 
 				std::string _id, _name, _arn;
 				bool _ready { false };
@@ -109,8 +109,8 @@ namespace axon {
 					bool busy() const { return _busy; }
 					explicit operator bool() const { return _ready; }
 
-					const std::vector<axon::stream2r::aws::partition> &partitions() const { return _partitions; }
-					std::vector<axon::stream2r::aws::partition> &partitions() { return _partitions; }
+					const std::vector<axon::stream::aws::partition> &partitions() const { return _partitions; }
+					std::vector<axon::stream::aws::partition> &partitions() { return _partitions; }
 
 					void create();
 					void remove();
@@ -141,16 +141,16 @@ namespace axon {
 					explicit operator bool() const { return _ready; }
 
 					std::string attach(const std::string&);
-					std::string attach(axon::stream2r::aws::stream&);
+					std::string attach(axon::stream::aws::stream&);
 
 					bool detach(const std::string&);
-					bool detach(axon::stream2r::aws::stream&);
+					bool detach(axon::stream::aws::stream&);
 					void detach();
 			};
 
 		} // namespace aws
 
-		class kinesis: public axon::stream2r::connector {
+		class kinesis: public axon::stream::connector {
 
 
 			axon::AwsStack _aws;
@@ -161,10 +161,10 @@ namespace axon {
 			bool _sync { true };
 			uint8_t _consumer_count { 0 };
 
-			std::vector<axon::stream2r::aws::stream> _streams;
-			std::unique_ptr<axon::stream2r::aws::consumer> _consumer;
+			std::vector<axon::stream::aws::stream> _streams;
+			std::unique_ptr<axon::stream::aws::consumer> _consumer;
 
-			std::deque<axon::stream2r::aws::event> _queue;
+			std::deque<axon::stream::aws::event> _queue;
 			std::mutex _queue_mtx;
 			std::condition_variable _queue_cv;
 
@@ -174,8 +174,8 @@ namespace axon {
 			void _stop() override;
 			void _run();
 
-			void _poll_shard(const std::string&, const std::string&, axon::stream2r::aws::partition);
-			static std::unique_ptr<axon::recordset2r> _build_recordset(const axon::stream2r::aws::event&);
+			void _poll_shard(const std::string&, const std::string&, axon::stream::aws::partition);
+			static std::unique_ptr<axon::resultset> _build_recordset(const axon::stream::aws::event&);
 
 			public:
 				kinesis() = delete;
@@ -193,9 +193,9 @@ namespace axon {
 				void unsubscribe() override;
 
 				bool start() override;
-				bool start(axon::stream2r::cbfn) override;
+				bool start(axon::stream::cbfn) override;
 
-				void fetch(axon::recordset2r&, int) override
+				void fetch(axon::resultset&, int) override
 				{
 					throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kinesis is callback-only — use start() with a callback");
 				}

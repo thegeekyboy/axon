@@ -4,12 +4,12 @@
 
 #include <axon.h>
 #include <axon/util.h>
-#include <axon/database2r.h>
+#include <axon/database.h>
 #include <axon/oci.h>
 
 namespace axon {
 
-	namespace database2r {
+	namespace database {
 
 		namespace oci {
 
@@ -52,7 +52,7 @@ namespace axon {
 				_pointer = (OCIError *) 0;
 				_id = axon::util::uuid();
 
-				if (OCIHandleAlloc(axon::database2r::oci::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+				if (OCIHandleAlloc(axon::database::oci::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_ERROR, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate error object");
 			}
 
@@ -121,11 +121,11 @@ namespace axon {
 				return retval;
 			}
 
-			session::session(std::shared_ptr<axon::database2r::oci::context> ctx): _id(axon::util::uuid()), _context(ctx)
+			session::session(std::shared_ptr<axon::database::oci::context> ctx): _id(axon::util::uuid()), _context(ctx)
 			{
 				BENCHMARK;
 
-				if (OCIHandleAlloc((dvoid *) axon::database2r::oci::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SESSION, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+				if (OCIHandleAlloc((dvoid *) axon::database::oci::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SESSION, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate session");
 			}
 
@@ -177,14 +177,14 @@ namespace axon {
 				_connected = false;
 			}
 
-			connection::connection(): _context(std::make_shared<axon::database2r::oci::context>()), _session(_context), _id(axon::util::uuid())
+			connection::connection(): _context(std::make_shared<axon::database::oci::context>()), _session(_context), _id(axon::util::uuid())
 			{
 			}
 
-			connection::connection(const uint16_t port): _context(std::make_shared<axon::database2r::oci::context>()), _session(_context), _id(axon::util::uuid())
+			connection::connection(const uint16_t port): _context(std::make_shared<axon::database::oci::context>()), _session(_context), _id(axon::util::uuid())
 			{
 				ub4 p = port;
-				if ((_error = OCIAttrSet(axon::database2r::oci::environment::get(), OCI_HTYPE_ENV, (void*) &p, sizeof(ub4), OCI_ATTR_SUBSCR_PORTNO, _error.get())).failed())
+				if ((_error = OCIAttrSet(axon::database::oci::environment::get(), OCI_HTYPE_ENV, (void*) &p, sizeof(ub4), OCI_ATTR_SUBSCR_PORTNO, _error.get())).failed())
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 			}
 
@@ -255,7 +255,7 @@ namespace axon {
 				_connected = false;
 			}
 
-			statement::statement(std::shared_ptr<axon::database2r::oci::context> ctx): _id(axon::util::uuid()), _prepared(false), _pointer(nullptr), _context(ctx)
+			statement::statement(std::shared_ptr<axon::database::oci::context> ctx): _id(axon::util::uuid()), _prepared(false), _pointer(nullptr), _context(ctx)
 			{
 				DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
 			}
@@ -281,7 +281,7 @@ namespace axon {
 				_sql = sql;
 			}
 
-			int statement::bind(std::vector<axon::database2r::bind> &vars)
+			int statement::bind(std::vector<axon::database::bind> &vars)
 			{
 				// READ: https://stackoverflow.com/questions/16883694/ocibindbypos-on-array-of-strings
 
@@ -445,7 +445,7 @@ namespace axon {
 					throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, _error.what());
 			}
 
-			void statement::execute(axon::database2r::exec_type et)
+			void statement::execute(axon::database::exec_type et)
 			{
 				BENCHMARK;
 

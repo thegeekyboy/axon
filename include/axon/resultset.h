@@ -1,5 +1,5 @@
-#ifndef AXON_RECORDSET2R_H_
-#define AXON_RECORDSET2R_H_
+#ifndef AXON_RESULTSET_H_
+#define AXON_RESULTSET_H_
 
 #include <string>
 #include <string_view>
@@ -10,12 +10,12 @@
 #include <cstdint>
 #include <cstring>
 
-#define AXON_RECORDSET2R_BATCH_SIZE 256
+#define AXON_RESULTSET_BATCH_SIZE 256
 
 namespace axon {
 
-	namespace database2r { class connector; }
-	namespace stream { class interface; }
+	namespace database { class connector; }
+	namespace stream { class connector; }
 
 	enum class column_type : uint8_t {
 		null_t = 0,
@@ -49,12 +49,12 @@ namespace axon {
 
 	using record = std::vector<axon::field>;
 
-	class recordset2r {
+	class resultset {
 
 		std::string _id;
 		std::string _name;
-		axon::database2r::connector *_database { nullptr };
-		axon::stream::interface *_stream { nullptr };
+		axon::database::connector *_database { nullptr };
+		axon::stream::connector *_stream { nullptr };
 
 
 		std::vector<column_meta> _schema;
@@ -70,7 +70,7 @@ namespace axon {
 		size_t _col_cursor { 0 };   // for operator>>
 		size_t _row_count { 0 };    // total rows consumed
 
-		int _batch_size  { AXON_RECORDSET2R_BATCH_SIZE };
+		int _batch_size  { AXON_RESULTSET_BATCH_SIZE };
 
 		void _assert_row() const;
 		size_t _column_index(std::string_view) const;
@@ -81,13 +81,13 @@ namespace axon {
 
 	public:
 
-		explicit recordset2r(std::string name = {});
-		explicit recordset2r(axon::database2r::connector&, int = AXON_RECORDSET2R_BATCH_SIZE);
-		explicit recordset2r(axon::stream::interface&, int = 1);
+		explicit resultset(std::string name = {});
+		explicit resultset(axon::database::connector&, int = AXON_RESULTSET_BATCH_SIZE);
+		explicit resultset(axon::stream::connector&, int = 1);
 
-		recordset2r(const axon::recordset2r&) = delete;
-		recordset2r& operator=(const axon::recordset2r&) = delete;
-		~recordset2r() = default;
+		resultset(const axon::resultset&) = delete;
+		resultset& operator=(const axon::resultset&) = delete;
+		~resultset() = default;
 
 		void add_column(std::string, column_type, bool = true);
 
@@ -106,7 +106,7 @@ namespace axon {
 		void set_eof() { _eof = true; }
 
 		bool next();
-		axon::recordset2r& operator++();
+		axon::resultset& operator++();
 
 		void done();
 
@@ -140,7 +140,7 @@ namespace axon {
 		size_t get(std::string_view, void *, size_t) const;
 
 		template <typename T>
-		axon::recordset2r& operator>>(T &out) {
+		axon::resultset& operator>>(T &out) {
 
 			if (_col_cursor >= _schema.size())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "operator>>: all columns consumed for this row. _col_cursor: %d, _schema.size(): %d", _col_cursor, _schema.size());
@@ -153,8 +153,8 @@ namespace axon {
 		void print() const;
 		std::ostream& print(std::ostream &) const;
 
-		friend std::ostream& operator<<(std::ostream &os, const axon::recordset2r &rc) { return rc.print(os); }
-		friend std::ostream& operator<<(std::ostream &os, axon::recordset2r &rc) { return rc.print(os); }
+		friend std::ostream& operator<<(std::ostream &os, const axon::resultset &rc) { return rc.print(os); }
+		friend std::ostream& operator<<(std::ostream &os, axon::resultset &rc) { return rc.print(os); }
 	};
 
 }

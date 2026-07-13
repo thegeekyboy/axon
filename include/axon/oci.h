@@ -5,7 +5,7 @@
 
 namespace axon 
 {
-	namespace database2r
+	namespace database
 	{
 		namespace oci {
 
@@ -86,7 +86,7 @@ namespace axon
 
 					bool failed();
 
-					axon::database2r::oci::error& operator= (int retcode)
+					axon::database::oci::error& operator= (int retcode)
 					{
 						_retcode = retcode;
 						return *this;
@@ -130,7 +130,7 @@ namespace axon
 
 						_id = axon::util::uuid();
 
-						if (OCIHandleAlloc((dvoid *) axon::database2r::oci::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+						if (OCIHandleAlloc((dvoid *) axon::database::oci::environment::get(), (dvoid **) &_pointer, (ub4) OCI_HTYPE_SVCCTX, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate context");
 					}
 
@@ -163,7 +163,7 @@ namespace axon
 						_pointer = (OCIServer *) 0;
 						_id = axon::util::uuid();
 
-						if (OCIHandleAlloc((dvoid *) axon::database2r::oci::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
+						if (OCIHandleAlloc((dvoid *) axon::database::oci::environment::get(), (dvoid **) &_pointer, OCI_HTYPE_SERVER, (size_t) 0, (dvoid **) 0) != OCI_SUCCESS)
 							throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate server");
 					}
 
@@ -189,13 +189,13 @@ namespace axon
 				bool _connected { false };
 				OCISession *_pointer { nullptr };
 
-				std::shared_ptr<axon::database2r::oci::context> _context;
-				axon::database2r::oci::error _error;
+				std::shared_ptr<axon::database::oci::context> _context;
+				axon::database::oci::error _error;
 
 				std::string _username, _password;
 
 				public:
-					session(std::shared_ptr<axon::database2r::oci::context>);
+					session(std::shared_ptr<axon::database::oci::context>);
 					~session();
 
 					session(const session&) = delete;
@@ -211,11 +211,11 @@ namespace axon
 
 			class connection
 			{
-				std::shared_ptr<axon::database2r::oci::context> _context;
+				std::shared_ptr<axon::database::oci::context> _context;
 
-				axon::database2r::oci::error _error;
-				axon::database2r::oci::server _server;
-				axon::database2r::oci::session _session;
+				axon::database::oci::error _error;
+				axon::database::oci::server _server;
+				axon::database::oci::session _session;
 
 				std::string _id;
 				std::string _connection_string;
@@ -237,7 +237,7 @@ namespace axon
 
 					OCISvcCtx *ctx() { return _context->get(); }
 					OCIError *error() { return _error.get(); }
-					std::shared_ptr<axon::database2r::oci::context> context() { return _context; }
+					std::shared_ptr<axon::database::oci::context> context() { return _context; }
 
 					bool connected() const { return _connected; }
 			};
@@ -249,14 +249,14 @@ namespace axon
 
 				OCIStmt *_pointer;
 
-				std::shared_ptr<axon::database2r::oci::context> _context;
-				axon::database2r::oci::error _error;
+				std::shared_ptr<axon::database::oci::context> _context;
+				axon::database::oci::error _error;
 
 				std::vector<int> _bool_temps;
 
 				public:
 					statement() = delete;
-					statement(std::shared_ptr<axon::database2r::oci::context>);
+					statement(std::shared_ptr<axon::database::oci::context>);
 					~statement();
 
 					OCIStmt *get();
@@ -264,9 +264,9 @@ namespace axon
 
 					void prepare(std::string);
 					void bind(OCISubscription *);
-					int bind(std::vector<axon::database2r::bind>&);
+					int bind(std::vector<axon::database::bind>&);
 
-					void execute(axon::database2r::exec_type);
+					void execute(axon::database::exec_type);
 					void reset();
 			};
 		}

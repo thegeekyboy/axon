@@ -23,7 +23,7 @@
 
 namespace axon {
 
-	namespace stream2r {
+	namespace stream {
 
 		namespace aws {
 
@@ -59,7 +59,7 @@ namespace axon {
 				return outcome.GetResult().GetStreamDescription().GetStreamARN();
 			};
 
-			std::vector<axon::stream2r::aws::partition> stream::_get_partitions(const std::string &arn)
+			std::vector<axon::stream::aws::partition> stream::_get_partitions(const std::string &arn)
 			{
 				BENCHMARK;
 
@@ -283,7 +283,7 @@ namespace axon {
 				return retarn;
 			}
 
-			std::string consumer::attach(axon::stream2r::aws::stream &sh)
+			std::string consumer::attach(axon::stream::aws::stream &sh)
 			{
 				if (!sh.ready()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "stream is not ready");
 				if (sh.busy()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "stream is already busy");
@@ -311,11 +311,11 @@ namespace axon {
 			{
 				BENCHMARK;
 				std::string arn = arn_;
-				axon::stream2r::ARN arntype = axon::stream2r::resolve(arn);
+				axon::stream::ARN arntype = axon::stream::resolve(arn);
 
-				if (arntype == axon::stream2r::ARN::UNKNOWN) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "arn is not in correct format");
+				if (arntype == axon::stream::ARN::UNKNOWN) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "arn is not in correct format");
 
-				if (arntype == axon::stream2r::ARN::STREAM) arn = _find_arn(arn, _name);
+				if (arntype == axon::stream::ARN::STREAM) arn = _find_arn(arn, _name);
 
 				if (!_is_attached(arn)) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "consumer not connected");
 
@@ -331,7 +331,7 @@ namespace axon {
 				return false;
 			}
 
-			bool consumer::detach(axon::stream2r::aws::stream &sh)
+			bool consumer::detach(axon::stream::aws::stream &sh)
 			{
 				return detach(sh.arn());
 			};
@@ -345,7 +345,7 @@ namespace axon {
 			_queue_cv.notify_all();   // wake _run() so it can exit
 		}
 
-		void kinesis::_poll_shard(const std::string &topic_name, [[maybe_unused]]const std::string &stream_arn, axon::stream2r::aws::partition part)   // owns iterator state
+		void kinesis::_poll_shard(const std::string &topic_name, [[maybe_unused]]const std::string &stream_arn, axon::stream::aws::partition part)   // owns iterator state
 		{
 			// NOTE: When a shard is closed (split or merge), GetNextShardIterator
 			// returns empty. This thread exits and the child shards are NOT
@@ -395,7 +395,7 @@ namespace axon {
 					// Push each record onto the queue for the runner thread
 					for (const auto &rec : records)
 					{
-						axon::stream2r::aws::event ev;
+						axon::stream::aws::event ev;
 
 						ev.topic_name = topic_name;
 						ev.shard_id = part.id;
@@ -429,9 +429,9 @@ namespace axon {
 			DBGPRN("[kinesis:%s] shard poll exited: %s", _id.c_str(), part.id.c_str());
 		}
 
-		std::unique_ptr<axon::recordset2r> kinesis::_build_recordset(const axon::stream2r::aws::event &ev)
+		std::unique_ptr<axon::resultset> kinesis::_build_recordset(const axon::stream::aws::event &ev)
 		{
-			auto rs = std::make_unique<axon::recordset2r>(ev.topic_name);
+			auto rs = std::make_unique<axon::resultset>(ev.topic_name);
 
 			rs->add_column("data", axon::column_type::bytes_t);
 			rs->add_column("sequence_number", axon::column_type::string_t);
@@ -460,7 +460,7 @@ namespace axon {
 
 			while (_runnable)
 			{
-				axon::stream2r::aws::event ev;
+				axon::stream::aws::event ev;
 
 				{
 					std::unique_lock<std::mutex> lk(_queue_mtx);
@@ -477,7 +477,7 @@ namespace axon {
 				try
 				{
 					// Find callback — global takes priority over per-topic
-					axon::stream2r::cbfn cb = _callback;
+					axon::stream::cbfn cb = _callback;
 
 					if (!cb)
 					{
@@ -576,7 +576,7 @@ namespace axon {
 
 			for (auto &t : _topic)
 			{
-				axon::stream2r::aws::stream sh(_client, t.name);
+				axon::stream::aws::stream sh(_client, t.name);
 
 				if (!sh)
 				{
@@ -587,7 +587,7 @@ namespace axon {
 				// For enhanced fan-out, attach consumer
 				if (!_sync)
 				{
-					if (!_consumer) _consumer = std::make_unique<axon::stream2r::aws::consumer>(_client, _name);
+					if (!_consumer) _consumer = std::make_unique<axon::stream::aws::consumer>(_client, _name);
 					_consumer->attach(sh);
 				}
 
@@ -648,7 +648,7 @@ namespace axon {
 			return true;
 		}
 
-		bool kinesis::start(axon::stream2r::cbfn cb)
+		bool kinesis::start(axon::stream::cbfn cb)
 		{
 			_callback = std::move(cb);
 			return start();

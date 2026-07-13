@@ -14,27 +14,27 @@
 
 #include <axon.h>
 #include <axon/util.h>
-#include <axon/recordset2r.h>
-#include <axon/database2r.h>
-#include <axon/stream2r.h>
+#include <axon/resultset.h>
+#include <axon/database.h>
+#include <axon/stream.h>
 #include <axon/oci.h>
 
 // -----------------------------------------------------------------------
-// axon::stream2r::ocn
+// axon::stream::ocn
 //
 // Oracle OCN (Object Change Notification) stream connector.
-// Derives from axon::stream2r::connector.
+// Derives from axon::stream::connector.
 //
 // Self-contained — owns its own OCI session. Does NOT depend on
-// axon::database2r::oracle.
+// axon::database::oracle.
 //
 // THREADING
 //   OCI background thread → _notify() static callback
 //     ↓  push ocn_event + notify _queue_cv
-//   _daemon thread         → dequeue → ROWID fetch → recordset2r → callback
+//   _daemon thread         → dequeue → ROWID fetch → resultset → callback
 //
 // USAGE
-//   axon::stream2r::ocn ocn("mydb", "user", "pass");
+//   axon::stream::ocn ocn("mydb", "user", "pass");
 //   ocn.connect();
 //   ocn.add("ORDERS", "SELECT * FROM TBL_ORDERS", [](auto rs) { ... });
 //   ocn.subscribe();
@@ -46,7 +46,7 @@
 
 namespace axon {
 
-	namespace stream2r {
+	namespace stream {
 
 		struct ocn_event {
 			size_t topic_index { 0 };
@@ -62,22 +62,22 @@ namespace axon {
 			bool attached { false };
 		};
 
-		class ocn : public axon::stream2r::connector {
+		class ocn : public axon::stream::connector {
 
-			std::shared_ptr<axon::database2r::oci::connection> _connection;
-			axon::database2r::oci::error _error;
+			std::shared_ptr<axon::database::oci::connection> _connection;
+			axon::database::oci::error _error;
 
-			std::vector<axon::stream2r::ocn_sub> _subs;
+			std::vector<axon::stream::ocn_sub> _subs;
 
-			std::deque<axon::stream2r::ocn_event> _queue;
+			std::deque<axon::stream::ocn_event> _queue;
 			std::mutex _queue_mtx;
 			std::condition_variable _queue_cv;
 
-			void _attach(ocn_sub &sub, const axon::stream2r::topic &t);
+			void _attach(ocn_sub &sub, const axon::stream::topic &t);
 			void _detach(ocn_sub &sub);
 			void _dispatch_loop();
 			void _handle_event(const ocn_event &ev);
-			void _fetch_row(const std::string &table, const std::string &rowid, const axon::stream2r::cbfn &cb);
+			void _fetch_row(const std::string &table, const std::string &rowid, const axon::stream::cbfn &cb);
 
 			void _stop() override;
 
@@ -87,7 +87,7 @@ namespace axon {
 			ocn(const ocn&) = delete;
 
 			ocn(std::string, std::string, std::string);
-			ocn(std::shared_ptr<axon::database2r::oci::connection>);
+			ocn(std::shared_ptr<axon::database::oci::connection>);
 			~ocn();
 
 			void connect();
@@ -97,9 +97,9 @@ namespace axon {
 			void unsubscribe() override;
 
 			bool start() override;
-			bool start(axon::stream2r::cbfn) override;
+			bool start(axon::stream::cbfn) override;
 
-			void fetch(axon::recordset2r &, int) override {
+			void fetch(axon::resultset &, int) override {
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "ocn is callback-only — use start() with a callback");
 			}
 

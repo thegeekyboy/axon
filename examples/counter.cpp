@@ -17,7 +17,7 @@ static void stop (int sig)
 	fflush(stderr);
 }
 
-void counter(axon::stream2r::kafka *hook)
+void counter(axon::stream::kafka *hook)
 {
 	running = true;
 
@@ -41,7 +41,7 @@ void dbg(avro_value_t *avro)
 	}
 }
 
-void parse(std::shared_ptr<axon::recordset2r> rc)
+void parse(std::shared_ptr<axon::resultset> rc)
 {
 	std::string event_type, screen, msisdn, session, event_date, fingerprint;
 
@@ -84,7 +84,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 
 	if (argc <= 2) return 0;
 
-	axon::stream2r::kafka uat(bootstrap, schema, "axon::counter");
+	axon::stream::kafka uat(bootstrap, schema, "axon::counter");
 
 	uat.add("uat_streamproxy_generic", "uat_streamproxy_generic", parse);
 	uat.subscribe();
@@ -98,39 +98,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 	uat.stop();
-	
-	/*if (false)
-	{
-		uat.start(&parse);
-		std::thread th(counter, &uat);
-		th.join();
-	}
-	else 
-	{
-		running = true;
-
-		std::unique_ptr<axon::recordset2r> rc;
-
-		while (running && (rc = uat.next()))
-		{
-			if (rc->is_empty())
-				continue;
-
-			std::string event_flag, event_type, screen, msisdn, session, event_date, fingerprint;
-
-			rc->get("EVENT_FLAG", event_flag);
-			rc->get("EVENT_TYPE", event_type);
-			rc->get("DEVICE_FINGERPRINTID", fingerprint);
-			rc->get("event_timestamp", event_date);
-			rc->get("SESSION_ID", session);
-			rc->get("MSISDN", msisdn);
-			rc->get("SCREEN_NAME", screen);
-
-			std::cout<<"["<<event_date<<"] {"<<fingerprint<<" = "<<msisdn<<"} => "<<event_type<<" <> "<<session<<" - "<<screen<<" "<<event_flag<<std::endl;
-		}
-
-		uat.stop();
-	}*/
 
 	return 0;
 }

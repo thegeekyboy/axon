@@ -8,7 +8,7 @@
 
 namespace axon
 {
-	namespace database2r
+	namespace database
 	{
 		int scylla::replace(std::string &sql)
 		{
@@ -21,7 +21,7 @@ namespace axon
 			return 0;
 		}
 
-		int scylla::bind(std::shared_ptr<axon::database2r::sci::statement> &stmt2)
+		int scylla::bind(std::shared_ptr<axon::database::sci::statement> &stmt2)
 		{
 			int index = 0, count = _bind.size();
 
@@ -155,8 +155,8 @@ namespace axon
 			_query = false;
 			_prepared = false;
 
-			_connection = std::make_shared<axon::database2r::sci::connection>();
-			_statement = std::make_shared<axon::database2r::sci::statement>();
+			_connection = std::make_shared<axon::database::sci::connection>();
+			_statement = std::make_shared<axon::database::sci::statement>();
 		}
 
 		scylla::~scylla()
@@ -239,7 +239,7 @@ namespace axon
 			if (!_connection->connected())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
-			axon::database2r::sci::metadata md(_connection->get());
+			axon::database::sci::metadata md(_connection->get());
 
 			CassVersion cv = cass_schema_meta_version(md.get());
 			char version[32];
@@ -265,7 +265,7 @@ namespace axon
 
 			std::lock_guard<std::mutex> lock(_safety);
 
-			std::unique_ptr<axon::database2r::sci::future> fq;
+			std::unique_ptr<axon::database::sci::future> fq;
 
 			_statement->prepare(_connection, sql);
 			bind(_statement);
@@ -296,7 +296,7 @@ namespace axon
 			return true;
 		}
 
-		void scylla::fetch(axon::recordset2r &rs, int howmany)
+		void scylla::fetch(axon::resultset &rs, int howmany)
 		{
 			BENCHMARK;
 
@@ -493,13 +493,13 @@ namespace axon
 		{
 			_throwawaystr.erase();
 
-			if (i == AXON_DATABASE2R_HOSTNAME)
+			if (i == AXON_DATABASE_HOSTNAME)
 				return _hostname;
-			else if (i == AXON_DATABASE2R_USERNAME)
+			else if (i == AXON_DATABASE_USERNAME)
 				return _username;
-			else if (i == AXON_DATABASE2R_PASSWORD)
+			else if (i == AXON_DATABASE_PASSWORD)
 				return _password;
-			else if (i == AXON_DATABASE2R_KEYSPACE)
+			else if (i == AXON_DATABASE_KEYSPACE)
 				return _keyspace;
 
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid index");
@@ -508,7 +508,7 @@ namespace axon
 
 		int& scylla::operator[] (int i)
 		{
-			if (i == AXON_DATABASE2R_PORT)
+			if (i == AXON_DATABASE_PORT)
 				return _port;
 
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "invalid index");

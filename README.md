@@ -1,12 +1,14 @@
 # axon
 
-A C++17 middleware connectivity library providing a unified interface for file transfer, streaming, database, and caching systems. axon is the foundational dependency for [hyperion](https://github.com/thegeekyboy/hyperion).
+A C++17 middleware connectivity library providing a unified interface for file transfer, event streaming, database, and caching systems. axon is the foundational dependency for [hyperion](https://github.com/thegeekyboy/hyperion).
 
 ---
 
 ## Overview
 
-axon abstracts the complexity of connecting to heterogeneous infrastructure behind a consistent API. Whether moving files between SFTP and S3, consuming Kafka or Kinesis streams, or querying Oracle and ScyllaDB — the calling code follows the same pattern. All connectors share a common base class, support operator-based stream piping (`>>`), and are thread-safe.
+axon abstracts the complexity of connecting to heterogeneous infrastructure behind a consistent API. Whether moving files between SFTP and S3, consuming Kafka or Kinesis streams with Avro deserialization, querying Oracle, ScyllaDB or SQLite — the calling code follows the same pattern.
+
+All database connectors share `axon::database::connector` as a common base with a unified `resultset` cursor. All stream connectors share `axon::stream::connector` with a callback-based delivery model. Transfer connectors support the `>>` operator for zero-copy streaming between any two endpoints.
 
 ---
 
@@ -34,20 +36,48 @@ dst.close();
 ```
 
 ### Event Streaming
-| Connector | Class |
-|---|---|
-| Apache Kafka (Avro / Schema Registry) | `axon::stream::kafka` |
-| AWS Kinesis | `axon::stream::kinesis` |
-| Oracle CQN (Change Query Notification) | `axon::stream::cqn` |
+| Connector | Class | Backend |
+|---|---|---|
+| Apache Kafka (Avro / Schema Registry) | `axon::stream::kafka` | librdkafka + libserdes |
+| AWS Kinesis (standard polling) | `axon::stream::kinesis` | AWS C++ SDK |
+| Oracle OCN (Change Notification) | `axon::stream::ocn` | Oracle OCI |
 
-Streams support both callback and polling consumption models.
+All stream connectors derive from `axon::stream::connector` and deliver records via `axon::resultset` in a callback:
+
+```cpp
+source.add("my-topic", "my-topic", [](std::unique_ptr<axon::resultset> rs) {
+    while (rs->next()) {
+        std::string val;
+        rs->get("FIELD", val);
+    }
+});
+source.subscribe();
+source.start();
+```
 
 ### Databases
-| Connector | Class |
-|---|---|
-| Oracle DB (OCI) | `axon::database::oracle` |
-| ScyllaDB / Cassandra | `axon::database::scylladb` |
-| SQLite | `axon::database::sqlite` |
+| Connector | Class | Backend |
+|---|---|---|
+| Oracle DB (OCI) | `axon::database::oracle` | Oracle OCI (RAII via `oci::connection`) |
+| ScyllaDB / Cassandra | `axon::database::scylla` | DataStax C++ driver |
+| SQLite | `axon::database::sqlite` | SQLite3 |
+
+All database connectors derive from `axon::database::connector` and return results via `axon::resultset`:
+
+```cpp
+axon::database::connector &db = ora;   // or scylla, sqlite
+
+db.query("SELECT ID, NAME FROM EMPLOYEES WHERE DEPT = :dept", std::string("TECH"));
+
+axon::resultset rs(db);
+while (rs.next()) {
+    long id;
+    std::string name;
+    rs.get(0, id);
+    rs.get("NAME", name);
+}
+rs.done();
+```
 
 ### Caching & Messaging
 | Connector | Class |
@@ -66,9 +96,9 @@ Streams support both callback and polling consumption models.
 - `axon::log` — thread-safe structured logger with `<<` chaining and file rotation
 - `axon::timer` — high-resolution timing, ISO8601 timestamps, epoch helpers
 - `axon::util::magic` — MIME type detection (libmagic singleton)
-- `axon::util::validator` — hostname and username regex validation
+- `axon::util::validator` — hostname, username, and TNS name regex validation
 - `axon::util::uuid()` — thread-safe UUID v4 generation
-- `axon::aes` — AES-128 ECB/CBC via OpenSSL EVP (thread-safe)
+- `axon::aes` — AES-128 ECB/CBC via OpenSSL EVP
 - `axon::dmi` — DMI/SMBIOS hardware identity reader
 - `axon::mml` — MML (Man-Machine Language) session handler
 
@@ -85,8 +115,6 @@ Streams support both callback and polling consumption models.
 
 ### Dependencies
 
-All dependencies are available via the system package manager on RHEL/CentOS 8–9 or from the Confluent RPM repository.
-
 | Library | Purpose |
 |---|---|
 | OpenSSL (`libssl`, `libcrypto`) | AES encryption, TLS |
@@ -95,14 +123,14 @@ All dependencies are available via the system package manager on RHEL/CentOS 8�
 | libhdfs3 | HDFS |
 | librdkafka | Kafka consumer |
 | libserdes | Kafka Avro deserialisation |
-| AWS C++ SDK (`s3`, `kinesis`, `sqs`, `dynamodb`) | AWS connectors |
-| Boost (`regex`, `iostreams`, `filesystem`, `thread`) | Regex, compression |
+| AWS C++ SDK (`kinesis`, `s3`, `core`) | AWS connectors |
+| Boost (`regex`, `json`, `iostreams`, `filesystem`) | Regex, JSON, compression |
 | libconfig++ | Configuration parsing |
 | jansson | JSON |
 | hiredis | Redis |
 | librabbitmq | RabbitMQ |
-| Oracle OCI | Oracle DB |
-| libcassandra | ScyllaDB / Cassandra |
+| Oracle OCI (`libclntsh`) | Oracle DB and OCN |
+| DataStax C++ driver (`libcassandra`) | ScyllaDB / Cassandra |
 | SQLite3 | SQLite |
 | libmagic | MIME type detection |
 | OpenLDAP | LDAP |
@@ -129,7 +157,7 @@ make -j$(nproc)
 
 ### Build as a submodule
 
-When included as a CMake submodule in another project, axon automatically builds as a **static library** instead of a shared one:
+When included as a CMake submodule, axon builds as a **static library** automatically:
 
 ```cmake
 add_subdirectory(axon)
@@ -148,9 +176,9 @@ Installs the shared library to `${CMAKE_INSTALL_LIBDIR}`, headers to `${CMAKE_IN
 
 Pass `-DDEBUG=N` to enable progressively more verbose output:
 
-| Level | Macro enabled |
+| Level | Effect |
 |---|---|
-| `DEBUG=0` (default) | none |
+| `DEBUG=0` (default) | no debug output |
 | `DEBUG=1` | `DBGPRN` — debug prints |
 | `DEBUG=2` | `WRNPRN` — warnings |
 | `DEBUG=3` | `INFPRN` + `BENCHMARK` — function timing |
@@ -164,19 +192,15 @@ cmake -DDEBUG=3 ..
 
 ## Usage
 
-All credentials and hostnames are passed via environment variables in the examples below, which is the recommended pattern for production use.
-
-### File transfer
+### File transfer — SFTP to S3
 
 ```cpp
 #include <axon.h>
-#include <axon/connection.h>
 #include <axon/ssh.h>
 #include <axon/s3.h>
 
-// SFTP → S3 streaming transfer
 axon::transfer::sftp src("sftp.example.com", "user", "pass", 22);
-axon::transfer::s3   dst("s3.ap-southeast-1.amazonaws.com", "ACCESS_KEY", "SECRET_KEY");
+axon::transfer::s3   dst("s3.ap-southeast-1.amazonaws.com", "ACCESS_KEY", "SECRET");
 
 src.connect();
 dst.connect();
@@ -187,26 +211,123 @@ dst.open("report.csv",       std::ios::out);
 src >> dst;
 src.close();
 dst.close();
-
-src.disconnect();
-dst.disconnect();
 ```
 
-### Listing files with a filter
+### File listing with filter
 
 ```cpp
 axon::transfer::sftp conn("sftp.example.com", "user", "pass");
 conn.connect();
 conn.chwd("/data/incoming");
-conn.filter(".*\\.csv");   // regex filter
+conn.filter(".*\\.csv");   // regex
 
 std::vector<axon::entry> files;
 conn.list(files);
-
 for (auto &f : files)
-	std::cout << f.name << "  " << f.size << " bytes\n";
+    std::cout << f.name << "  " << f.size << " bytes\n";
+```
 
-conn.disconnect();
+### Oracle database with resultset
+
+```cpp
+#include <axon/oracle.h>
+
+axon::database::oracle ora;
+ora.connect("DB_SID", "username", "password");
+axon::database::connector &db = ora;
+
+db.query("SELECT EID, NAME FROM TBL_EMPLOYEE WHERE UNIT = :unit",
+         std::string("TECHNOLOGY"));
+
+axon::resultset rs(db);
+while (rs.next()) {
+    long eid; std::string name;
+    rs.get(0, eid);
+    rs.get("NAME", name);
+    std::cout << eid << " " << name << "\n";
+}
+rs.done();
+```
+
+### Oracle — named parameter binding via operator<<
+
+```cpp
+long dept_id = 10;
+std::string status = "ACTIVE";
+
+db << dept_id << status;
+db.query("SELECT * FROM EMPLOYEES WHERE DEPT_ID = :d AND STATUS = :s");
+
+axon::resultset rs(db);
+while (rs.next()) { /* ... */ }
+rs.done();
+```
+
+### Oracle — connect via hostname:port/service (no tnsnames.ora)
+
+```cpp
+#include <axon/oci.h>
+#include <axon/oracle.h>
+
+auto conn = std::make_shared<axon::database::oci::connection>();
+conn->connect("myhost", "username", "password", 1521, "myservice");
+
+axon::database::oracle ora(conn);
+```
+
+### ScyllaDB / Cassandra
+
+```cpp
+#include <axon/scylla.h>
+
+axon::database::scylla db;
+db[AXON_DATABASE_HOSTNAME] = "cass-node1";
+db[AXON_DATABASE_USERNAME] = "cassandra";
+db[AXON_DATABASE_PASSWORD] = "cassandra";
+db[AXON_DATABASE_KEYSPACE] = "my_keyspace";
+db.connect();
+
+db.execute("INSERT INTO orders (id, status) VALUES (?, ?)",
+           (int64_t) 1001, std::string("NEW"));
+
+db.query("SELECT id, status, amount FROM orders WHERE id = ?", (int64_t) 1001);
+axon::resultset rs(db);
+while (rs.next()) {
+    int64_t id; std::string status; double amount;
+    rs.get("id",     id);
+    rs.get("status", status);
+    rs.get("amount", amount);
+}
+rs.done();
+db.close();
+```
+
+### SQLite
+
+```cpp
+#include <axon/sqlite.h>
+
+axon::database::sqlite db;
+db[AXON_DATABASE_FILEPATH] = "/tmp/myapp.db";
+db.connect();
+
+db.execute("CREATE TABLE IF NOT EXISTS logs "
+           "(id INTEGER PRIMARY KEY, msg TEXT, ts INTEGER)");
+
+db.execute("INSERT INTO logs (msg, ts) VALUES (?, ?)",
+           std::string("started"), (int64_t) time(nullptr));
+
+db.query("SELECT id, msg, ts FROM logs ORDER BY id DESC");
+axon::resultset rs(db);
+while (rs.next()) {
+    long id, ts; std::string msg;
+    rs.get(0, id);
+    rs.get(1, msg);
+    rs.get(2, ts);
+    std::cout << id << ": " << msg << "\n";
+}
+rs.done();
+db.close();
 ```
 
 ### Kafka consumer (Avro / Schema Registry)
@@ -214,63 +335,132 @@ conn.disconnect();
 ```cpp
 #include <axon/kafka.h>
 
-axon::stream::kafka source("broker:9092", "https://schema-registry:8081", "my-consumer-group");
-source.add("my-topic");
-source.subscribe();
+axon::stream::kafka source("broker:9092",
+                           "http://schema-registry:8081",
+                           "my-consumer-group");
 
-// Callback mode
-source.start([](std::unique_ptr<axon::stream::recordset> rec) {
-	std::string value;
-	rec->get("FIELD_NAME", value);
-	std::cout << value << "\n";
-});
-
-// Polling mode
-// while (running) {
-//     auto rec = source.next();
-//     if (rec && !rec->is_empty()) { ... }
-// }
-
-source.stop();
-```
-
-### Kinesis consumer
-
-```cpp
-#include <axon/kinesis.h>
-
-axon::stream::kinesis source("kinesis.ap-southeast-1.amazonaws.com", "ACCESS_KEY", "SECRET_KEY");
-source.name() = "my-consumer";
-source.add("my-stream", "my-stream", [](std::unique_ptr<axon::recordset> rec) {
-	if (rec) std::cout << *rec << "\n";
-});
+source.add("my-topic", "my-topic",
+    [](std::unique_ptr<axon::resultset> rs) {
+        while (rs->next()) {
+            std::string order_id, status;
+            rs->get("ORDERID",      order_id);
+            rs->get("TRANS_STATUS", status);
+            std::cout << order_id << " => " << status << "\n";
+        }
+    });
 
 source.subscribe();
 source.start();
 
-// block until signal, then:
+// Block until signal, then:
 source.stop();
 ```
 
-### Oracle database
+### Kafka — delete consumer group
 
 ```cpp
-#include <axon/oracle.h>
+// Single group
+axon::stream::kafka::del("broker:9092", "stale-consumer-group");
 
-axon::database::oracle ora;
-ora.connect("DB_SID", "username", "password");
-axon::database::interface &db = ora;
+// Multiple groups at once
+axon::stream::kafka::del("broker:9092",
+    std::vector<std::string>{"group-a", "group-b"});
+```
 
-db.query("SELECT EID, NAME FROM TBL_EMPLOYEE WHERE UNIT = :unit", std::string("TECHNOLOGY"));
+### AWS Kinesis consumer
 
-while (db.next()) {
-	int eid;
-	std::string name;
-	db.get(0, eid);
-	db.get(1, name);
-	std::cout << eid << " " << name << "\n";
-}
-db.done();
+```cpp
+#include <axon/kinesis.h>
+
+axon::stream::kinesis source("ap-southeast-1", "ACCESS_KEY", "SECRET_KEY");
+
+source.add("my-stream", "my-stream",
+    [](std::unique_ptr<axon::resultset> rs) {
+        while (rs->next()) {
+            std::vector<uint8_t> data;
+            std::string seq, pkey;
+            int64_t ts = 0;
+            rs->get("data",            data);
+            rs->get("sequence_number", seq);
+            rs->get("partition_key",   pkey);
+            rs->get("timestamp",       ts);
+            std::cout << seq << " | "
+                      << std::string(data.begin(), data.end()) << "\n";
+        }
+    });
+
+source.subscribe();
+source.start();
+source.stop();
+```
+
+### Oracle OCN — Change Notification
+
+```cpp
+#include <axon/ocn.h>
+#include <axon/oci.h>
+
+// Option A — credential constructor (OS-assigned callback port)
+axon::stream::ocn source("MYDB", "user", "pass");
+source.connect();
+
+// Option B — pre-built connection with fixed callback port
+auto conn = std::make_shared<axon::database::oci::connection>(6667);
+conn->connect("MYDB", "user", "pass");
+axon::stream::ocn source(conn);
+// source.connect() is a no-op when a pre-connected handle is passed
+
+source.add("ORDERS",
+    "SELECT * FROM MY_SCHEMA.ORDERS",
+    [](std::unique_ptr<axon::resultset> rs) {
+        while (rs->next()) {
+            std::string order_id, status;
+            rs->get("ORDER_ID", order_id);
+            rs->get("STATUS",   status);
+            std::cout << "changed: " << order_id << " => " << status << "\n";
+        }
+    });
+
+source.subscribe();
+source.start();
+source.stop();
+```
+
+### resultset API
+
+`axon::resultset` is the unified lazy cursor for all database and stream connectors.
+
+```cpp
+axon::resultset rs(db);          // pull from database connector
+axon::resultset rs(db, 512);     // with explicit batch size
+
+rs.next();                        // advance — returns false at EOF
+rs.done();                        // release result set and free resources
+
+// Schema inspection
+rs.count();                       // number of columns
+rs.name(i);                       // column name (string_view)
+rs.type(i);                       // axon::column_type enum value
+rs.rows();                        // rows consumed so far
+
+// Get by position
+long id;             rs.get(0, id);
+std::string name;    rs.get(1, name);
+double score;        rs.get(2, score);
+std::vector<uint8_t> blob; rs.get(3, blob);
+
+// Get by name — throws if column not found
+rs.get("ORDER_ID", order_id);
+
+// Returns false (not throws) if field is NULL — output is unchanged
+bool has_value = rs.get("OPTIONAL_FIELD", val);
+
+// Stream extraction — columns in schema order
+rs >> id >> name >> score;
+
+// Serialisation
+std::string json = rs.to_json();
+std::cout << rs;                  // prints current row
 ```
 
 ### Redis with pipelining
@@ -281,9 +471,9 @@ db.done();
 axon::cache::redis redis("redis.example.com", 6379);
 
 redis.pipeline_begin();
-redis.pipeline_hincrby("entity:12345:1000:2025010815", "count", 1);
-redis.pipeline_hincrby("entity:12345:1000:2025010815", "sum",   9900);
-redis.pipeline_expire ("entity:12345:1000:2025010815", 262800);
+redis.pipeline_hincrby("stats:2026010815", "count",  1);
+redis.pipeline_hincrby("stats:2026010815", "amount", 9900);
+redis.pipeline_expire ("stats:2026010815", 86400);
 auto replies = redis.pipeline_run();
 ```
 
@@ -293,15 +483,12 @@ auto replies = redis.pipeline_run();
 #include <axon/kerberos.h>
 
 axon::authentication::kerberos krb("/etc/security/app.keytab",
-								   "/tmp/krb5cc_app",
-								   "EXAMPLE.COM",
-								   "serviceaccount");
+                                   "/tmp/krb5cc_app",
+                                   "EXAMPLE.COM",
+                                   "serviceaccount");
+if (!krb.isCacheValid())
+    krb.authenticate();
 
-if (!krb.isCacheValid()) {
-	krb.authenticate();
-}
-
-// Pass the refreshed cache to HDFS or SFTP connectors
 axon::transfer::hdfs hdfs("namenode.example.com", "serviceaccount", "", 8020);
 hdfs.set(AXON_TRANSFER_HDFS_AUTHTYPE,  "kerberos");
 hdfs.set(AXON_TRANSFER_HDFS_CACHEPATH, "/tmp/krb5cc_app");
@@ -315,9 +502,8 @@ hdfs.connect();
 
 axon::log logger;
 logger.fopen("/var/log/myapp.log");
-
-logger << axon::log::info << "started processing " << filename << axon::log::endl;
-logger << axon::log::error << "failed: " << e.what() << axon::log::endl;
+logger << axon::log::info  << "started: " << filename << axon::log::endl;
+logger << axon::log::error << "failed: "  << e.what() << axon::log::endl;
 ```
 
 ---
@@ -326,38 +512,49 @@ logger << axon::log::error << "failed: " << e.what() << axon::log::endl;
 
 ```
 axon::transfer::connection  (abstract base)
-	├── file        local filesystem
-	├── sftp        SSH2 (SFTP + SCP)
-	├── ftp         FTP
-	├── s3          AWS S3 / MinIO
-	├── samba       SMB2 / CIFS
-	├── hdfs        HDFS
-	└── nothing     null sink
+    ├── file        local filesystem
+    ├── sftp        SSH2 (SFTP + SCP)
+    ├── ftp         FTP
+    ├── s3          AWS S3 / MinIO
+    ├── samba       SMB2 / CIFS
+    ├── hdfs        HDFS
+    └── nothing     null sink
 
-axon::stream::interface  (abstract base)
-	├── kafka       Apache Kafka + Avro
-	├── kinesis     AWS Kinesis
-	└── cqn         Oracle Change Query Notification
+axon::stream::connector  (abstract base)
+    ├── kafka       Apache Kafka + Avro / Schema Registry
+    ├── kinesis     AWS Kinesis (standard polling)
+    └── ocn         Oracle OCN (Change Notification)
 
-axon::database::interface  (abstract base)
-	├── oracle      Oracle OCI
-	├── scylladb    ScyllaDB / Cassandra
-	└── sqlite      SQLite3
+axon::database::connector  (abstract base)
+    ├── oracle      Oracle OCI
+    ├── scylla      ScyllaDB / Cassandra
+    └── sqlite      SQLite3
+
+axon::resultset             unified lazy cursor (database + stream)
+
+axon::database::oci         Oracle OCI RAII wrappers
+    ├── environment     process-wide singleton (ref-counted)
+    ├── error           OCIError handle
+    ├── context         OCISvcCtx handle
+    ├── server          OCIServer handle
+    ├── session         OCISession handle
+    ├── connection      clubs context + server + session
+    └── statement       OCIStmt with bind support
 ```
 
-All transfer connectors support the `>>` and `<<` operators for zero-copy streaming between any two connector types:
+Transfer connectors support `>>` and `<<` for zero-copy streaming:
 
 ```cpp
-sftp_source >> s3_destination;
-s3_source   >> hdfs_destination;
-local_file  >> sftp_destination;
+sftp_source  >> s3_destination;
+s3_source    >> hdfs_destination;
+local_file   >> sftp_destination;
 ```
 
 ---
 
 ## Environment Variables
 
-All example programmes read credentials from environment variables to avoid hardcoding secrets:
+All example programs read credentials from environment variables:
 
 | Variable | Purpose |
 |---|---|
@@ -365,28 +562,30 @@ All example programmes read credentials from environment variables to avoid hard
 | `AXON_USERNAME` | Login username |
 | `AXON_PASSWORD` | Login password |
 | `AXON_DOMAIN` | Windows domain (Samba / NTLM) |
+| `AXON_SID` | Oracle TNS name or Easy Connect string |
+| `AXON_REGION` | AWS region (Kinesis, S3) |
+| `AXON_ACCESS_KEY` | AWS access key id |
+| `AXON_SECRET_KEY` | AWS secret access key |
 | `AXON_BOOTSTRAP` | Kafka bootstrap servers |
 | `AXON_SCHEMA_REGISTRY` | Confluent Schema Registry URL |
-| `AXON_KAFKA_CONSUMER_GROUP` | Kafka consumer group ID |
+| `AXON_CONSUMER_GROUP` | Kafka consumer group id |
+| `AXON_KEYSPACE` | ScyllaDB keyspace |
 | `AXON_KRB5_KEYTAB` | Path to Kerberos keytab file |
 | `AXON_KRB5_CACHEPATH` | Path to Kerberos credential cache |
-| `AXON_ORA_SID` | Oracle SID or TNS name |
-| `AXON_SCYLLA_KEYSPACE` | ScyllaDB keyspace |
 | `http_proxy` | HTTP proxy for S3 / AWS SDK |
 
 ---
 
 ## Error Handling
 
-All errors are reported via `axon::exception`, which extends `std::exception` and carries the source file, line number, function name, and a human-readable message:
+All errors are reported via `axon::exception`, which carries the source file, line number, function name, and a human-readable message:
 
 ```cpp
 try {
-	conn.connect();
-	conn.get("report.csv", "/tmp/report.csv");
+    conn.connect();
+    conn.get("report.csv", "/tmp/report.csv");
 } catch (axon::exception &e) {
-	std::cerr << e.what() << "\n";   // file:line => function(): message
-	std::cerr << e.msg()  << "\n";   // message only
+    std::cerr << e.what() << "\n";   // file:line => function(): message
 }
 ```
 

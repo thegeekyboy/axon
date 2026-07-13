@@ -8,11 +8,11 @@
 
 #include <sqlite3.h>
 
-#include <axon/database2r.h>
+#include <axon/database.h>
 
 namespace axon
 {
-	namespace database2r
+	namespace database
 	{
 		class sqlite: public connector {
 
@@ -64,7 +64,7 @@ namespace axon
 			bool execute(const std::string) override;
 			bool query(const std::string) override;
 
-			void fetch(axon::recordset2r &, int) override;
+			void fetch(axon::resultset &, int) override;
 			void done() override;
 
 			std::string& operator[] (char);

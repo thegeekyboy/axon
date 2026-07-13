@@ -18,7 +18,7 @@ extern "C" {
 
 namespace axon
 {
-	namespace stream2r
+	namespace stream
 	{
 		namespace rdk
 		{
@@ -75,7 +75,7 @@ namespace axon
 			}
 		}
 
-		void kafka::_avro_to_recordset(avro_value_t &val, const std::string &topic_name, axon::recordset2r &rs)
+		void kafka::_avro_to_recordset(avro_value_t &val, const std::string &topic_name, axon::resultset &rs)
 		{
 			size_t field_count = 0;
 			avro_value_get_size(&val, &field_count);
@@ -224,7 +224,7 @@ namespace axon
 			rs.end_row();
 		}
 
-		std::unique_ptr<axon::recordset2r> kafka::_deserialise(axon::stream2r::rdk::message &msg)
+		std::unique_ptr<axon::resultset> kafka::_deserialise(axon::stream::rdk::message &msg)
 		{
 			if (msg.empty()) return nullptr;
 
@@ -234,7 +234,7 @@ namespace axon
 			if (serdes_deserialize_avro(_serdes.get(), &avro_val, nullptr, msg.payload(), msg.size(), error, sizeof(error)))
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, error);
 
-			auto rs = std::make_unique<axon::recordset2r>(msg.name());
+			auto rs = std::make_unique<axon::resultset>(msg.name());
 
 			try
 			{
@@ -256,7 +256,7 @@ namespace axon
 			rd_kafka_resp_err_t ret_err = RD_KAFKA_RESP_ERR_NO_ERROR;
 
 #if DEBUG >= 2
-			axon::stream2r::kafka *kinst = static_cast<axon::stream2r::kafka*>(opaque);
+			axon::stream::kafka *kinst = static_cast<axon::stream::kafka*>(opaque);
 			INFPRN("rebalance: subscribed to %zu topic(s)", kinst->count());
 #endif
 
@@ -299,8 +299,8 @@ namespace axon
 			_runnable = false;
 		}
 
-		kafka::kafka(std::string bootstrap, std::string schema_reg, std::string consumer, axon::stream2r::rdk::config config)
-		:axon::stream2r::connector(bootstrap, consumer, ""), _bootstrap_hosts(std::move(bootstrap)), _schema_hosts(std::move(schema_reg)), _consumer(std::move(consumer))
+		kafka::kafka(std::string bootstrap, std::string schema_reg, std::string consumer, axon::stream::rdk::config config)
+		:axon::stream::connector(bootstrap, consumer, ""), _bootstrap_hosts(std::move(bootstrap)), _schema_hosts(std::move(schema_reg)), _consumer(std::move(consumer))
 		{
 			char hostname[128];
 			if (gethostname(hostname, sizeof(hostname)))
@@ -330,7 +330,7 @@ namespace axon
 			_serdes.set("schema.registry.url", _schema_hosts);
 			_serdes.init();
 
-			_rdk = std::make_shared<axon::stream2r::rdk::rdkafka>(config, RD_KAFKA_CONSUMER);
+			_rdk = std::make_shared<axon::stream::rdk::rdkafka>(config, RD_KAFKA_CONSUMER);
 			rd_kafka_poll_set_consumer(_rdk->get());
 
 			config.reset();
@@ -370,7 +370,7 @@ namespace axon
 			if (_topic.empty())
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "no topics added — call add() before subscribe()");
 
-			axon::stream2r::rdk::subscription sb((int) _topic.size());
+			axon::stream::rdk::subscription sb((int) _topic.size());
 
 			for (const auto &t : _topic)
 				sb.add(t.name);
@@ -412,13 +412,13 @@ namespace axon
 				{
 					try
 					{
-						axon::stream2r::rdk::message msg(*_rdk);
+						axon::stream::rdk::message msg(*_rdk);
 						auto rs = _deserialise(msg);
 
 						if (!rs) continue;
 
 						// Find matching topic callback or use global callback
-						axon::stream2r::cbfn cb = _callback;
+						axon::stream::cbfn cb = _callback;
 
 						if (!cb)
 						{
@@ -439,7 +439,7 @@ namespace axon
 						}
 
 						// Manual commit every MIN_COMMIT_COUNT messages
-						if (!_autocommit && _counter > 0 && (_counter % axon::stream2r::MIN_COMMIT_COUNT) == 0)
+						if (!_autocommit && _counter > 0 && (_counter % axon::stream::MIN_COMMIT_COUNT) == 0)
 						{
 							rd_kafka_resp_err_t err;
 							if ((err = rd_kafka_commit(_rdk->get(), nullptr, 0)) != RD_KAFKA_RESP_ERR_NO_ERROR)
@@ -459,7 +459,7 @@ namespace axon
 			return true;
 		}
 
-		bool kafka::start(axon::stream2r::cbfn cb)
+		bool kafka::start(axon::stream::cbfn cb)
 		{
 			_callback = std::move(cb);
 			return start();
@@ -477,20 +477,20 @@ namespace axon
 
 			char error[512];
 
-			axon::stream2r::rdk::config config;
+			axon::stream::rdk::config config;
 			config.set("bootstrap.servers", bootstrap);
 
-			axon::stream2r::rdk::rdkafka admin(config);   // PRODUCER — correct for admin API
+			axon::stream::rdk::rdkafka admin(config);   // PRODUCER — correct for admin API
 
 			std::vector<rd_kafka_DeleteGroup_t*> del_groups;
 			del_groups.reserve(groups.size());
 			for (const auto &g : groups)
 				del_groups.push_back(rd_kafka_DeleteGroup_new(g.c_str()));
 
-			axon::stream2r::rdk::options opts(admin, RD_KAFKA_ADMIN_OP_DELETEGROUPS);
+			axon::stream::rdk::options opts(admin, RD_KAFKA_ADMIN_OP_DELETEGROUPS);
 			rd_kafka_AdminOptions_set_operation_timeout(opts, timeout, error, sizeof(error));
 
-			axon::stream2r::rdk::queue queue(admin);
+			axon::stream::rdk::queue queue(admin);
 
 			rd_kafka_DeleteGroups(admin.get(), del_groups.data(), (int) del_groups.size(), opts, queue);
 
@@ -498,7 +498,7 @@ namespace axon
 				rd_kafka_DeleteGroup_destroy(dg);
 
 			// Poll for result
-			axon::stream2r::rdk::event event;
+			axon::stream::rdk::event event;
 			for (int elapsed = 0; elapsed < timeout && !event.valid(); elapsed += 100)
 				event = rd_kafka_queue_poll(queue, 100);
 

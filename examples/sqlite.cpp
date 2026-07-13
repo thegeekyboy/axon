@@ -1,6 +1,6 @@
 /*
- * sqlite2r.cpp — comprehensive example and test for axon::database2r::sqlite
- *                and axon::recordset2r
+ * sqlite.cpp — comprehensive example and test for axon::database::sqlite
+ *                and axon::resultset
  *
  * Tests covered:
  *   1.  Database lifecycle  (connect, ping, version, close)
@@ -9,22 +9,22 @@
  *   4.  DML — template      (INSERT via variadic query<T...> binding)
  *   5.  Transactions        (BEGIN / END)
  *   6.  SELECT — all types  (INTEGER, REAL, TEXT, BLOB, NULL)
- *   7.  recordset2r cursor  (next(), get<T> by position, get<T> by name)
- *   8.  recordset2r >> op   (stream extraction operator)
- *   9.  recordset2r metadata (count(), name(n), type(n), rows(), source())
- *   10. recordset2r to_json  (serialise current row)
- *   11. recordset2r print    (operator<< on ostream)
+ *   7.  resultset cursor  (next(), get<T> by position, get<T> by name)
+ *   8.  resultset >> op   (stream extraction operator)
+ *   9.  resultset metadata (count(), name(n), type(n), rows(), source())
+ *   10. resultset to_json  (serialise current row)
+ *   11. resultset print    (operator<< on ostream)
  *   12. NULL handling        (get() returns false, field not modified)
  *   13. Bind via operator<<  (db << value style)
- *   14. Paginated fetch      (recordset2r constructed with small batch_size)
+ *   14. Paginated fetch      (resultset constructed with small batch_size)
  *   15. done() idempotency   (safe to call after natural exhaustion)
  *   16. UPDATE / DELETE      (DML with bind variables)
  *
  * Build (from the axon build directory):
- *   g++ -std=c++17 -I ../include -L . -laxon -lsqlite3 -o sqlite2r ../examples/sqlite2r.cpp
+ *   g++ -std=c++17 -I ../include -L . -laxon -lsqlite3 -o sqlite ../examples/sqlite.cpp
  *
  * Run:
- *   ./sqlite2r /tmp/test_axon.db
+ *   ./sqlite /tmp/test_axon.db
  */
 
 #include <iostream>
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
 	std::string dbpath = (argc > 1) ? argv[1] : "/tmp/test_axon2r.db";
 
-	std::cout << "\n=== axon::database2r::sqlite + recordset2r test suite ===\n";
+	std::cout << "\n=== axon::database::sqlite + resultset test suite ===\n";
 	std::cout << "database file: " << dbpath << "\n\n";
 
 	try {
@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
 		// ================================================================
 		std::cout << "[1] Database lifecycle\n";
 
-		axon::database2r::sqlite db;
-		db[AXON_DATABASE2R_FILEPATH] = dbpath;
+		axon::database::sqlite db;
+		db[AXON_DATABASE_FILEPATH] = dbpath;
 		db.connect();
 		check(true, "connect()");
 
@@ -130,10 +130,10 @@ int main(int argc, char *argv[])
 		// ================================================================
 		std::cout << "\n[5] Transactions\n";
 
-		db.transaction(axon::database2r::transaction::BEGIN);
+		db.transaction(axon::database::transaction::BEGIN);
 		db.execute("INSERT INTO TBL_TEST (NAME, SCORE, FLAGS) VALUES ('Eve', 55.0, 1)");
 		db.execute("INSERT INTO TBL_TEST (NAME, SCORE, FLAGS) VALUES ('Frank', 44.0, 0)");
-		db.transaction(axon::database2r::transaction::END);
+		db.transaction(axon::database::transaction::END);
 		check(true, "transaction BEGIN/END with two inserts");
 
 		// ================================================================
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 		std::cout << "\n[6+7] SELECT — cursor navigation and get<T>()\n";
 
 		db.query("SELECT ID, NAME, SCORE, FLAGS, PAYLOAD, NOTES FROM TBL_TEST ORDER BY ID");
-		axon::recordset2r rc(db);
+		axon::resultset rc(db);
 
 		int row = 0;
 		while (rc.next())
@@ -161,12 +161,12 @@ int main(int argc, char *argv[])
 		rc.done();
 
 		// ================================================================
-		// 8. recordset2r >> stream extraction operator
+		// 8. resultset >> stream extraction operator
 		// ================================================================
 		std::cout << "\n[8] operator>>\n";
 
 		db.query("SELECT ID, NAME, SCORE FROM TBL_TEST WHERE NAME = :name", std::string("Alice"));
-		axon::recordset2r rc2(db);
+		axon::resultset rc2(db);
 
 		check(rc2.next(), "next() returns true for Alice");
 		int64_t aid; std::string aname; double ascore;
@@ -176,12 +176,12 @@ int main(int argc, char *argv[])
 		rc2.done();
 
 		// ================================================================
-		// 9. recordset2r metadata
+		// 9. resultset metadata
 		// ================================================================
-		std::cout << "\n[9] recordset2r metadata\n";
+		std::cout << "\n[9] resultset metadata\n";
 
 		db.query("SELECT ID, NAME, SCORE, FLAGS, PAYLOAD, NOTES FROM TBL_TEST LIMIT 1");
-		axon::recordset2r rc3(db);
+		axon::resultset rc3(db);
 		rc3.next();
 
 		check(rc3.count() == 6,                            "count() == 6");
@@ -194,12 +194,12 @@ int main(int argc, char *argv[])
 		rc3.done();
 
 		// ================================================================
-		// 10. recordset2r get() by column name
+		// 10. resultset get() by column name
 		// ================================================================
 		std::cout << "\n[10] get<T> by column name\n";
 
 		db.query("SELECT ID, NAME, SCORE FROM TBL_TEST WHERE NAME = :name", std::string("Carol"));
-		axon::recordset2r rc4(db);
+		axon::resultset rc4(db);
 		rc4.next();
 
 		std::string cname; double cscore;
@@ -210,12 +210,12 @@ int main(int argc, char *argv[])
 		rc4.done();
 
 		// ================================================================
-		// 11. recordset2r to_json() and operator<<
+		// 11. resultset to_json() and operator<<
 		// ================================================================
 		std::cout << "\n[11] to_json() and operator<<\n";
 
 		db.query("SELECT ID, NAME, SCORE FROM TBL_TEST WHERE NAME = :name", std::string("Bob"));
-		axon::recordset2r rc5(db);
+		axon::resultset rc5(db);
 		rc5.next();
 
 		std::string json = rc5.to_json();
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
 
 		// PAYLOAD and NOTES were never set — they should be NULL.
 		db.query("SELECT PAYLOAD, NOTES FROM TBL_TEST WHERE NAME = :name", std::string("Alice"));
-		axon::recordset2r rc6(db);
+		axon::resultset rc6(db);
 		rc6.next();
 
 		std::vector<uint8_t> payload_out = {0xFF};   // sentinel — should stay unchanged
@@ -256,14 +256,14 @@ int main(int argc, char *argv[])
 
 		const uint8_t blob_data[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE };
 		std::vector<uint8_t> blob_vec(blob_data, blob_data + sizeof(blob_data));
-		axon::database2r::bind blob_bind = blob_vec;
+		axon::database::bind blob_bind = blob_vec;
 
 		db << blob_bind;
 		db.execute("UPDATE TBL_TEST SET PAYLOAD = :blob WHERE NAME = 'Alice'");
 		check(true, "UPDATE with BLOB bind");
 
 		db.query("SELECT PAYLOAD FROM TBL_TEST WHERE NAME = :name", std::string("Alice"));
-		axon::recordset2r rc7(db);
+		axon::resultset rc7(db);
 		rc7.next();
 
 		std::vector<uint8_t> blob_out;
@@ -275,12 +275,12 @@ int main(int argc, char *argv[])
 
 		// ================================================================
 		// 14. Paginated fetch — small batch_size forces multiple fetch()
-		//     calls from recordset2r::next() internall
+		//     calls from resultset::next() internall
 		// ================================================================
 		std::cout << "\n[14] Paginated fetch (batch_size=2)\n";
 
 		db.query("SELECT ID, NAME FROM TBL_TEST ORDER BY ID");
-		axon::recordset2r rc8(db, 2);   // batch 2 rows at a time
+		axon::resultset rc8(db, 2);   // batch 2 rows at a time
 
 		int page_rows = 0;
 		while (rc8.next())
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 		std::cout << "\n[15] done() after natural exhaustion\n";
 
 		db.query("SELECT ID FROM TBL_TEST LIMIT 2");
-		axon::recordset2r rc9(db);
+		axon::resultset rc9(db);
 		while (rc9.next()) { }      // drain all rows
 		rc9.done();                 // should not throw
 		check(true, "done() after natural exhaustion does not throw");
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 		check(true, "UPDATE via variadic execute");
 
 		db.query("SELECT SCORE, NOTES FROM TBL_TEST WHERE NAME = :name", std::string("Alice"));
-		axon::recordset2r rc10(db);
+		axon::resultset rc10(db);
 		rc10.next();
 		double new_score; std::string new_notes;
 		rc10.get("SCORE", new_score);
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 		check(true, "DELETE via variadic execute");
 
 		db.query("SELECT COUNT(*) FROM TBL_TEST");
-		axon::recordset2r rc11(db);
+		axon::resultset rc11(db);
 		rc11.next();
 		int64_t remaining;
 		rc11.get(0, remaining);

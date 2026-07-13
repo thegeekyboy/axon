@@ -4,7 +4,7 @@
 
 namespace axon
 {
-	namespace database2r
+	namespace database
 	{
 		sqlite::statement::~statement()
 		{
@@ -194,7 +194,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "%s to file not writable", _path.c_str());
 
 			if (sqlite3_open(_path.c_str(), &ptr) != SQLITE_OK)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database2r (" + _path + ")");
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Cannot open database (" + _path + ")");
 
 			_dbp.reset(ptr, [](sqlite3* db) { sqlite3_close(db); });
 
@@ -313,7 +313,7 @@ namespace axon
 			return true;
 		}
 
-		void sqlite::fetch(axon::recordset2r &rs, int howmany)
+		void sqlite::fetch(axon::resultset &rs, int howmany)
 		{
 			BENCHMARK;
 
@@ -429,11 +429,11 @@ namespace axon
 		{
 			_throwawaystr.erase();
 
-			if (i == AXON_DATABASE2R_FILEPATH)
+			if (i == AXON_DATABASE_FILEPATH)
 				return _path;
-			else if (i == AXON_DATABASE2R_USERNAME)
+			else if (i == AXON_DATABASE_USERNAME)
 				return _username;
-			else if (i == AXON_DATABASE2R_PASSWORD)
+			else if (i == AXON_DATABASE_PASSWORD)
 				return _password;
 
 			return _throwawaystr;

@@ -7,74 +7,74 @@
 #include <axon/util.h>
 #include <axon/stream.h>
 
-#include <axon/database2r.h>
-#include <axon/recordset2r.h>
+#include <axon/database.h>
+#include <axon/resultset.h>
 
 namespace axon {
 
-	recordset2r::recordset2r(std::string name)
+	resultset::resultset(std::string name)
 	: _id(axon::util::uuid()), _name(std::move(name))
 	{
 	}
 
-	recordset2r::recordset2r(axon::database2r::connector &db, int batch_size)
+	resultset::resultset(axon::database::connector &db, int batch_size)
 	: _id(axon::util::uuid()), _database(&db), _batch_size(batch_size)
 	{
 	}
 
-	recordset2r::recordset2r(axon::stream::interface &strm, int batch_size)
+	resultset::resultset(axon::stream::connector &strm, int batch_size)
 	: _id(axon::util::uuid()), _stream(&strm), _batch_size(batch_size)
 	{
 	}
 
-	void recordset2r::add_column(std::string name, column_type type, bool nullable)
+	void resultset::add_column(std::string name, column_type type, bool nullable)
 	{
 		_schema.push_back({ std::move(name), type, nullable });
 	}
 
-	void recordset2r::begin_row()
+	void resultset::begin_row()
 	{
 		_staging.clear();
 		_staging.reserve(_schema.size());
 	}
 
-	void recordset2r::push_null()
+	void resultset::push_null()
 	{
 		_staging.push_back({ std::monostate{}, column_type::null_t });
 	}
 
-	void recordset2r::push_bool(bool v)
+	void resultset::push_bool(bool v)
 	{
 		_staging.push_back({ v, column_type::bool_t });
 	}
 
-	void recordset2r::push_int(int64_t v)
+	void resultset::push_int(int64_t v)
 	{
 		_staging.push_back({ v, column_type::int64_t });
 	}
 
-	void recordset2r::push_double(double v)
+	void resultset::push_double(double v)
 	{
 		_staging.push_back({ v, column_type::double_t });
 	}
 
-	void recordset2r::push_string(std::string v)
+	void resultset::push_string(std::string v)
 	{
 		_staging.push_back({ std::move(v), column_type::string_t });
 	}
 
-	void recordset2r::push_bytes(std::vector<uint8_t> v)
+	void resultset::push_bytes(std::vector<uint8_t> v)
 	{
 		_staging.push_back({ std::move(v), column_type::bytes_t });
 	}
 
-	void recordset2r::push_bytes(const void *buf, size_t len)
+	void resultset::push_bytes(const void *buf, size_t len)
 	{
 		const uint8_t *p = static_cast<const uint8_t*>(buf);
 		push_bytes(std::vector<uint8_t>(p, p + len));
 	}
 
-	void recordset2r::end_row()
+	void resultset::end_row()
 	{
 		while (_staging.size() < _schema.size())
 			push_null();
@@ -83,7 +83,7 @@ namespace axon {
 		_staging.clear();
 	}
 
-	void recordset2r::from_json(std::string_view json)
+	void resultset::from_json(std::string_view json)
 	{
 		boost::json::value jv = boost::json::parse(std::string(json));
 
@@ -125,7 +125,7 @@ namespace axon {
 		end_row();
 	}
 
-	bool recordset2r::next()
+	bool resultset::next()
 	{
 		BENCHMARK;
 
@@ -169,13 +169,13 @@ namespace axon {
 		return true;
 	}
 
-	recordset2r& recordset2r::operator++()
+	resultset& resultset::operator++()
 	{
 		next();
 		return *this;
 	}
 
-	void recordset2r::done()
+	void resultset::done()
 	{
 		if (_database) _database->done();
 		// if (_stream) _stream->done();
@@ -192,33 +192,33 @@ namespace axon {
 		_col_cursor = 0;
 	}
 
-	column_type recordset2r::type(size_t n) const
+	column_type resultset::type(size_t n) const
 	{
 		if (n >= _schema.size())
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "column index out of bounds");
 		return _schema[n].type;
 	}
 
-	std::string_view recordset2r::name(size_t n) const
+	std::string_view resultset::name(size_t n) const
 	{
 		if (n >= _schema.size())
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "column index out of bounds");
 		return _schema[n].name;
 	}
 
-	size_t recordset2r::index(std::string_view col) const
+	size_t resultset::index(std::string_view col) const
 	{
 		for (size_t i = 0; i < _schema.size(); i++)
 			if (_schema[i].name == col) return i;
 		throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "column not found: " + std::string(col));
 	}
 
-	size_t recordset2r::get(std::string_view col, void *buf, size_t len) const
+	size_t resultset::get(std::string_view col, void *buf, size_t len) const
 	{
 		return get(index(col), buf, len);
 	}
 
-	size_t recordset2r::get(size_t n, void *buf, size_t len) const
+	size_t resultset::get(size_t n, void *buf, size_t len) const
 	{
 		_assert_row();
 		const axon::field &f = _field_at(n);
@@ -231,7 +231,7 @@ namespace axon {
 		return copy;
 	}
 
-	std::string recordset2r::to_json() const
+	std::string resultset::to_json() const
 	{
 		_assert_row();
 
@@ -261,9 +261,9 @@ namespace axon {
 		return boost::json::serialize(obj);
 	}
 
-	void recordset2r::print() const { print(std::cout); }
+	void resultset::print() const { print(std::cout); }
 
-	std::ostream& recordset2r::print(std::ostream &os) const
+	std::ostream& resultset::print(std::ostream &os) const
 	{
 		if (_bof || _current.empty())
 		{
@@ -298,15 +298,15 @@ namespace axon {
 		return os;
 	}
 
-	void recordset2r::_assert_row() const
+	void resultset::_assert_row() const
 	{
 		if (_bof)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "no current row — call next() first");
 	}
 
-	size_t recordset2r::_column_index(std::string_view col) const { return index(col); }
+	size_t resultset::_column_index(std::string_view col) const { return index(col); }
 
-	const axon::field& recordset2r::_field_at(size_t n) const
+	const axon::field& resultset::_field_at(size_t n) const
 	{
 		if (n >= _current.size())
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "column index out of bounds");
@@ -314,7 +314,7 @@ namespace axon {
 	}
 
 	template <typename T>
-	bool recordset2r::_extract(const axon::field &f, T &out) const
+	bool resultset::_extract(const axon::field &f, T &out) const
 	{
 		if constexpr (std::is_same_v<T, bool>)
 		{
@@ -354,12 +354,12 @@ namespace axon {
 		return true;
 	}
 
-	template bool recordset2r::_extract(const axon::field&, bool&) const;
-	template bool recordset2r::_extract(const axon::field&, int&) const;
-	template bool recordset2r::_extract(const axon::field&, long&) const;
-	template bool recordset2r::_extract(const axon::field&, long long&) const;
-	template bool recordset2r::_extract(const axon::field&, float&) const;
-	template bool recordset2r::_extract(const axon::field&, double&) const;
-	template bool recordset2r::_extract(const axon::field&, std::string&) const;
-	template bool recordset2r::_extract(const axon::field&, std::vector<uint8_t>&) const;
+	template bool resultset::_extract(const axon::field&, bool&) const;
+	template bool resultset::_extract(const axon::field&, int&) const;
+	template bool resultset::_extract(const axon::field&, long&) const;
+	template bool resultset::_extract(const axon::field&, long long&) const;
+	template bool resultset::_extract(const axon::field&, float&) const;
+	template bool resultset::_extract(const axon::field&, double&) const;
+	template bool resultset::_extract(const axon::field&, std::string&) const;
+	template bool resultset::_extract(const axon::field&, std::vector<uint8_t>&) const;
 }

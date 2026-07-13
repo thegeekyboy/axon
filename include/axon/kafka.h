@@ -14,13 +14,13 @@ extern "C" {
 	#include <libserdes/serdes-avro.h>
 }
 
-#include <axon/stream2r.h>
+#include <axon/stream.h>
 
 #define AXON_KAFKA_POLL_TIMEOUT 100
 
 namespace axon
 {
-	namespace stream2r
+	namespace stream
 	{
 		namespace rdk
 		{
@@ -119,7 +119,7 @@ namespace axon
 
 				public:
 					queue() = delete;
-					queue(axon::stream2r::rdk::rdkafka &rdk): _queue(nullptr) {
+					queue(axon::stream::rdk::rdkafka &rdk): _queue(nullptr) {
 						if (!rdk.valid()) throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "rd_kafka_t is null");
 						if (!(_queue = rd_kafka_queue_new(rdk.get())))
 							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot create queue");
@@ -132,10 +132,10 @@ namespace axon
 			class message {
 
 				rd_kafka_message_t *_rdkm;
-				axon::stream2r::rdk::rdkafka &_rdk;
+				axon::stream::rdk::rdkafka &_rdk;
 
 				public:
-					message(axon::stream2r::rdk::rdkafka &rdk): _rdkm(nullptr), _rdk(rdk) {
+					message(axon::stream::rdk::rdkafka &rdk): _rdkm(nullptr), _rdk(rdk) {
 						if ((_rdkm = rd_kafka_consumer_poll(_rdk.get(), AXON_KAFKA_POLL_TIMEOUT)) && _rdkm->err)
 							throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, rd_kafka_message_errstr(_rdkm));
 					}
@@ -203,7 +203,7 @@ namespace axon
 			};
 		}
 
-		class kafka : public axon::stream2r::connector
+		class kafka : public axon::stream::connector
 		{
             bool _autocommit { true };
 			bool _was_started { false };
@@ -213,11 +213,11 @@ namespace axon
             std::string _consumer;
             std::vector<std::string> _topics;
 
-            std::shared_ptr<axon::stream2r::rdk::rdkafka> _rdk;
-            axon::stream2r::rdk::serdes _serdes;
+            std::shared_ptr<axon::stream::rdk::rdkafka> _rdk;
+            axon::stream::rdk::serdes _serdes;
 
-			std::unique_ptr<axon::recordset2r> _deserialise(axon::stream2r::rdk::message&);
-            void _avro_to_recordset(avro_value_t&, const std::string&, axon::recordset2r&);
+			std::unique_ptr<axon::resultset> _deserialise(axon::stream::rdk::message&);
+            void _avro_to_recordset(avro_value_t&, const std::string&, axon::resultset&);
 			static void _rebalance(rd_kafka_t *r, rd_kafka_resp_err_t, rd_kafka_topic_partition_list_t *, void *);
 
             void _stop() override;
@@ -226,19 +226,19 @@ namespace axon
             kafka() = delete;
             kafka(const kafka&) = delete;
 
-            kafka(std::string, std::string, std::string, axon::stream2r::rdk::config = axon::stream2r::rdk::config());
+            kafka(std::string, std::string, std::string, axon::stream::rdk::config = axon::stream::rdk::config());
             ~kafka();
 
             void subscribe() override;
             void unsubscribe() override;
 
             bool start() override;
-            bool start(axon::stream2r::cbfn) override;
+            bool start(axon::stream::cbfn) override;
 
 			static void del(const std::string&, const std::string&, int = 10000);
 			static void del(const std::string&, const std::vector<std::string>&, int = 10000);
 
-            void fetch(axon::recordset2r&, int) override
+            void fetch(axon::resultset&, int) override
             {
                 throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "kafka is callback-only — use start() with a callback");
             }

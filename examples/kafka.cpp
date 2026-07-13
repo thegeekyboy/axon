@@ -1,15 +1,15 @@
 /*
- * kafka2r.cpp — generic test suite for axon::stream2r::kafka
+ * kafka2r.cpp — generic test suite for axon::stream::kafka
  *
  * Does not assume any specific schema or topic structure.
- * Tests the axon kafka connector and recordset2r API using
+ * Tests the axon kafka connector and resultset API using
  * whatever topic and schema the user provides.
  *
  * Tests covered:
  *   1.  Lifecycle             (add, subscribe, start, stop)
  *   2.  Message delivery      (at least one message received)
- *   3.  recordset2r cursor    (next() returns true)
- *   4.  recordset2r metadata  (count() > 0, name(0) non-empty, source() correct)
+ *   3.  resultset cursor    (next() returns true)
+ *   4.  resultset metadata  (count() > 0, name(0) non-empty, source() correct)
  *   5.  Column types          (all columns have a valid column_type)
  *   6.  to_json()             (produces non-empty JSON object)
  *   7.  operator<<            (print does not throw)
@@ -89,7 +89,7 @@ static capture_result   g_cap;
 static std::atomic<int> g_received { 0 };
 static std::atomic<int> g_global   { 0 };
 
-static void capture(std::unique_ptr<axon::recordset2r> rs)
+static void capture(std::unique_ptr<axon::resultset> rs)
 {
     if (!rs) { g_received++; return; }
     if (!rs->next()) { g_received++; return; }
@@ -115,7 +115,7 @@ static void capture(std::unique_ptr<axon::recordset2r> rs)
     g_received++;
 }
 
-static void global_cb(std::unique_ptr<axon::recordset2r> rs)
+static void global_cb(std::unique_ptr<axon::resultset> rs)
 {
     if (rs) while (rs->next()) { }
     g_global++;
@@ -153,7 +153,7 @@ int main([[maybe_unused]] int argc,
     }
     if (consumer_group.empty()) consumer_group = "axon::kafka2r_test";
 
-    std::cout << "\n=== axon::stream2r::kafka generic test suite ===\n";
+    std::cout << "\n=== axon::stream::kafka generic test suite ===\n";
     std::cout << "bootstrap:  " << bootstrap       << "\n";
     std::cout << "schema_reg: " << schema_registry << "\n";
     std::cout << "group:      " << consumer_group  << "\n";
@@ -168,7 +168,7 @@ int main([[maybe_unused]] int argc,
         std::cout << "[1] Lifecycle\n";
         {
             g_received = 0;
-            axon::stream2r::kafka source(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka source(bootstrap, schema_registry, consumer_group);
 
             check(source.count() == 0, "count() == 0 before add()");
 
@@ -217,7 +217,7 @@ int main([[maybe_unused]] int argc,
         // ================================================================
         // 4. Metadata
         // ================================================================
-        std::cout << "\n[4] recordset2r metadata\n";
+        std::cout << "\n[4] resultset metadata\n";
         check(g_cap.col_count > 0,
               "count() > 0 — schema has " +
               std::to_string(g_cap.col_count) + " columns");
@@ -227,8 +227,8 @@ int main([[maybe_unused]] int argc,
         // Print full schema for visibility
         {
             g_received = 0;
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
-            src.add(topic, topic, [](std::unique_ptr<axon::recordset2r> rs) {
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
+            src.add(topic, topic, [](std::unique_ptr<axon::resultset> rs) {
                 if (!rs || !rs->next()) { g_received++; return; }
                 std::cout << "         schema (" << rs->count() << " columns):\n";
                 for (size_t i = 0; i < rs->count(); i++)
@@ -308,7 +308,7 @@ int main([[maybe_unused]] int argc,
         std::cout << "\n[8] Global callback via start(cbfn)\n";
         {
             g_global = 0;
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
             src.add(topic, topic, capture);   // per-topic — will be overridden
             src.subscribe();
             src.start(global_cb);             // global takes priority
@@ -324,9 +324,9 @@ int main([[maybe_unused]] int argc,
         // ================================================================
         std::cout << "\n[9] counter()\n";
         {
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
             src.add(topic, topic,
-                [](std::unique_ptr<axon::recordset2r> rs) {
+                [](std::unique_ptr<axon::resultset> rs) {
                     if (rs) while (rs->next()) { }
                 });
             src.subscribe();
@@ -349,7 +349,7 @@ int main([[maybe_unused]] int argc,
         std::cout << "\n[10] stop() / start() cycle\n";
         {
             g_received = 0;
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
             src.add(topic, topic, capture);
             src.subscribe();
             src.start();
@@ -374,7 +374,7 @@ int main([[maybe_unused]] int argc,
         // ================================================================
         std::cout << "\n[11] autocommit flag\n";
         {
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
             check(src.autocommit() == true,  "default autocommit() == true");
             src.autocommit(false);
             check(src.autocommit() == false, "autocommit(false) set");
@@ -393,9 +393,9 @@ int main([[maybe_unused]] int argc,
             axon::column_type first_type = g_cap.types[0];
             bool get_ok = false;
 
-            axon::stream2r::kafka src(bootstrap, schema_registry, consumer_group);
+            axon::stream::kafka src(bootstrap, schema_registry, consumer_group);
             src.add(topic, topic,
-                [&](std::unique_ptr<axon::recordset2r> rs) {
+                [&](std::unique_ptr<axon::resultset> rs) {
                     if (!rs || !rs->next()) { g_received++; return; }
                     try {
                         switch (first_type)
@@ -438,7 +438,7 @@ int main([[maybe_unused]] int argc,
         if (run_del)
         {
             try {
-                axon::stream2r::kafka::del(bootstrap, consumer_group);
+                axon::stream::kafka::del(bootstrap, consumer_group);
                 check(true, "del(\"" + consumer_group + "\") completed");
             } catch (axon::exception &e) {
                 std::cout << "  NOTE  del() threw (group may be active or absent): "

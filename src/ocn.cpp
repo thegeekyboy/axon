@@ -4,16 +4,16 @@
 
 namespace axon {
 
-	namespace stream2r {
+	namespace stream {
 
-		ocn::ocn(std::string hostname, std::string username, std::string password): axon::stream2r::connector(hostname, username, password), _connection(std::make_shared<axon::database2r::oci::connection>())
+		ocn::ocn(std::string hostname, std::string username, std::string password): axon::stream::connector(hostname, username, password), _connection(std::make_shared<axon::database::oci::connection>())
 		{
 			_port = -1;
 			DBGPRN("[%s] constructed", _id.c_str());
 		}
 
-		ocn::ocn(std::shared_ptr<axon::database2r::oci::connection> connection)
-		: axon::stream2r::connector("localhost", "localuser", "localpassword"), _connection(connection)
+		ocn::ocn(std::shared_ptr<axon::database::oci::connection> connection)
+		: axon::stream::connector("localhost", "localuser", "localpassword"), _connection(connection)
 		// ↑ dummy credentials — this ctor accepts a pre-built connection.
   		// _hostname/_username/_password are unused; real credentials are in _connection.
 		{
@@ -53,11 +53,11 @@ namespace axon {
 			_queue_cv.notify_all();
 		}
 
-		void ocn::_attach(ocn_sub &sub, const axon::stream2r::topic &t)
+		void ocn::_attach(ocn_sub &sub, const axon::stream::topic &t)
 		{
-			axon::database2r::oci::error err;
+			axon::database::oci::error err;
 
-			if (OCIHandleAlloc(axon::database2r::oci::environment::get(), (dvoid**) &sub.handle, OCI_HTYPE_SUBSCRIPTION, 0, nullptr) != OCI_SUCCESS)
+			if (OCIHandleAlloc(axon::database::oci::environment::get(), (dvoid**) &sub.handle, OCI_HTYPE_SUBSCRIPTION, 0, nullptr) != OCI_SUCCESS)
 				throw axon::exception(__FILE__, __LINE__, __PRETTY_FUNCTION__, "cannot allocate OCISubscription handle");
 
 			// 1. Namespace = DBCHANGE (mandatory for OCN/CQN)
@@ -124,7 +124,7 @@ namespace axon {
 		{
 			if (!sub.attached || !sub.handle) return;
 
-			axon::database2r::oci::error err;
+			axon::database::oci::error err;
 
 			OCISubscriptionUnRegister(_connection->ctx(), sub.handle, err.get(), OCI_DEFAULT);
 			OCIHandleFree(sub.handle, OCI_HTYPE_SUBSCRIPTION);
@@ -185,7 +185,7 @@ namespace axon {
 			return true;
 		}
 
-		bool ocn::start(axon::stream2r::cbfn cb)
+		bool ocn::start(axon::stream::cbfn cb)
 		{
 			// Set global callback — overrides per-topic callbacks
 			_callback = std::move(cb);
@@ -194,14 +194,14 @@ namespace axon {
 
 		ub4 ocn::_notify(dvoid *ctx, [[maybe_unused]] OCISubscription *subscrhp, [[maybe_unused]] dvoid *payload, [[maybe_unused]] ub4 *size, dvoid *descriptor, [[maybe_unused]] ub4 mode)
 		{
-			axon::stream2r::ocn *self = static_cast<axon::stream2r::ocn*>(ctx);
+			axon::stream::ocn *self = static_cast<axon::stream::ocn*>(ctx);
 
 			if (!self || !self->_runnable) return OCI_CONTINUE;
 
 			try
 			{
 				// Use a local error handle — never share with the daemon thread
-				axon::database2r::oci::error err;
+				axon::database::oci::error err;
 
 				ub4 event_type = 0;
 				if ((err = OCIAttrGet(descriptor, OCI_DTYPE_CHDES, &event_type, nullptr, OCI_ATTR_CHDES_NFYTYPE, err)).failed())
@@ -218,7 +218,7 @@ namespace axon {
 					return OCI_CONTINUE;
 
 				sb4 table_count = 0;
-				OCICollSize(axon::database2r::oci::environment::get(), err.get(), table_changes, &table_count);
+				OCICollSize(axon::database::oci::environment::get(), err.get(), table_changes, &table_count);
 
 				for (sb4 i = 0; i < table_count; i++)
 				{
@@ -226,7 +226,7 @@ namespace axon {
 					dvoid **tptr = nullptr;
 					dvoid *elemind = nullptr;
 
-					if (OCICollGetElem(axon::database2r::oci::environment::get(), err.get(), table_changes, i, &exist, (void**) &tptr, &elemind) != OCI_SUCCESS || !exist)
+					if (OCICollGetElem(axon::database::oci::environment::get(), err.get(), table_changes, i, &exist, (void**) &tptr, &elemind) != OCI_SUCCESS || !exist)
 						continue;
 
 					char *table_name = nullptr;
@@ -273,12 +273,12 @@ namespace axon {
 					if (!row_changes) continue;
 
 					sb4 row_count = 0;
-					OCICollSize(axon::database2r::oci::environment::get(), err.get(), row_changes, &row_count);
+					OCICollSize(axon::database::oci::environment::get(), err.get(), row_changes, &row_count);
 
 					for (sb4 j = 0; j < row_count; j++)
 					{
 						dvoid **rptr = nullptr;
-						if (OCICollGetElem(axon::database2r::oci::environment::get(), err.get(), row_changes, j, &exist, (void**) &rptr, &elemind) != OCI_SUCCESS || !exist)
+						if (OCICollGetElem(axon::database::oci::environment::get(), err.get(), row_changes, j, &exist, (void**) &rptr, &elemind) != OCI_SUCCESS || !exist)
 							continue;
 
 						char *rowid = nullptr;
@@ -349,14 +349,14 @@ namespace axon {
 			if (ev.topic_index >= _topic.size()) return;
 
 			// Use global callback if set, otherwise per-topic callback
-			const axon::stream2r::cbfn &cb = _callback?_callback:_topic[ev.topic_index].callback;
+			const axon::stream::cbfn &cb = _callback?_callback:_topic[ev.topic_index].callback;
 
 			if (!cb) return;
 
 			// Bulk change — no ROWID — signal caller that something changed
 			if (ev.rowid.empty())
 			{
-				auto rs = std::make_unique<axon::recordset2r>(ev.table);
+				auto rs = std::make_unique<axon::resultset>(ev.table);
 
 				rs->set_eof();
 				cb(std::move(rs));
@@ -367,7 +367,7 @@ namespace axon {
 			_fetch_row(ev.table, ev.rowid, cb);
 		}
 
-		void ocn::_fetch_row(const std::string &table, const std::string &rowid, const axon::stream2r::cbfn &cb)
+		void ocn::_fetch_row(const std::string &table, const std::string &rowid, const axon::stream::cbfn &cb)
 		{
 			static const boost::regex valid_rowid("^[A-Za-z0-9+/]{18}$");
 
@@ -379,7 +379,7 @@ namespace axon {
 
 			std::string sql = "SELECT * FROM " + table + " WHERE ROWID = '" + rowid + "'";
 
-			axon::database2r::oci::error err;
+			axon::database::oci::error err;
 			OCIStmt *stmt = nullptr;
 
 			if ((err = OCIStmtPrepare2(_connection->ctx(), &stmt, err.get(), (text*) sql.c_str(), (ub4) sql.size(), nullptr, 0, OCI_NTV_SYNTAX, OCI_DEFAULT)).failed())
@@ -395,7 +395,7 @@ namespace axon {
 			OCIAttrGet(stmt, OCI_HTYPE_STMT, &col_count, nullptr, OCI_ATTR_PARAM_COUNT, err.get());
 			DBGPRN("OCIAttrGet(OCI_ATTR_PARAM_COUNT) returned %d columns", col_count);
 
-			auto rs = std::make_unique<axon::recordset2r>(table);
+			auto rs = std::make_unique<axon::resultset>(table);
 
 			struct col_buf {
 
