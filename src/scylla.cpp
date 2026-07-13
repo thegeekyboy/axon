@@ -240,7 +240,7 @@ namespace axon
 				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "Database not connected");
 
 			axon::database2r::sci::metadata md(_connection->get());
-			
+
 			CassVersion cv = cass_schema_meta_version(md.get());
 			char version[32];
 			std::snprintf(version, sizeof(version), "%d.%d.%d", cv.major_version, cv.minor_version, cv.patch_version);

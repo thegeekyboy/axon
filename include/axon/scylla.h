@@ -218,7 +218,7 @@ namespace axon
 						cass_cluster_set_dse_plaintext_authenticator(_cluster.get(), username.c_str(), password.c_str());
 
 						future fq;
-						
+
 						if (!keyspace.empty())
 							fq = cass_session_connect_keyspace(_session.get(), _cluster.get(), keyspace.c_str());
 						else

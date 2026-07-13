@@ -43,7 +43,7 @@ namespace axon
 				std::deque<message_t> _pipe;
 				bool _subscribing;
 				std::string _uuid;
-				
+
 				axon::database2r::environment _environment;
 				std::shared_ptr<axon::database2r::context> _context;
 				axon::database2r::error _error;
