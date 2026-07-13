@@ -506,23 +506,6 @@ namespace axon
 			return !(_fileopen = false);
 		}
 
-		bool s3::push(axon::transfer::connection& conn)
-		{
-			BENCHMARK;
-			DBGPRN("[%s] %s", _id.c_str(), __PRETTY_FUNCTION__);
-
-			if (!_fileopen)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
-
-			char buffer[axon::MAX_BUFFER_SIZE];
-			ssize_t size;
-
-			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
-				conn.write(buffer, size);
-
-			return true;
-		}
-
 		ssize_t s3::read(char* buffer, size_t size)
 		{
 			BENCHMARK;

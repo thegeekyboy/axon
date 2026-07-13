@@ -129,8 +129,6 @@ namespace axon
 			bool open(std::string, std::ios_base::openmode);
 			bool close();
 
-			bool push(axon::transfer::connection&);
-
 			ssize_t read(char*, size_t);
 			ssize_t write(const char*, size_t);
 		};

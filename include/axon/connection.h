@@ -172,7 +172,14 @@ namespace axon
 				std::ios_base::openmode _om;
 				std::vector<boost::regex> _filter;
 
-				virtual bool push(axon::transfer::connection&) = 0;
+				virtual bool push(connection& dest) final {
+					char buffer[axon::MAX_BUFFER_SIZE];
+					ssize_t size;
+					while ((size = read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
+						dest.write(buffer, size);
+
+					return true;
+				}
 
 			public:
 

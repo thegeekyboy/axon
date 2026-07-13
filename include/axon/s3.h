@@ -45,7 +45,6 @@ namespace axon
 			axon::AwsStack _aws;
 
 			bool init();
-			bool push(axon::transfer::connection&);
 
 		public:
 			s3(std::string, std::string, std::string, uint16_t);
