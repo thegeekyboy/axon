@@ -29,8 +29,6 @@ namespace axon
 
 			static std::atomic<int> _instance;
 
-			bool push(axon::transfer::connection&);
-
 		public:
 			hdfs(std::string, std::string, std::string, uint16_t);
 			hdfs(const hdfs& rhs) : connection(rhs) {  };

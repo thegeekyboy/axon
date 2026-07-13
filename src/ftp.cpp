@@ -13,8 +13,6 @@ namespace axon
 {
 	namespace transfer
 	{
-		bool ftp::push(axon::transfer::connection&) { return false; };
-
 		ftp::ftp(std::string hostname, std::string username, std::string password, uint16_t port): connection(hostname, username, password, port) {};
 		ftp::ftp(std::string hostname, std::string username, std::string password): connection(hostname, username, password) {};
 		ftp::ftp(const ftp& rhs) : connection(rhs) {};

@@ -401,22 +401,6 @@ namespace axon
 			return !_fileopen;
 		}
 
-		bool hdfs::push(axon::transfer::connection& conn)
-		{
-			DBGPRN("[%s] requested hdfs::push()", _id.c_str());
-
-			if (!_fileopen)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
-
-			char buffer[axon::MAX_BUFFER_SIZE];
-			ssize_t size = 0;
-
-			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
-				conn.write(buffer, size);
-
-			return true;
-		}
-
 		ssize_t hdfs::read(char* buffer, size_t size)
 		{
 			DBGPRN("[%s] requested hdfs::read() => size(%ld)", _id.c_str(), size);

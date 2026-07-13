@@ -471,22 +471,6 @@ namespace axon
 			return !_fileopen;
 		}
 
-		bool samba::push(axon::transfer::connection &conn)
-		{
-			DBGPRN("[%s] requested samba::push()", _id.c_str());
-
-			if (!_fileopen)
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "[" + _id + "] no file is open");
-
-			char buffer[axon::MAX_BUFFER_SIZE];
-			ssize_t size;
-
-			while ((size = this->read(buffer, axon::MAX_BUFFER_SIZE - 1)) > 0)
-				conn.write(buffer, size);
-
-			return true;
-		}
-
 		ssize_t samba::read(char *buffer, size_t size)
 		{
 			DBGPRN("[%s] requested samba::read() => size(%ld)", _id.c_str(), size);

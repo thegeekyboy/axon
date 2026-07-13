@@ -6,8 +6,6 @@ namespace axon
 {
 	namespace transfer
 	{
-		bool nothing::push(axon::transfer::connection&) { return false; };
-
 		nothing::nothing(std::string hostname, std::string username, std::string password, uint16_t port) : connection(hostname, username, password, port) { };
 		nothing::nothing(std::string hostname, std::string username, std::string password): connection(hostname, username, password) {  };
 		nothing::nothing(const nothing& rhs) : connection(rhs) {  };

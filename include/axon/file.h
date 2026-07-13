@@ -18,7 +18,6 @@ namespace axon
 			FILE *_fp;
 
 			bool init();
-			bool push(axon::transfer::connection&);
 
 		public:
 			file(std::string hostname, std::string username, std::string password, uint16_t port): connection(hostname, username, password, port), _fd(-1), _fp(NULL) {  };
