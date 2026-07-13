@@ -1,48 +1,45 @@
 # How to install `axon`
 
-this installation notes are tested in centos 7 and redhat 7. this should work until 9.
+Installation notes tested on **Red Hat Enterprise Linux 9** (and compatible: Rocky Linux 9, AlmaLinux 9). For RHEL/CentOS 7 see the legacy `INSTALL-el9.md`.
 
 1. [Preparing the Environment](#toc1)
 	1. [Extra repos](#toc11)
-	2. [Confluent](#toc12)
+	2. [Confluent repo](#toc12)
 	3. [Build system](#toc13)
 2. [Installing the dependencies](#toc2)
-	1. [from repo](#toc21)
-	2. [oracle](#toc22)
-	3. [aws-c-sdk](#toc23)
-	3. [libsmb2](#toc24)
-	3. [libhdfs3 & libgsasl](#toc25)
-1. [Compiling the library](#toc3)
+	1. [From repo](#toc21)
+	2. [avro-c](#toc22)
+	3. [libserdes](#toc23)
+	4. [libsmb2](#toc24)
+	5. [scylla-cpp-driver](#toc25)
+	6. [AWS C++ SDK](#toc26)
+	7. [Oracle Instant Client (OCI)](#toc27)
+	8. [libhdfs3 and libgsasl](#toc28)
+3. [Compiling the library](#toc3)
 
 
 ## Preparing the Environment <a name="toc1"></a>
 
-### ⭐Extra repos <a name="toc11"></a>
-
-Some non-standard repos are needed to get the build system ready
+### ⭐ Extra repos <a name="toc11"></a>
 
 ```bash
-$ sudo yum install epel-release centos-release-scl dnf-plugins-core wget nano
+sudo dnf install epel-release dnf-plugins-core wget nano
 ```
 
-### ⭐Confluent <a name="toc12"></a>
+### ⭐ Confluent repo <a name="toc12"></a>
 
-[confluent](https://www.confluent.io/) manages a repo of rpm packages to support their products. conveniently they have made it public domain and we can use them to avoid compiling from source.
-
-detail guide [here](https://docs.confluent.io/platform/current/installation/overview.html)
+[Confluent](https://www.confluent.io/) publishes RPM packages for librdkafka, libserdes, and avro-c that are used by the Kafka connector.
 
 ```bash
-$ wget --no-check-certificate https://packages.confluent.io/rpm/7.4/archive.key
-$ sudo rpm --import archive.key
+sudo rpm --import https://packages.confluent.io/rpm/7.8/archive.key
 
-$ sudo cat << EOF >> /etc/yum.repos.d/Confluent.repo
+sudo tee /etc/yum.repos.d/confluent.repo << 'EOF'
 [Confluent]
 name=Confluent repository
-baseurl=https://packages.confluent.io/rpm/7.4
+baseurl=https://packages.confluent.io/rpm/7.8
 gpgcheck=1
-gpgkey=https://packages.confluent.io/rpm/7.4/archive.key
+gpgkey=https://packages.confluent.io/rpm/7.8/archive.key
 enabled=1
-sslverify=0
 
 [Confluent-Clients]
 name=Confluent Clients repository
@@ -50,139 +47,250 @@ baseurl=https://packages.confluent.io/clients/rpm/centos/$releasever/$basearch
 gpgcheck=1
 gpgkey=https://packages.confluent.io/clients/rpm/archive.key
 enabled=1
-sslverify=0
 EOF
 ```
 
-### ⭐Build system <a name="toc13"></a>
+> ⚠️ When pasting the heredoc, confirm `$releasever` and `$basearch` are written literally — they are expanded by yum at runtime, not by your shell.
 
-Since centos/redhat 7 do not come with C++17, need to install gcc 11 from scl/devtoolset
+### ⭐ Build system <a name="toc13"></a>
+
+RHEL 9 ships GCC 11 with full C++17 support. No devtoolset is required.
 
 ```bash
-$ sudo yum install git cmake3 cmake gcc-c++ devtoolset-12 devtoolset-12-runtime devtoolset-12-gcc devtoolset-12-gcc-c++ devtoolset-12-libstdc++-devel devtoolset-12-make
+sudo dnf install automake bison cmake gcc-c++ gettext gettext-devel git \
+     gperf libtool readline readline-devel rpmdevtools rpmlint
 ```
+
 
 ## Installing the dependencies <a name="toc2"></a>
 
-#### ✔️ from repo <a name="toc21"></a>
-there are bunch of dependencies for axon to run correctly.
+### ✔️ From repo <a name="toc21"></a>
 
-- [boost](https://www.boost.org/) (iostreams, system, thread, regex)
-- [libconfig](http://hyperrealm.github.io/libconfig/)
-- [libcurl](https://curl.se/libcurl/)
-- [openssl](https://www.openssl.org/)
-- [libgcrypt](https://gnupg.org/software/libgcrypt/index.html)
-- [kerberos](https://web.mit.edu/kerberos/)
-- [libntlm](https://gitlab.com/gsasl/libntlm/)
-- [bzip2](http://www.bzip.org/)
-- [zstd](http://facebook.github.io/zstd/)
-- [avro](https://avro.apache.org/)
-- [rdkafka](https://github.com/confluentinc/librdkafka)
-- [libserdes](https://github.com/confluentinc/libserdes)
-- [libmagic](https://www.darwinsys.com/file/)
+The following packages cover most of axon's runtime and build-time dependencies and are available from standard RHEL 9 + EPEL + Confluent repos:
 
 ```bash
-$ sudo yum install libcurl-devel openssl-devel libgcrypt-devel bzip2-devel libzstd-devel boost-devel boost-regex boost-iostreams boost-system boost-thread boost-filesystem sqlite-devel libssh2-devel libconfig-devel libblkid-devel librdkafka-devel krb5-devel krb5-libs krb5-workstation libntlm-devel gssntlmssp-devel jansson-devel librdkafka-devel confluent-libserdes-devel avro-c-devel avro-cpp-devel file-devel
+sudo dnf install \
+    bzip2 bzip2-devel \
+    boost-devel boost-regex boost-iostreams boost-filesystem boost-json \
+    file file-devel \
+    hiredis hiredis-devel \
+    jansson-devel \
+    krb5-devel krb5-libs \
+    libblkid-devel \
+    libconfig libconfig-devel \
+    libcurl-devel \
+    libgcrypt-devel \
+    libntlm-devel \
+    librdkafka1 librdkafka-devel \
+    librabbitmq librabbitmq-devel \
+    libssh2-devel \
+    libuuid libuuid-devel \
+    libuv libuv-devel \
+    libxml2 libxml2-devel \
+    libzstd-devel \
+    openldap openldap-devel \
+    openssl-devel \
+    protobuf protobuf-devel \
+    cyrus-sasl-devel cyrus-sasl-gssapi cyrus-sasl-plain \
+    sqlite-devel \
+    xz-devel
 ```
 
-&#9888;	_often it was noticed that when `confluent-libserdes-devel` package installs header files, the folder permission is incorrect. best check the permission after installing the package._
+### ✔️ avro-c <a name="toc22"></a>
 
-#### ✔️ oracle <a name="toc22"></a>
-
-Oralce provide OCI library to interface with oracle database engine. OCI is needed to read/write to database and DCN. Download RPMs instal client from [Oralce](https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html) website. you will need the following
-
-- Basic Package (must)
-- SDK Package (must)
-- JDBC Suppliment Package (optional)
-- ODBC Package (optional)
-
-for example if you want to download the v19.19 then run
+Install from the Confluent repo if available:
 
 ```bash
-$ sudo yum install https://download.oracle.com/otn_software/linux/instantclient/1919000/oracle-instantclient19.19-basic-19.19.0.0.0-1.x86_64.rpm https://download.oracle.com/otn_software/linux/instantclient/1919000/oracle-instantclient19.19-devel-19.19.0.0.0-1.x86_64.rpm
+sudo dnf install avro-c-devel
 ```
 
-update the environment variable
+If the package is missing or too old (requires ≥ 1.8.0), build from source:
 
 ```bash
-cat << EOF >> ~/.bashrc
-export ORACLE_BASE=/usr/lib/oracle
-export ORACLE_HOME=/usr/lib/oracle/19.19/client64
-EOF
+sudo dnf install jansson-devel
+
+wget https://github.com/apache/avro/archive/refs/tags/release-1.11.4.tar.gz \
+     -O avro-release-1.11.4.tar.gz
+tar xf avro-release-1.11.4.tar.gz
+cd avro-release-1.11.4/lang/c
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+sudo make install
 ```
 
-#### ✔️ aws-c-sdk <a name="toc23"></a>
+### ✔️ libserdes <a name="toc23"></a>
 
-if you face any issue compiling then, download a known [working release](https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.10.57.tar.gz)
+Install from the Confluent repo:
 
 ```bash
-git clone https://github.com/aws/aws-sdk-cpp
-cd aws-sdk-cpp
+sudo dnf install confluent-libserdes-devel
+```
+
+> ⚠️ The Confluent package sometimes sets incorrect permissions on the header directory. Check after install:
+> ```bash
+> ls -la /usr/include/libserdes/
+> ```
+
+If the package is missing, build from source:
+
+```bash
+wget https://github.com/confluentinc/libserdes/archive/refs/tags/v7.8.1.tar.gz \
+     -O confluent-libserdes-7.8.1.tar.gz
+tar xf confluent-libserdes-7.8.1.tar.gz && cd libserdes-7.8.1
+./configure --prefix=/usr
+sudo make install
+```
+
+### ✔️ libsmb2 <a name="toc24"></a>
+
+[libsmb2](https://github.com/sahlberg/libsmb2) is a portable SMB2/3 client library. axon requires ≥ 4.0.0.
+
+```bash
+wget https://github.com/sahlberg/libsmb2/archive/refs/tags/v4.0.0.tar.gz
+tar xf v4.0.0.tar.gz && cd libsmb2-4.0.0
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+sudo make install
+```
+
+### ✔️ scylla-cpp-driver <a name="toc25"></a>
+
+The ScyllaDB C++ driver is a fork of the DataStax driver with shard-aware routing. axon requires ≥ 2.16.0.
+
+```bash
+sudo dnf install libuv-devel openssl-devel zlib-devel
+
+wget https://github.com/scylladb/cpp-driver/archive/refs/tags/2.16.2b.tar.gz \
+     -O scylla-cpp-driver-2.16.2b.tar.gz
+tar xf scylla-cpp-driver-2.16.2b.tar.gz && cd cpp-driver-2.16.2b
+mkdir build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+sudo make install
+```
+
+### ✔️ AWS C++ SDK <a name="toc26"></a>
+
+axon uses the `s3` and `kinesis` components. Build only those to keep compile time short. A known stable release is 1.11.345.
+
+```bash
+wget https://github.com/aws/aws-sdk-cpp/archive/refs/tags/1.11.345.tar.gz \
+     -O aws-sdk-cpp-1.11.345.tar.gz
+tar xf aws-sdk-cpp-1.11.345.tar.gz && cd aws-sdk-cpp-1.11.345
 ./prefetch_crt_dependency.sh
 mkdir build && cd build
-cmake3 -DCMAKE_INSTALL_PREFIX:PATH=/usr -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="s3;dynamodb;kafkaconnect;kafka;kinesis;sqs;clouddirectory" -DENABLE_TESTING=OFF -Wno-dev ..
+cmake .. \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_ONLY="core;s3;kinesis" \
+    -DENABLE_TESTING=OFF \
+    -Wno-dev
 sudo make install
 ```
 
-#### ✔️ libsmb2 <a name="toc24"></a>
+### ✔️ Oracle Instant Client (OCI) <a name="toc27"></a>
 
-[libsmb2](https://www.snia.org/sites/default/files/SDC/2019/presentations/SMB/Sahlberg_Ronnie_Libsmb2_a_Userspace_SMB2_Client_for_all_Platforms.pdf) is a portable small footprint SMB2/3 C/C++ interface library developed by [Ronnie Sahlberg](https://www.samba.org/~sahlberg/)
+Oracle OCI is required for `axon::database::oracle` and `axon::stream::ocn`. Download RPMs from the [Oracle Instant Client download page](https://www.oracle.com/database/technologies/instant-client/linux-x86-64-downloads.html). You need:
+
+- **Basic Package** — runtime libraries (required)
+- **SDK Package** — headers and link libraries (required)
+
+For Oracle 23c on RHEL 9:
 
 ```bash
-git clone https://github.com/sahlberg/libsmb2
-cd libsmb2 && mkdir build && cd build
-cmake3 -DCMAKE_INSTALL_PREFIX=/usr ..
-sudo make install
+sudo dnf install \
+    https://download.oracle.com/otn_software/linux/instantclient/2360000/oracle-instantclient-basic-23.6.0.24.10-1.el9.x86_64.rpm \
+    https://download.oracle.com/otn_software/linux/instantclient/2360000/oracle-instantclient-devel-23.6.0.24.10-1.el9.x86_64.rpm
 ```
 
-#### ✔️ libhdfs3 & libgsasl <a name="toc25"></a>
-the following libraries needs to be compiled from the provided source as official source does not support kerberos connection with hdfs3 library for some reason!
-
-✨ a locked version of [libgsasl](https://www.gnu.org/software/gsasl/) by [Brett Rosen](https://github.com/bdrosen96)
+Set the required environment variables (add to `~/.bashrc`):
 
 ```bash
-$ sudo yum install autoconf gettext-devel libtool gtk-doc gengetopt gperf texlive-epstopdf ghostscript texinfo help2man http://mirror.centos.org/centos/7/os/x86_64/Packages/gperf-3.0.4-8.el7.x86_64.rpm
+export ORACLE_BASE=/usr/lib/oracle
+export ORACLE_HOME=/usr/lib/oracle/23/client64
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 ```
 
+For Oracle 19c (still widely deployed):
+
 ```bash
-git clone https://github.com/bdrosen96/libgsasl
-cd libgsasl
-sed -i '31i AM_PROG_AR' configure.ac
-sed -i '31i AM_PROG_AR' lib/configure.ac
+sudo dnf install \
+    https://download.oracle.com/otn_software/linux/instantclient/1919000/oracle-instantclient19.19-basic-19.19.0.0.0-1.x86_64.rpm \
+    https://download.oracle.com/otn_software/linux/instantclient/1919000/oracle-instantclient19.19-devel-19.19.0.0.0-1.x86_64.rpm
+
+export ORACLE_HOME=/usr/lib/oracle/19.19/client64
+```
+
+### ✔️ libhdfs3 and libgsasl <a name="toc28"></a>
+
+The HDFS connector requires custom forks of these libraries. The upstream versions have broken Kerberos support.
+
+#### libgsasl
+
+The [Nokia fork](https://github.com/nokia/libgsasl) of libgsasl includes fixes for modern OpenSSL APIs that the original and the Brett Rosen fork do not have.
+
+```bash
+sudo dnf install krb5-devel openssl-devel
+
+wget https://github.com/nokia/libgsasl/releases/download/v1.8.2/libgsasl-1.8.2.tar.gz
+tar xf libgsasl-1.8.2.tar.gz && cd libgsasl-1.8.2
+LDFLAGS="-lssl -lcrypto" CFLAGS="-g -O2 -fPIC" \
+    ./configure --prefix=/usr --with-gssapi-impl=mit
 make
-find . -type f -exec sed -i -e 's/AM_PROG_MKDIR_P/AC_PROG_MKDIR_P/g' {} \;
-autoreconf -iv
-LDFLAGS="-lssl -lcrypto" ./configure --prefix=/usr  --with-gssapi-impl=mit
 sudo make install
 ```
 
-✨ a customized vestion of [libhdfs3](https://issues.apache.org/jira/browse/HDFS-6994) by [Brett Rosen](https://github.com/bdrosen96) which by originaly developed by Pivotal HD currently maintained by [Apache HAWQ](https://hawq.apache.org/)
+#### libhdfs3
+
+Use the [thegeekyboy fork](https://github.com/thegeekyboy/libhdfs3) which is kept in sync with Kerberos and protobuf compatibility fixes.
 
 ```bash
-$ sudo yum install libxml2 libxml2-devel protobuf protobuf-devel
-```
+sudo dnf install libxml2-devel protobuf-devel boost-devel libcurl-devel libgsasl
 
-```bash
-git clone https://github.com/bdrosen96/libhdfs3
+git clone https://github.com/thegeekyboy/libhdfs3
 cd libhdfs3
-sed -i 's/dumpversion/dumpfullversion/g' CMake/Platform.cmake # if gcc version >= 7
 mkdir build && cd build
-cmake3 -Wno-dev -DCMAKE_INSTALL_PREFIX=/usr ..
+cmake .. -Wno-dev -DCMAKE_INSTALL_PREFIX=/usr
 sudo make install
 ```
+
 
 ## Compiling the library <a name="toc3"></a>
 
-to compile and install a Release version of axon, with the `CMAKE_BUILD_TYPE=Release`. A debug version will be built by default.
-
+Set the Oracle library path then build:
 
 ```bash
-scl enable devtoolset-12 bash
 export LD_LIBRARY_PATH=/usr/lib:/usr/lib64:/usr/local/lib64:$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 
 git clone https://github.com/thegeekyboy/axon
 cd axon && mkdir build && cd build
-cmake3 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 sudo make install
 ```
 
+### Debug build
+
+```bash
+cmake .. -DDEBUG=3 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr
+make
+```
+
+Debug levels:
+
+| Level | Output |
+|---|---|
+| `DEBUG=0` | silent (default) |
+| `DEBUG=1` | `DBGPRN` function-level debug |
+| `DEBUG=2` | `WRNPRN` warnings |
+| `DEBUG=3` | `INFPRN` + `BENCHMARK` timing |
+| `DEBUG=4` | AWS SDK trace logging |
+
+### Submodule / embedded build
+
+When axon is added as a CMake submodule it automatically builds as a **static library**:
+
+```cmake
+add_subdirectory(axon)
+target_link_libraries(my_target PRIVATE axon)
+```
+
+No `make install` is needed in this case.
