@@ -16,7 +16,7 @@ namespace axon
 	namespace transfer
 	{
 		s3::s3(std::string hostname, std::string username, std::string password, uint16_t port)
-		: connection(hostname, username, password, port), _aws(axon::AwsStack())
+		: connection(hostname, username, password, port), _aws(axon::aws::stack())
 		{
 		}
 

@@ -1,13 +1,11 @@
 #include <axon.h>
 #include <axon/connection.h>
+#include <axon/aws.h>
 #include <axon/util.h>
 #include <axon/uri.h>
 
 namespace axon
 {
-	std::atomic<int> AwsStack::_instance = 0;
-	std::mutex AwsStack::_lock;
-
 	namespace transfer
 	{
 		connection::connection(std::string hostname, std::string username, std::string password, uint16_t port):

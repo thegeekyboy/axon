@@ -21,7 +21,7 @@ void parse(std::unique_ptr<axon::resultset> rc)
 		std::vector<uint8_t> data;
 
 		rc->get("data", data);
-		std::cout<<std::string(data.begin(), data.end());
+		std::cout<<rc->source()<<" =>> "<<std::string(data.begin(), data.end());
 		count++;
 	}
 }
@@ -61,11 +61,11 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[], [[maybe_unused]
 
 		axon::stream::kinesis source(hostname, username, password);
 
-		// source.account() = "354285753755";
+		source.account() = "354285753755";
 		source.name() = "dse_uat_hyperion_event_consumer";
 
+		source.add("uat-next-fp-kinesis-stream", "uat-next-fp-kinesis-stream", parse);
 		source.add("uat-next-kinesis-stream", "uat-next-kinesis-stream", parse);
-		// source.add("uat-bapp-kinesis-stream", "uat-bapp-kinesis-stream", parse);
 		source.subscribe();
 
 		source.start();

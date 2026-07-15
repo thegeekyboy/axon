@@ -345,7 +345,7 @@ namespace axon {
 			_queue_cv.notify_all();   // wake _run() so it can exit
 		}
 
-		void kinesis::_poll_shard(const std::string &topic_name, [[maybe_unused]]const std::string &stream_arn, axon::stream::aws::partition part)   // owns iterator state
+		void kinesis::_poll_shard(const std::string &topic_name, [[maybe_unused]]const std::string &stream_arn, axon::stream::aws::partition part, std::shared_ptr<Aws::Kinesis::KinesisClient> client)   // owns iterator state + its own client
 		{
 			// NOTE: When a shard is closed (split or merge), GetNextShardIterator
 			// returns empty. This thread exits and the child shards are NOT
@@ -368,7 +368,7 @@ namespace axon {
 					req.SetShardIterator(part.iterator);
 					req.SetLimit(AXON_KINESIS_ROW_GET);
 
-					auto outcome = _client->GetRecords(req);
+					auto outcome = client->GetRecords(req);
 
 					if (!outcome.IsSuccess())
 					{
@@ -417,8 +417,10 @@ namespace axon {
 
 					DBGPRN("[kinesis:%s] shard %s: fetched %zu records", _id.c_str(), part.id.c_str(), records.size());
 
-					if (result.GetMillisBehindLatest() < 1000 || records.empty())
-    					std::this_thread::sleep_for(std::chrono::milliseconds(AXON_KINESIS_IDLE_SLEEP));
+					if (result.GetMillisBehindLatest() < 1000)
+						std::this_thread::sleep_for(std::chrono::milliseconds(AXON_KINESIS_IDLE_SLEEP));
+					else
+						std::this_thread::sleep_for(std::chrono::milliseconds(AXON_KINESIS_POLL_INTERVAL));
 				}
 				catch (axon::exception &e)
 				{
@@ -512,8 +514,7 @@ namespace axon {
 			DBGPRN("[kinesis:%s] runner exited", _id.c_str());
 		}
 
-		kinesis::kinesis(std::string hostname, std::string username, std::string password, uint16_t port):
-		connector(hostname, username, password, port), _aws(axon::AwsStack()), _consumer_count(0)
+		std::shared_ptr<Aws::Kinesis::KinesisClient> kinesis::_make_client()
 		{
 			BENCHMARK;
 
@@ -530,7 +531,15 @@ namespace axon {
 				cfg.proxyScheme = Aws::Http::Scheme::HTTP;
 			}
 
-			_client = std::make_shared<Aws::Kinesis::KinesisClient>(auth, cfg);
+			return std::make_shared<Aws::Kinesis::KinesisClient>(auth, cfg);
+		}
+
+		kinesis::kinesis(std::string hostname, std::string username, std::string password, uint16_t port):
+		connector(hostname, username, password, port), _aws(axon::aws::stack()), _consumer_count(0)
+		{
+			BENCHMARK;
+
+			_client = _make_client();
 
 			Aws::Kinesis::Model::ListStreamsRequest probe;
 
@@ -576,7 +585,12 @@ namespace axon {
 
 			for (auto &t : _topic)
 			{
-				axon::stream::aws::stream sh(_client, t.name);
+				// A dedicated client per stream/topic — shard-poll threads for
+				// different topics run concurrently (see start()), and sharing
+				// one KinesisClient's connection pool across them has been
+				// observed to race during connection teardown (SIGPIPE / crash
+				// under concurrent load with 2+ topics subscribed).
+				axon::stream::aws::stream sh(_make_client(), t.name);
 
 				if (!sh)
 				{
@@ -636,7 +650,7 @@ namespace axon {
 			{
 				for (const auto &part : sh.partitions())
 				{
-					_shard_threads.emplace_back(&kinesis::_poll_shard, this, sh.name(), sh.arn(), part);
+					_shard_threads.emplace_back(&kinesis::_poll_shard, this, sh.name(), sh.arn(), part, sh.client());
 				}
 			}
 
