@@ -52,6 +52,8 @@
 #define BENCHMARK
 #endif
 
+void global_signal_trap (int);
+
 // AXON Namespace
 namespace axon
 {

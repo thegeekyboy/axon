@@ -1,8 +1,9 @@
 #ifndef AXON_CONNECTION_H_
 #define AXON_CONNECTION_H_
 
+#include <csignal>
+
 #include <boost/regex.hpp>
-#include <aws/core/Aws.h>
 
 #include <axon/util.h>
 
@@ -115,43 +116,6 @@ namespace axon
 		flags flag;
 		protocol proto;
 		struct stat stats;
-	};
-
-	class AwsStack {
-
-		static std::atomic<int> _instance;
-		static std::mutex _lock;
-
-		Aws::SDKOptions _options;
-
-		public:
-		AwsStack() {
-			BENCHMARK;
-			std::lock_guard<std::mutex> guard(_lock);
-
-			if (_instance <= 0)
-			{
-				// TODO:
-				// need to figure out how to disable IMDS query, specially when non-AWS service
-				// provider like minio. for the time export AWS_EC2_METADATA_DISABLED="true" for
-				// environment variable as workaround.
-				// https://github.com/aws/aws-sdk-ruby/issues/2174
-				// WORKAROUND:
-				setenv("AWS_EC2_METADATA_DISABLED", "true", 1);
-#if DEBUG >= 4
-				_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
-#endif
-				Aws::InitAPI(_options);
-				_instance++;
-			}
-		}
-		~AwsStack() {
-			BENCHMARK;
-			std::lock_guard<std::mutex> guard(_lock);
-
-			_instance--;
-			if (_instance <= 0) Aws::ShutdownAPI(_options);
-		}
 	};
 
 	namespace transfer {

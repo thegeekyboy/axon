@@ -3,18 +3,18 @@
 
 #include <algorithm>
 
+#include <axon/aws.h>
 #include <axon/stream.h>
 #include <axon/connection.h>
 
 #include <axon/resultset.h>
 
-#include <aws/core/Aws.h>
 #include <aws/kinesis/KinesisClient.h>
 
-#define AXON_KINESIS_ROW_GET 100
+#define AXON_KINESIS_ROW_GET 128
 #define AXON_KINESIS_DATA_SIZE 8192
 #define AXON_KINESIS_POLL_INTERVAL 250   // ms between GetRecords calls per shard
-#define AXON_KINESIS_IDLE_SLEEP 500   // ms to sleep when shard returns 0 records
+#define AXON_KINESIS_IDLE_SLEEP 850      // ms to sleep when shard returns 0 records
 
 #define AXON_AWS_ACCOUNT_ID 'a'
 
@@ -30,7 +30,8 @@ namespace axon {
 			CONSUMER
 		};
 
-		inline axon::stream::ARN resolve(std::string arn) {
+		inline axon::stream::ARN resolve(std::string arn)
+		{
 			boost::regex c_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/[A-Za-z0-9_.-]{1,128}\\/consumer\\/[A-Za-z0-9_.-]{1,128}:\\d{10,}$");
 			boost::regex s_pattern("^arn:aws:kinesis:[A-Za-z0-9-]+:\\d{12}:stream\\/[A-Za-z0-9_.-]{1,128}$");
 
@@ -44,12 +45,12 @@ namespace axon {
 
 			struct event {
 
-				std::string  topic_name;							// stream/topic name this record came from
-				std::string  shard_id;								// shard the record arrived on
-				std::string  sequence_number;
-				std::string  partition_key;
-				int64_t	  timestamp { 0 };						// epoch ms
-				std::string  data;									// raw record payload bytes
+				std::string topic_name;			// stream/topic name this record came from
+				std::string shard_id;			// shard the record arrived on
+				std::string sequence_number;
+				std::string partition_key;
+				int64_t timestamp { 0 };		// epoch ms
+				std::string data;				// raw record payload bytes
 			};
 
 			class shard {
@@ -109,6 +110,11 @@ namespace axon {
 					bool busy() const { return _busy; }
 					explicit operator bool() const { return _ready; }
 
+					// Each stream carries its own KinesisClient so shard-poll
+					// threads for different topics never share a connection
+					// pool. See kinesis::subscribe().
+					std::shared_ptr<Aws::Kinesis::KinesisClient> client() const { return _client; }
+
 					const std::vector<axon::stream::aws::partition> &partitions() const { return _partitions; }
 					std::vector<axon::stream::aws::partition> &partitions() { return _partitions; }
 
@@ -152,8 +158,7 @@ namespace axon {
 
 		class kinesis: public axon::stream::connector {
 
-
-			axon::AwsStack _aws;
+			axon::aws::stack _aws;
 			std::string _account, _proxy;
 
 			std::shared_ptr<Aws::Kinesis::KinesisClient> _client;
@@ -174,7 +179,14 @@ namespace axon {
 			void _stop() override;
 			void _run();
 
-			void _poll_shard(const std::string&, const std::string&, axon::stream::aws::partition);
+			// Builds a new KinesisClient using this connector's credentials/
+			// proxy/region config. Used once for the connector's own _client
+			// (topic discovery, ListStreams probe) and again per-stream in
+			// subscribe(), so concurrent shard-poll threads for different
+			// topics never share one client's connection pool.
+			std::shared_ptr<Aws::Kinesis::KinesisClient> _make_client();
+
+			void _poll_shard(const std::string&, const std::string&, axon::stream::aws::partition, std::shared_ptr<Aws::Kinesis::KinesisClient>);
 			static std::unique_ptr<axon::resultset> _build_recordset(const axon::stream::aws::event&);
 
 			public:

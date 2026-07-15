@@ -6,7 +6,7 @@
 
 #include <sstream>
 
-#include <aws/core/Aws.h>
+#include <axon/aws.h>
 
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
@@ -42,7 +42,7 @@ namespace axon
 
 			std::string _endpoint, _proxy;
 
-			axon::AwsStack _aws;
+			axon::aws::stack _aws;
 
 			bool init();
 
