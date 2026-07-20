@@ -31,6 +31,12 @@ namespace axon
 		reset();
 	}
 
+	log::log(FILE *fd)
+	{
+		reset();
+		_fd = fd;
+	}
+
 	log::~log()
 	{
 		if (_ofs.is_open())
@@ -48,9 +54,14 @@ namespace axon
 
 	bool log::reset()
 	{
+		char buf[9];
+		std::snprintf(buf, sizeof(buf), "%8d", getpid());
+		_pid = buf;
+
 		if (_ofs.is_open())
 			_ofs.close();
 
+		_fd = AXON_DEFAULT_FILENO;
 		_level = level::info;
 		_filename = "";
 
@@ -60,6 +71,13 @@ namespace axon
 		free(cwd);
 
 		return true;
+	}
+
+	void log::set(pid_t pid)
+	{
+		char buf[9];
+		std::snprintf(buf, sizeof(buf), "%8d", pid);
+		_pid = buf;
 	}
 
 	void log::open()
@@ -96,6 +114,11 @@ namespace axon
 		fopen();
 	}
 
+	void log::open(FILE *fd)
+	{
+		_fd = fd;
+	}
+
 	void log::open(std::string fname)
 	{
 		auto [path, filename] = axon::util::splitpath(fname);
@@ -118,6 +141,27 @@ namespace axon
 	{
 		if (_ofs.is_open())
 			_ofs.close();
+	}
+
+	void log::print(axon::level lvl, const std::string &str)
+	{
+		std::string oss;
+		oss.reserve(256); // avoid reallocations; adjust to your typical line length
+
+		oss += '[';
+		oss += axon::timer::iso8601();
+		oss += ' ';
+		oss += _pid;
+		oss += ' ';
+		oss += l2n(lvl);
+		oss += "] ";
+
+		std::lock_guard<std::mutex> lock(_safety);
+
+		if (_writable)
+			_ofs<<oss<<str;
+		else
+			fprintf(_fd, "%s%s", oss.c_str(), str.c_str());
 	}
 
 	std::string &log::operator[](char i)
@@ -203,19 +247,9 @@ namespace axon
 
 	log& log::operator<<([[maybe_unused]] std::ostream& (*fun)(std::ostream&)) // this is for std::endl
 	{
-		std::lock_guard<std::mutex> lock(_safety);
-
 		_ss<<std::endl;
 
-		std::stringstream oss;
-
-		oss<<"["<<axon::timer::iso8601()<<" "<<std::setfill(' ')<<std::setw(7)<<getpid()<<" "<<std::this_thread::get_id()<<std::setw(9)<<l2n(_level)<<"] ";
-
-		if (_writable)
-			_ofs<<oss.rdbuf()<<_ss.rdbuf();
-		else
-			fprintf(stderr, "%s%s", oss.str().c_str(), _ss.str().c_str());
-
+		print(_level, _ss.str());
 		_ss.str("");
 		_ss.clear();
 
