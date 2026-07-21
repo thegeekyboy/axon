@@ -167,7 +167,7 @@ namespace axon
 
 		bool iswritable(const std::string &path)
 		{
-			if (isdir(path))
+			if (axon::util::isdir(path))
 			{
 				if (access(path.c_str(), W_OK) == 0)
 					return true;
@@ -175,7 +175,7 @@ namespace axon
 			}
 			else
 			{
-				if (exists(path))
+				if (axon::util::exists(path))
 				{
 					if (access(path.c_str(), W_OK) == 0)
 						return true;
@@ -199,7 +199,7 @@ namespace axon
 		{
 			struct stat info;
 
-			if(stat(path.c_str(), &info ) != 0)
+			if(stat(path.c_str(), &info) != 0)
 				return false;
 			else if(info.st_mode & S_IFDIR)
 				return true;
@@ -223,7 +223,7 @@ namespace axon
 		{
 			struct stat info;
 
-			if(stat(path.c_str(), &info ) != 0)
+			if(stat(path.c_str(), &info) != 0)
 				return false;
 
 			if (access(path.c_str(), R_OK) != 0)
@@ -255,7 +255,7 @@ namespace axon
 			return true;
 		}
 
-		bool makedir(const char *dir)
+		bool mkdir(const char *dir)
 		{
 			char tmp[PATH_MAX];
 			char *p = NULL;
@@ -272,14 +272,14 @@ namespace axon
 				if (*p == '/')
 				{
 					*p = 0;
-					if (mkdir(tmp, S_IRWXU) == -1)
+					if (::mkdir(tmp, S_IRWXU) == -1)
 						if (errno != EEXIST)
 							return false;
 					*p = '/';
 				}
 			}
 
-			if (mkdir(tmp, S_IRWXU) == -1)
+			if (::mkdir(tmp, S_IRWXU) == -1)
 				if (errno != EEXIST)
 					return false;
 

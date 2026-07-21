@@ -82,34 +82,24 @@ namespace axon
 
 	void log::open()
 	{
-		struct stat s;
-		int code;
-
 		if (_ofs.is_open())
 			return;
 
 		if ((_path.size() + _filename.size()) < 2)
 			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "logging destination is invalid or empty!");
 
-		if (stat(_path.c_str(), &s) == 0)
-		{
-			if (!(s.st_mode & S_IFDIR))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _path + " is a not directory");
-		}
-		else
-			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _path + " for logging");
+		if (!axon::util::isdir(_path) || !axon::util::iswritable(_path))
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, _path + " is a not directory or does not exist or is not writable");
 
 		char fullpath[PATH_MAX];
 
 		snprintf(fullpath, PATH_MAX - 1, "%s/%s", _path.c_str(), _filename.c_str());
 
-		if ((code = stat(fullpath, &s)) == 0)
-		{
-			if (!(s.st_mode & S_IFREG))
-				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _filename + " for logging, its a directory");
-		}
-		else if (errno != ENOENT)
-			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use " + _filename + " for logging, code: " + std::to_string(errno));
+		if (axon::util::isdir(fullpath))
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot use %s for logging, its a directory", fullpath);
+
+		if (axon::util::exists(fullpath) && !axon::util::iswritable(fullpath))
+			throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "%s is not writable for logging", fullpath);
 
 		fopen();
 	}
@@ -146,7 +136,7 @@ namespace axon
 	void log::print(axon::level lvl, const std::string &str)
 	{
 		std::string oss;
-		oss.reserve(256); // avoid reallocations; adjust to your typical line length
+		oss.reserve(48); // avoid reallocations; adjust to your typical line length
 
 		oss += '[';
 		oss += axon::timer::iso8601();
@@ -159,9 +149,9 @@ namespace axon
 		std::lock_guard<std::mutex> lock(_safety);
 
 		if (_writable)
-			_ofs<<oss<<str;
+			_ofs<<oss<<str<<std::endl;
 		else
-			fprintf(_fd, "%s%s", oss.c_str(), str.c_str());
+			fprintf(_fd, "%s%s\n", oss.c_str(), str.c_str());
 	}
 
 	std::string &log::operator[](char i)
@@ -196,59 +186,8 @@ namespace axon
 		return *this;
 	}
 
-	log& log::operator<<(int value)
+	log& log::operator<<(std::ostream& (*)(std::ostream&)) // this is for std::endl
 	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(long value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(long long value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(float value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(double value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(const char *value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<(std::string& value)
-	{
-		_ss<<value;
-
-		return *this;
-	}
-
-	log& log::operator<<([[maybe_unused]] std::ostream& (*fun)(std::ostream&)) // this is for std::endl
-	{
-		_ss<<std::endl;
-
 		print(_level, _ss.str());
 		_ss.str("");
 		_ss.clear();

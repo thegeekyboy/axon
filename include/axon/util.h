@@ -59,7 +59,7 @@ namespace axon
 		std::string md5(std::string&);
 
 		// int mkdir(const std::string&, mode_t);
-		bool makedir(const char *);
+		bool mkdir(const char *);
 		bool isdir(const std::string&);
 		bool isfile(const std::string&);
 		bool exists(const std::string&);

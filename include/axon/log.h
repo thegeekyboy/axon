@@ -76,15 +76,15 @@ namespace axon
 
 		log& operator<<(axon::level);
 		log& operator<<(bool);
-		log& operator<<(int);
-		log& operator<<(long);
-		log& operator<<(long long);
-		log& operator<<(float);
-		log& operator<<(double);
-		log& operator<<(char);
-		log& operator<<(const char *);
-		log& operator<<(std::string&);
-		log& operator<<(std::ostream& (*fun)(std::ostream&)); // this is for std::endl
+
+		template<typename T>
+		log& operator<<(const T& value)
+		{
+			_ss << value;
+			return *this;
+		}
+
+		log& operator<<(std::ostream& (*)(std::ostream&)); // this is for std::endl
 
 		void print(axon::level, const std::string&);
 		void print(std::string text) { print(axon::level::info, text); }
