@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <axon.h>
 #include <axon/config.h>
 
@@ -94,8 +96,7 @@ void config_setting_copy_aggregate(config_setting_t * parent, const config_setti
 
 int config_setting_copy(config_setting_t * parent, const config_setting_t * src)
 {
-	if((!config_setting_is_group(parent)) &&
-	   (!config_setting_is_list(parent)))
+	if((!config_setting_is_group(parent)) && (!config_setting_is_list(parent)))
 		return CONFIG_FALSE;
 
 	if(config_setting_is_aggregate(src))
@@ -108,6 +109,130 @@ int config_setting_copy(config_setting_t * parent, const config_setting_t * src)
 /*
 	END
 */
+
+namespace
+{
+	static std::string _escape(const char *s)
+	{
+		std::string out;
+
+		if (s == NULL)
+			return out;
+
+		for (const char *p = s; *p != '\0'; p++)
+		{
+			if (*p == '"' || *p == '\\')
+				out += '\\';
+
+			out += *p;
+		}
+
+		return out;
+	}
+
+	static bool _is_block_type(int type) { return type == CONFIG_TYPE_GROUP || type == CONFIG_TYPE_LIST; }
+
+	static void _print_value(const config_setting_t *setting, int level, std::ostream &os)
+	{
+		int type = config_setting_type(setting);
+
+		switch (type)
+		{
+			case CONFIG_TYPE_INT:
+				os << config_setting_get_int(setting);
+				break;
+
+			case CONFIG_TYPE_INT64:
+				os << config_setting_get_int64(setting);
+				break;
+
+			case CONFIG_TYPE_FLOAT:
+				os << config_setting_get_float(setting);
+				break;
+
+			case CONFIG_TYPE_STRING:
+				os << '"' << _escape(config_setting_get_string(setting)) << '"';
+				break;
+
+			case CONFIG_TYPE_BOOL:
+				os << (config_setting_get_bool(setting) ? "true" : "false");
+				break;
+
+			case CONFIG_TYPE_ARRAY:
+			{
+				// arrays are always homogeneous scalars — print inline
+				int count = config_setting_length(setting);
+
+				os << "[ ";
+
+				for (int i = 0; i < count; i++)
+				{
+					if (i > 0) os << ", ";
+					_print_value(config_setting_get_elem(setting, i), level, os);
+				}
+
+				os << " ]";
+
+				break;
+			}
+
+			case CONFIG_TYPE_LIST:
+			{
+				int count = config_setting_length(setting);
+				std::string indent(static_cast<size_t>(level + 1) * 4, ' ');
+				std::string close_indent(static_cast<size_t>(level) * 4, ' ');
+
+				os << "(\n";
+
+				for (int i = 0; i < count; i++)
+				{
+					// list elements are unnamed — indent, then the value
+					// starts immediately (no extra leading newline)
+					os << indent;
+					_print_value(config_setting_get_elem(setting, i), level + 1, os);
+					os << (i < count - 1 ? ",\n" : "\n");
+				}
+
+				os << close_indent << ")";
+
+				break;
+			}
+
+			case CONFIG_TYPE_GROUP:
+			{
+				std::string indent(static_cast<size_t>(level + 1) * 4, ' ');
+				std::string close_indent(static_cast<size_t>(level) * 4, ' ');
+
+				os << "{\n";
+
+				int count = config_setting_length(setting);
+
+				for (int i = 0; i < count; i++)
+				{
+					config_setting_t *member = config_setting_get_elem(setting, i);
+					const char *mname = config_setting_name(member);
+					int mtype = config_setting_type(member);
+
+					os << indent;
+
+					if (mname != NULL)
+						os << mname << (_is_block_type(mtype) ? " =\n" + indent : " = ");
+
+					_print_value(member, level + 1, os);
+					os << ";\n";
+				}
+
+				os << close_indent << "}";
+
+				break;
+			}
+
+			default:
+				os << "/* unsupported setting type " << type << " */";
+				break;
+		}
+	}
+}
 
 namespace axon
 {
@@ -692,79 +817,41 @@ namespace axon
 		return true;
 	}
 
-	void config::print(const config_setting_t *settings = NULL , int level = 0)
+	void config::print(const config_setting_t *setting, int level)
 	{
-		if (settings != NULL)
+		if (setting == NULL)
 		{
+			if (_master == NULL)
+				return;
 
+			setting = _master;
 		}
-		else if (settings == NULL && _master != NULL)
-			settings = _master;
-		else
-			return;
 
-		int count = config_setting_length(settings);
+		std::ios::sync_with_stdio(false); 
+
+		// The root/master setting is always a group; print its members
+		// directly at the given indent level rather than wrapping the
+		// whole document in an extra pair of braces.
+		std::string indent(static_cast<size_t>(level) * 4, ' ');
+		int count = config_setting_length(setting);
+
 		for (int index = 0; index < count; index++)
 		{
-			config_setting_t *setting;
+			config_setting_t *member = config_setting_get_elem(setting, index);
 
-			if ((setting = config_setting_get_elem(settings, index)) != NULL)
-			{
-				int stype = config_setting_type(setting);
-				char name[512] = { 0 }, *cname;
+			if (member == NULL)
+				continue;
 
-				[[maybe_unused]] int dval, bval;
-				[[maybe_unused]] long long llval;
-				[[maybe_unused]] double fval;
+			const char *cname = config_setting_name(member);
+			int mtype = config_setting_type(member);
 
-				if ((cname = config_setting_name(setting)) != NULL)
-					snprintf(name, 512, "%s", cname);
+			std::cout << indent;
 
-				switch (stype)
-				{
-					case CONFIG_TYPE_INT:
-						dval = config_setting_get_int(setting);
-						INFPRN("%s: Level: %d,  Index: %d - %s <> %d", __PRETTY_FUNCTION__, level, index, name, dval);
-						break;
-					case CONFIG_TYPE_INT64:
-						llval = config_setting_get_int64(setting);
-						INFPRN("%s: Level: %d,  Index: %d - %s <> %lld", __PRETTY_FUNCTION__, level, index, name, llval);
-						break;
-					case CONFIG_TYPE_FLOAT:
-						fval = config_setting_get_float(setting);
-						INFPRN("%s: Level: %d,  Index: %d - %s <> %f", __PRETTY_FUNCTION__, level, index, name, fval);
-						break;
-					case CONFIG_TYPE_STRING:
-						const char *sval;
-						if ((sval = config_setting_get_string(setting)) == NULL)
-							continue;
-						INFPRN("%s: Level: %d,  Index: %d - %s <> %s", __PRETTY_FUNCTION__, level, index, name, sval);
-						break;
-					case CONFIG_TYPE_BOOL:
-						bval = config_setting_get_bool(setting);
-						INFPRN("%s: Level: %d,  Index: %d - %s <> %d", __PRETTY_FUNCTION__, level, index, name, bval);
-						break;
-					case CONFIG_TYPE_ARRAY:
-						INFPRN("%s: Level: %d,  Index: %d - %s <> [array]", __PRETTY_FUNCTION__, level, index, name);
-						print(setting, level+1);
-						break;
-					case CONFIG_TYPE_LIST:
-						INFPRN("%s: Level: %d,  Index: %d - %s <> [list]", __PRETTY_FUNCTION__, level, index, name);
-						print(setting, level+1);
-						break;
-					case CONFIG_TYPE_GROUP:
-						INFPRN("%s: Level: %d,  Index: %d - %s <> [group]", __PRETTY_FUNCTION__, level, index, name);
-						print(setting, level+1);
-						break;
-					default:
-						INFPRN("%s: Level: %d,  Index: %d - %s <> [unknown]", __PRETTY_FUNCTION__, level, index, name);
-						break;
-				}
-			}
-			else
-			{
-				INFPRN("%s: Level: %d,  Index: %d - Unknown", __PRETTY_FUNCTION__, level, index);
-			}
+			if (cname != NULL)
+				std::cout << cname << (_is_block_type(mtype) ? " =\n" + indent : " = ");
+
+			_print_value(member, level, std::cout);
+			std::cout << ";\n";
 		}
 	}
 
