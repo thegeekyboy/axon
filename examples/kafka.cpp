@@ -1,5 +1,5 @@
 /*
- * kafka2r.cpp — generic test suite for axon::stream::kafka
+ * kafka.cpp — generic test suite for axon::stream::kafka
  *
  * Does not assume any specific schema or topic structure.
  * Tests the axon kafka connector and resultset API using
