@@ -76,7 +76,7 @@ target_link_libraries (log ${PROJECT_NAME_MASTER} ${LIBRARIES})
 
 # kafka
 list(APPEND EXAMPLES_LIST kafka)
-add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp logica.cpp)
+add_executable (kafka EXCLUDE_FROM_ALL kafka.cpp)
 target_link_libraries (kafka ${PROJECT_NAME_MASTER} ${LIBRARIES} boost_json)
 
 # kinesis

@@ -39,9 +39,11 @@ namespace axon
 		unsigned long long bytes_to_ull(const char* bytes, size_t size)
 		{
 			unsigned long long result = 0;
-			std::memcpy(&result, bytes, size);
 
-			return __builtin_bswap64(result);
+			for (size_t i = 0; i < size; i++)
+				result = (result << 8) | static_cast<unsigned char>(bytes[i]);
+
+			return result;
 		}
 
 		std::string bytes_to_binarystring(const char *bcd, const size_t size)

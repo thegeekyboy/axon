@@ -71,7 +71,10 @@ add_subdirectory(src)
 
 if(NOT AXON_IS_SUBPROJECT)
 	add_subdirectory(examples)
-	add_subdirectory(experiment)
+
+	if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/experiment/CMakeLists.txt")
+		add_subdirectory(experiment)
+	endif()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} "${CMAKE_CURRENT_BINARY_DIR}/include")
