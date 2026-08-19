@@ -22,7 +22,7 @@ namespace axon {
 			std::shared_ptr<axon::database::oci::statement> _statement;
 			axon::database::oci::error _error;
 
-			bool _running, _executed;
+			bool _running { false }, _executed {false }, _prepared_for_loop { false };
 
 			std::string _hostname, _username, _password;
 
@@ -63,7 +63,12 @@ namespace axon {
 
 				bool transaction(axon::database::trans_t) override;
 
+				bool prepare(const std::string) override;
+
+				bool execute() override;          // execute the already-prepared statement
+				// bool execute(const std::string& sql) override;   // existing — prepare + execute
 				bool execute(const std::string) override;
+
 				bool query(const std::string) override;
 				void fetch(axon::resultset&, int) override;
 				void done() override;

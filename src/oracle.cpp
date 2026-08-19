@@ -457,6 +457,32 @@ namespace axon {
 			return true; 
 		}
 
+		bool oracle::prepare(const std::string sql)
+		{
+			if (_running)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "cannot prepare while query in progress");
+
+			_statement->prepare(sql);
+			_prepared_for_loop = true;
+
+			return true;
+		}
+
+		bool oracle::execute()
+		{
+			if (!_prepared_for_loop)
+				throw axon::exception(__FILENAME__, __LINE__, __PRETTY_FUNCTION__, "no prepared statement — call prepare() first");
+
+			_statement->bind(_bind);
+			_statement->execute(axon::database::exec_type::other);
+			
+			_bind.clear();
+
+			_statement->reset_binds();
+
+			return true;
+		}
+
 		bool oracle::execute(const std::string sql)
 		{
 			// How do we select all columns from a select statement?

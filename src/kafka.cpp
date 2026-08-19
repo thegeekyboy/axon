@@ -314,9 +314,9 @@ namespace axon
 				config.set("enable.auto.commit", "true");
 				config.set("auto.offset.reset", "latest");
 				config.set("bootstrap.servers", _bootstrap_hosts);
-				config.set("session.timeout.ms",    "10000");  // 10s — how long before broker considers consumer dead
-				config.set("max.poll.interval.ms",  "10000");  // 10s — max time between polls before broker kicks consumer
-				config.set("heartbeat.interval.ms", "3000");   // 3s — heartbeat frequency
+				config.set("session.timeout.ms",    "60000");  // 10s — how long before broker considers consumer dead
+				config.set("max.poll.interval.ms",  "60000");  // 10s — max time between polls before broker kicks consumer
+				config.set("heartbeat.interval.ms", "10000");   // 3s — heartbeat frequency
 		#if DEBUG >= 3
 				config.set("debug", "topic,metadata,feature");
 		#endif

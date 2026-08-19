@@ -61,7 +61,9 @@ namespace axon
 
 			bool transaction(trans_t) override;
 
+			bool execute() { return true; }
 			bool execute(const std::string) override;
+
 			bool query(const std::string) override;
 
 			void fetch(axon::resultset &, int) override;
