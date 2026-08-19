@@ -464,6 +464,13 @@ namespace axon {
 					_bool_temps.clear();
 				}
 			}
+			
+			void statement::reset_binds()
+			{
+				_bool_temps.clear();
+				// OCI rebind works by calling OCIBindByPos again on the same positions
+				// — no explicit reset needed at the OCI level, just clear the local state
+			}
 		}
 	}
 }

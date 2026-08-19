@@ -268,6 +268,8 @@ namespace axon
 
 					void execute(axon::database::exec_type);
 					void reset();
+
+					void reset_binds();
 			};
 		}
 	}

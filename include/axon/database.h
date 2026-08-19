@@ -53,6 +53,28 @@ namespace axon {
 			static const trans_t BEGIN = 1;
 		};
 
+		template<typename Connector>
+		class scoped_transaction
+		{
+			Connector& _db;
+			bool       _committed { false };
+
+			public:
+				explicit scoped_transaction(Connector& db) : _db(db) {
+					_db.transaction(axon::database::transaction::BEGIN);
+				}
+				void commit() {
+					_db.transaction(axon::database::transaction::END);
+					_committed = true;
+				}
+				~scoped_transaction() {
+					if (!_committed) {
+						try { _db.transaction(axon::database::transaction::END); }
+						catch (...) {}
+					}
+				}
+		};
+
 		class connector
 		{
 			protected:
@@ -95,7 +117,11 @@ namespace axon {
 
 				virtual bool transaction(trans_t) = 0;
 
-				virtual bool execute(const std::string) = 0;
+				virtual bool prepare(const std::string) { return true; }  // optional default
+
+				virtual bool execute(const std::string) = 0;              // prepare + execute (existing)
+				virtual bool execute() = 0;                               // execute prepared stmt
+				// virtual bool execute(const std::string) = 0;
 
 				template <typename T>
 				bool execute(const std::string sql, T t)
@@ -127,13 +153,17 @@ namespace axon {
 					return query(sql, args...);
 				}
 
-				connector& operator<<(int value) { _bind.push_back(value); return *this; }
-				connector& operator<<(long value) { _bind.push_back(value); return *this; }
-				connector& operator<<(long long value) { _bind.push_back(value); return *this; }
-				connector& operator<<(float value) { _bind.push_back(value); return *this; }
-				connector& operator<<(double value) { _bind.push_back(value); return *this; }
-				connector& operator<<(std::string &value) { _bind.push_back(value); return *this; }
-				connector& operator<<(axon::database::bind &value) { _bind.push_back(value); return *this; }
+				connector& operator<<(int8_t   v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(int16_t  v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(int32_t  v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(int64_t  v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(uint32_t v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(uint64_t v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(float    v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(double   v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(std::string &v) { _bind.push_back(v); return *this; }
+				connector& operator<<(const std::string& v) { _bind.emplace_back(v); return *this; }
+				connector& operator<<(axon::database::bind &v) { _bind.push_back(v); return *this; }
 
 				virtual void fetch(axon::resultset&, int) = 0;
 				virtual void done() = 0;
