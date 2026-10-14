@@ -35,7 +35,27 @@ set(CPACK_RPM_PACKAGE_AUTOREQPROV " no")
 
 set(CPACK_RPM_USER_BINARY_SPECFILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.spec")
 
-execute_process(COMMAND bash -c "git --no-pager log --decorate=short --pretty=short -n 5" OUTPUT_VARIABLE RPM_GIT_LOG)
+# library file names must match what set_target_properties() produced (VERSION / SOVERSION)
+get_target_property(AXON_LIB_VERSION ${PROJECT_NAME} VERSION)
+get_target_property(AXON_LIB_SOVERSION ${PROJECT_NAME} SOVERSION)
+
+# %changelog needs rpm format: "* Wed Oct 14 2026 Name <mail> - hash" followed by "- subject" lines
+execute_process(
+	COMMAND git --no-pager log -n 5 "--date=format:%a %b %d %Y" "--pretty=format:* %ad %an <%ae> - %h%n- %s%n"
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+	OUTPUT_VARIABLE RPM_GIT_LOG
+	ERROR_QUIET
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	RESULT_VARIABLE RPM_GIT_RESULT
+)
+
+if(NOT RPM_GIT_RESULT EQUAL 0)
+	# not a git checkout (tarball build): an empty %changelog is valid
+	set(RPM_GIT_LOG "")
+else()
+	# a literal % in a commit subject would be expanded as an rpm macro
+	string(REPLACE "%" "%%" RPM_GIT_LOG "${RPM_GIT_LOG}")
+endif()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/extras/scripts/pre-install.sh.in" "${CMAKE_CURRENT_BINARY_DIR}/extras/scripts/pre-install.sh" @ONLY IMMEDIATE)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/extras/scripts/post-install.sh.in" "${CMAKE_CURRENT_BINARY_DIR}/extras/scripts/post-install.sh" @ONLY IMMEDIATE)
